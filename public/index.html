@@ -1,193 +1,132 @@
-const express = require("express");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Diabetes Tracker</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 900px; margin: 20px auto; padding: 0 12px; }
+    .card { border: 1px solid #ddd; border-radius: 10px; padding: 14px; margin: 12px 0; }
+    input, button { padding: 8px; margin: 6px 0; }
+    button { cursor: pointer; }
+    pre { background:#f6f6f6; padding:10px; border-radius:8px; overflow:auto; }
+    .row { display:flex; gap:14px; flex-wrap:wrap; }
+    .col { flex:1; min-width:260px; }
+    small { color:#666; }
+  </style>
+</head>
+<body>
+  <h1>Diabetes Tracker</h1>
+  <p><small>Demo app: Register → verify code → login → log glucose readings.</small></p>
 
-let sgMail = null;
-try {
-  sgMail = require("@sendgrid/mail");
-} catch (e) {}
+  <div class="card">
+    <h3>API Health</h3>
+    <button onclick="checkHealth()">Check /api/health</button>
+    <pre id="healthOut"></pre>
+  </div>
 
-const app = express();
-app.use(express.json());
-app.use(express.static("public")); // serves public/index.html
+  <div class="row">
+    <div class="card col">
+      <h3>Register</h3>
+      <input id="regName" placeholder="Full name" />
+      <input id="regEmail" placeholder="Email" />
+      <input id="regPass" placeholder="Password" type="password" />
+      <button onclick="register()">Register</button>
+      <pre id="regOut"></pre>
+    </div>
 
-// ====== ENV ======
-const PORT = process.env.PORT || 3000;
-const JWT_SECRET = process.env.JWT_SECRET || "dev_secret_change_me";
-const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || "";
-const FROM_EMAIL = process.env.FROM_EMAIL || "";
+    <div class="card col">
+      <h3>Verify Email</h3>
+      <input id="verEmail" placeholder="Email" />
+      <input id="verCode" placeholder="6-digit code" />
+      <button onclick="verify()">Verify</button>
+      <pre id="verOut"></pre>
+    </div>
 
-// Configure SendGrid only if keys exist
-if (sgMail && SENDGRID_API_KEY) {
-  sgMail.setApiKey(SENDGRID_API_KEY);
-}
+    <div class="card col">
+      <h3>Login</h3>
+      <input id="logEmail" placeholder="Email" />
+      <input id="logPass" placeholder="Password" type="password" />
+      <button onclick="login()">Login</button>
+      <pre id="logOut"></pre>
+      <div id="meBox"></div>
+    </div>
+  </div>
 
-// ====== In-memory "DB" (OK for demo; later we add a real database) ======
-const users = []; // {id, name, email, passHash, verified, verifyCode, codeExpires}
-const glucoseLogs = []; // {id, userId, valueMgDl, whenISO, note}
+  <div class="card">
+    <h3>Add Glucose Reading</h3>
+    <input id="gValue" placeholder="Glucose mg/dL (example: 110)" />
+    <input id="gNote" placeholder="Note (optional)" />
+    <button onclick="addGlucose()">Add</button>
+    <button onclick="loadGlucose()">Load My Readings</button>
+    <pre id="gOut"></pre>
+  </div>
 
-function genCode() {
-  return String(Math.floor(100000 + Math.random() * 900000)); // 6 digits
-}
-function genId() {
-  return Math.random().toString(36).slice(2) + Date.now().toString(36);
-}
+<script>
+let token = "";
 
-async function sendVerificationEmail(to, code) {
-  // If SendGrid is not configured, just log it (demo mode)
-  if (!sgMail || !SENDGRID_API_KEY || !FROM_EMAIL) {
-    console.log(`[DEMO EMAIL] To: ${to}  Code: ${code}`);
-    return;
-  }
-  await sgMail.send({
-    to,
-    from: FROM_EMAIL,
-    subject: "Your Diabetes Tracker verification code",
-    text: `Your verification code is: ${code}`,
+async function api(path, method="GET", body=null) {
+  const headers = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = "Bearer " + token;
+  const res = await fetch(path, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : null
   });
+  const text = await res.text();
+  try { return { ok: res.ok, status: res.status, data: JSON.parse(text) }; }
+  catch { return { ok: res.ok, status: res.status, data: text }; }
 }
 
-// ====== Health ======
-app.get("/api/health", (req, res) => {
-  res.json({ status: "OK", message: "API is healthy" });
-});
-
-// ====== Auth helpers ======
-function authMiddleware(req, res, next) {
-  const header = req.headers.authorization || "";
-  const token = header.startsWith("Bearer ") ? header.slice(7) : "";
-  if (!token) return res.status(401).json({ error: "Missing token" });
-
-  try {
-    const payload = jwt.verify(token, JWT_SECRET);
-    req.userId = payload.userId;
-    next();
-  } catch (e) {
-    return res.status(401).json({ error: "Invalid token" });
-  }
+async function checkHealth() {
+  const r = await api("/api/health");
+  healthOut.textContent = JSON.stringify(r.data, null, 2);
 }
 
-// ====== AUTH ROUTES ======
-// Register -> sends code to email
-app.post("/api/auth/register", async (req, res) => {
-  const { name, email, password } = req.body || {};
-  if (!name || !email || !password) {
-    return res.status(400).json({ error: "name, email, password are required" });
-  }
-
-  const normEmail = String(email).trim().toLowerCase();
-  if (users.find(u => u.email === normEmail)) {
-    return res.status(400).json({ error: "Email already registered" });
-  }
-
-  const passHash = await bcrypt.hash(password, 10);
-  const code = genCode();
-  const codeExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
-
-  const user = {
-    id: genId(),
-    name: String(name).trim(),
-    email: normEmail,
-    passHash,
-    verified: false,
-    verifyCode: code,
-    codeExpires
-  };
-  users.push(user);
-
-  await sendVerificationEmail(normEmail, code);
-
-  res.json({
-    ok: true,
-    message: "Registered. Check your email for the verification code.",
-    // In demo mode you can show code (REMOVE in real app):
-    demoCode: (!SENDGRID_API_KEY || !FROM_EMAIL) ? code : undefined
+async function register() {
+  const r = await api("/api/auth/register", "POST", {
+    name: regName.value,
+    email: regEmail.value,
+    password: regPass.value
   });
-});
+  regOut.textContent = JSON.stringify(r.data, null, 2);
+  // help user fill verify form
+  verEmail.value = regEmail.value;
+}
 
-// Verify code -> marks verified
-app.post("/api/auth/verify", (req, res) => {
-  const { email, code } = req.body || {};
-  const normEmail = String(email || "").trim().toLowerCase();
-  const user = users.find(u => u.email === normEmail);
-  if (!user) return res.status(400).json({ error: "User not found" });
+async function verify() {
+  const r = await api("/api/auth/verify", "POST", {
+    email: verEmail.value,
+    code: verCode.value
+  });
+  verOut.textContent = JSON.stringify(r.data, null, 2);
+  logEmail.value = verEmail.value;
+}
 
-  if (user.verified) return res.json({ ok: true, message: "Already verified" });
-  if (!code) return res.status(400).json({ error: "code is required" });
-
-  if (Date.now() > user.codeExpires) {
-    return res.status(400).json({ error: "Code expired. Please re-register or add resend endpoint." });
+async function login() {
+  const r = await api("/api/auth/login", "POST", {
+    email: logEmail.value,
+    password: logPass.value
+  });
+  logOut.textContent = JSON.stringify(r.data, null, 2);
+  if (r.ok && r.data.token) {
+    token = r.data.token;
+    const me = await api("/api/me");
+    meBox.innerHTML = "<p><b>Logged in as:</b> " + me.data.name + " (" + me.data.email + ")</p>";
   }
-  if (String(code) !== String(user.verifyCode)) {
-    return res.status(400).json({ error: "Invalid code" });
-  }
+}
 
-  user.verified = true;
-  user.verifyCode = null;
+async function addGlucose() {
+  const r = await api("/api/glucose", "POST", {
+    valueMgDl: Number(gValue.value),
+    note: gNote.value
+  });
+  gOut.textContent = JSON.stringify(r.data, null, 2);
+}
 
-  res.json({ ok: true, message: "Email verified. You can login now." });
-});
-
-// Login -> returns JWT
-app.post("/api/auth/login", async (req, res) => {
-  const { email, password } = req.body || {};
-  const normEmail = String(email || "").trim().toLowerCase();
-  const user = users.find(u => u.email === normEmail);
-  if (!user) return res.status(400).json({ error: "Invalid email or password" });
-
-  if (!user.verified) {
-    return res.status(403).json({ error: "Email not verified" });
-  }
-
-  const ok = await bcrypt.compare(password || "", user.passHash);
-  if (!ok) return res.status(400).json({ error: "Invalid email or password" });
-
-  const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "7d" });
-  res.json({ ok: true, token, name: user.name, email: user.email });
-});
-
-// Me
-app.get("/api/me", authMiddleware, (req, res) => {
-  const user = users.find(u => u.id === req.userId);
-  if (!user) return res.status(404).json({ error: "User not found" });
-  res.json({ id: user.id, name: user.name, email: user.email });
-});
-
-// ====== GLUCOSE ROUTES ======
-app.post("/api/glucose", authMiddleware, (req, res) => {
-  const { valueMgDl, whenISO, note } = req.body || {};
-  const v = Number(valueMgDl);
-  if (!Number.isFinite(v)) return res.status(400).json({ error: "valueMgDl must be a number" });
-
-  const item = {
-    id: genId(),
-    userId: req.userId,
-    valueMgDl: v,
-    whenISO: whenISO ? String(whenISO) : new Date().toISOString(),
-    note: note ? String(note) : ""
-  };
-  glucoseLogs.push(item);
-  res.json({ ok: true, item });
-});
-
-app.get("/api/glucose", authMiddleware, (req, res) => {
-  const list = glucoseLogs
-    .filter(x => x.userId === req.userId)
-    .sort((a, b) => (a.whenISO < b.whenISO ? 1 : -1));
-  res.json(list);
-});
-
-app.delete("/api/glucose/:id", authMiddleware, (req, res) => {
-  const id = req.params.id;
-  const idx = glucoseLogs.findIndex(x => x.id === id && x.userId === req.userId);
-  if (idx === -1) return res.status(404).json({ error: "Not found" });
-  glucoseLogs.splice(idx, 1);
-  res.json({ ok: true });
-});
-
-// Root
-app.get("/", (req, res) => {
-  res.sendFile(__dirname + "/public/index.html");
-});
-
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+async function loadGlucose() {
+  const r = await api("/api/glucose");
+  gOut.textContent = JSON.stringify(r.data, null, 2);
+}
+</script>
+</body>
+</html>

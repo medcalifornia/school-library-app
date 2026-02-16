@@ -3,6 +3,11 @@ const app = express();
 
 app.use(express.json());
 
+// ✅ Root route (so / doesn't show "Cannot GET /")
+app.get('/', (req, res) => {
+  res.send('Library API is running 🚀');
+});
+
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', message: 'API is healthy' });
 });

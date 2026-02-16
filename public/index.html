@@ -6,16 +6,21 @@
   <title>School Library App</title>
   <style>
     body { font-family: Arial, sans-serif; max-width: 900px; margin: 30px auto; padding: 0 16px; }
-    h1 { margin-bottom: 8px; }
-    .card { border: 1px solid #ddd; border-radius: 10px; padding: 16px; margin: 12px 0; }
-    input { padding: 10px; margin: 6px 0; width: 100%; box-sizing: border-box; }
-    button { padding: 10px 14px; margin: 6px 6px 6px 0; cursor: pointer; }
-    .row { display: flex; gap: 10px; }
-    .row > div { flex: 1; }
-    pre { background:#111; color:#0f0; padding:12px; border-radius:10px; overflow:auto; }
-    .small { color:#666; font-size: 14px; }
-    ul { padding-left: 18px; }
-    li { margin: 6px 0; }
+<div class="card">
+  <h3>Register / Verify / Login</h3>
+
+  <input id="email" placeholder="Email" />
+  <input id="password" placeholder="Password (min 8 chars)" type="password" />
+
+  <button onclick="register()">Register (send code)</button>
+
+  <input id="code" placeholder="Verification code (6 digits)" />
+  <button onclick="verify()">Verify code</button>
+
+  <button onclick="login()">Login</button>
+
+  <pre id="authOut">Not logged in</pre>
+</div>
   </style>
 </head>
 <body>
@@ -59,70 +64,67 @@
   </div>
 
 <script>
-  async function checkHealth() {
-    const out = document.getElementById("healthOut");
-    out.textContent = "Loading...";
-    try {
-      const r = await fetch("/api/health");
-      const data = await r.json();
-      out.textContent = JSON.stringify(data, null, 2);
-    } catch (e) {
-      out.textContent = "Error: " + e.message;
-    }
+let TOKEN = localStorage.getItem("token") || "";
+
+function setAuthOutput(obj) {
+  document.getElementById("authOut").textContent = JSON.stringify(obj, null, 2);
+}
+
+async function register() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  const r = await fetch("/api/auth/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password })
+  });
+
+  const data = await r.json();
+  setAuthOutput(data);
+}
+
+async function verify() {
+  const email = document.getElementById("email").value;
+  const code = document.getElementById("code").value;
+
+  const r = await fetch("/api/auth/verify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, code })
+  });
+
+  const data = await r.json();
+  setAuthOutput(data);
+}
+
+async function login() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  const r = await fetch("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password })
+  });
+
+  const data = await r.json();
+
+  if (data.token) {
+    TOKEN = data.token;
+    localStorage.setItem("token", TOKEN);
   }
 
-  async function loadBooks() {
-    const list = document.getElementById("booksList");
-    list.innerHTML = "<li>Loading...</li>";
-    try {
-      const r = await fetch("/api/books");
-      const data = await r.json();
-      list.innerHTML = "";
-      data.forEach(b => {
-        const li = document.createElement("li");
-        li.textContent = `#${b.id} — ${b.title} (by ${b.author})`;
-        list.appendChild(li);
-      });
-    } catch (e) {
-      list.innerHTML = `<li>Error: ${e.message}</li>`;
-    }
-  }
+  setAuthOutput(data);
+}
 
-  async function addBook() {
-    const title = document.getElementById("title").value;
-    const author = document.getElementById("author").value;
-    const out = document.getElementById("addOut");
-    out.textContent = "Sending...";
-    try {
-      const r = await fetch("/api/books", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, author })
-      });
-      const data = await r.json();
-      out.textContent = JSON.stringify(data, null, 2);
-      await loadBooks();
-    } catch (e) {
-      out.textContent = "Error: " + e.message;
-    }
-  }
-
-  async function deleteBook() {
-    const id = document.getElementById("deleteId").value;
-    const out = document.getElementById("delOut");
-    out.textContent = "Deleting...";
-    try {
-      const r = await fetch(`/api/books/${id}`, { method: "DELETE" });
-      const data = await r.json();
-      out.textContent = JSON.stringify(data, null, 2);
-      await loadBooks();
-    } catch (e) {
-      out.textContent = "Error: " + e.message;
-    }
-  }
-
-  // Auto-load on open
-  loadBooks();
+// Example call to a protected endpoint:
+async function whoAmI() {
+  const r = await fetch("/api/auth/me", {
+    headers: { "Authorization": `Bearer ${TOKEN}` }
+  });
+  setAuthOutput(await r.json());
+}
 </script>
 </body>
 </html>

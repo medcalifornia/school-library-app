@@ -1,193 +1,148 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-
-let sgMail = null;
-try {
-  sgMail = require("@sendgrid/mail");
-} catch (e) {}
+const sgMail = require("@sendgrid/mail");
 
 const app = express();
 app.use(express.json());
-app.use(express.static("public")); // serves public/index.html
 
-// ====== ENV ======
-const PORT = process.env.PORT || 3000;
+// Serve frontend
+app.use(express.static("public"));
+
+const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
+const FROM_EMAIL = process.env.FROM_EMAIL;
 const JWT_SECRET = process.env.JWT_SECRET || "dev_secret_change_me";
-const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || "";
-const FROM_EMAIL = process.env.FROM_EMAIL || "";
 
-// Configure SendGrid only if keys exist
-if (sgMail && SENDGRID_API_KEY) {
-  sgMail.setApiKey(SENDGRID_API_KEY);
-}
+// Only set SendGrid if key exists (IMPORTANT)
+if (SENDGRID_API_KEY) sgMail.setApiKey(SENDGRID_API_KEY);
 
-// ====== In-memory "DB" (OK for demo; later we add a real database) ======
-const users = []; // {id, name, email, passHash, verified, verifyCode, codeExpires}
-const glucoseLogs = []; // {id, userId, valueMgDl, whenISO, note}
+// In-memory store (prototype)
+const users = new Map(); // key=email, value={name,email,passwordHash,verified,code}
+const readings = new Map(); // key=email, value=[{value,note,ts}]
 
-function genCode() {
-  return String(Math.floor(100000 + Math.random() * 900000)); // 6 digits
-}
-function genId() {
-  return Math.random().toString(36).slice(2) + Date.now().toString(36);
-}
-
-async function sendVerificationEmail(to, code) {
-  // If SendGrid is not configured, just log it (demo mode)
-  if (!sgMail || !SENDGRID_API_KEY || !FROM_EMAIL) {
-    console.log(`[DEMO EMAIL] To: ${to}  Code: ${code}`);
-    return;
-  }
-  await sgMail.send({
-    to,
-    from: FROM_EMAIL,
-    subject: "Your Diabetes Tracker verification code",
-    text: `Your verification code is: ${code}`,
-  });
-}
-
-// ====== Health ======
+// Health
 app.get("/api/health", (req, res) => {
   res.json({ status: "OK", message: "API is healthy" });
 });
 
-// ====== Auth helpers ======
-function authMiddleware(req, res, next) {
-  const header = req.headers.authorization || "";
-  const token = header.startsWith("Bearer ") ? header.slice(7) : "";
-  if (!token) return res.status(401).json({ error: "Missing token" });
-
+// Register
+app.post("/api/register", async (req, res) => {
   try {
-    const payload = jwt.verify(token, JWT_SECRET);
-    req.userId = payload.userId;
-    next();
-  } catch (e) {
-    return res.status(401).json({ error: "Invalid token" });
+    const { name, email, password } = req.body || {};
+    if (!name || !email || !password) {
+      return res.status(400).json({ error: "Missing name/email/password" });
+    }
+
+    const key = email.toLowerCase().trim();
+    if (users.has(key)) {
+      return res.status(400).json({ error: "Email already registered" });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+
+    users.set(key, { name, email: key, passwordHash, verified: false, code });
+
+    // Email code (if SendGrid configured)
+    if (SENDGRID_API_KEY && FROM_EMAIL) {
+      await sgMail.send({
+        to: key,
+        from: FROM_EMAIL,
+        subject: "Your verification code",
+        text: `Your verification code is: ${code}`,
+      });
+    } else {
+      // If SendGrid is not configured, still succeed (TEST MODE)
+      // You can see the code in the response for testing on Azure.
+      return res.json({
+        message: "Registered (TEST MODE). Configure SendGrid to email codes.",
+        testCode: code
+      });
+    }
+
+    return res.json({ message: "User registered. Check email for code." });
+  } catch (err) {
+    console.error("REGISTER ERROR:", err);
+    return res.status(500).json({ error: "Register failed", details: String(err.message || err) });
   }
-}
-
-// ====== AUTH ROUTES ======
-// Register -> sends code to email
-app.post("/api/auth/register", async (req, res) => {
-  const { name, email, password } = req.body || {};
-  if (!name || !email || !password) {
-    return res.status(400).json({ error: "name, email, password are required" });
-  }
-
-  const normEmail = String(email).trim().toLowerCase();
-  if (users.find(u => u.email === normEmail)) {
-    return res.status(400).json({ error: "Email already registered" });
-  }
-
-  const passHash = await bcrypt.hash(password, 10);
-  const code = genCode();
-  const codeExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
-
-  const user = {
-    id: genId(),
-    name: String(name).trim(),
-    email: normEmail,
-    passHash,
-    verified: false,
-    verifyCode: code,
-    codeExpires
-  };
-  users.push(user);
-
-  await sendVerificationEmail(normEmail, code);
-
-  res.json({
-    ok: true,
-    message: "Registered. Check your email for the verification code.",
-    // In demo mode you can show code (REMOVE in real app):
-    demoCode: (!SENDGRID_API_KEY || !FROM_EMAIL) ? code : undefined
-  });
 });
 
-// Verify code -> marks verified
-app.post("/api/auth/verify", (req, res) => {
+// Verify
+app.post("/api/verify", (req, res) => {
   const { email, code } = req.body || {};
-  const normEmail = String(email || "").trim().toLowerCase();
-  const user = users.find(u => u.email === normEmail);
-  if (!user) return res.status(400).json({ error: "User not found" });
+  if (!email || !code) return res.status(400).json({ error: "Missing email/code" });
 
-  if (user.verified) return res.json({ ok: true, message: "Already verified" });
-  if (!code) return res.status(400).json({ error: "code is required" });
+  const key = email.toLowerCase().trim();
+  const user = users.get(key);
+  if (!user) return res.status(404).json({ error: "User not found" });
 
-  if (Date.now() > user.codeExpires) {
-    return res.status(400).json({ error: "Code expired. Please re-register or add resend endpoint." });
-  }
-  if (String(code) !== String(user.verifyCode)) {
+  if (String(user.code) !== String(code)) {
     return res.status(400).json({ error: "Invalid code" });
   }
 
   user.verified = true;
-  user.verifyCode = null;
+  user.code = null;
+  users.set(key, user);
 
-  res.json({ ok: true, message: "Email verified. You can login now." });
+  res.json({ message: "Email verified. You can login now." });
 });
 
-// Login -> returns JWT
-app.post("/api/auth/login", async (req, res) => {
+// Login
+app.post("/api/login", async (req, res) => {
   const { email, password } = req.body || {};
-  const normEmail = String(email || "").trim().toLowerCase();
-  const user = users.find(u => u.email === normEmail);
+  if (!email || !password) return res.status(400).json({ error: "Missing email/password" });
+
+  const key = email.toLowerCase().trim();
+  const user = users.get(key);
   if (!user) return res.status(400).json({ error: "Invalid email or password" });
 
-  if (!user.verified) {
-    return res.status(403).json({ error: "Email not verified" });
-  }
-
-  const ok = await bcrypt.compare(password || "", user.passHash);
+  const ok = await bcrypt.compare(password, user.passwordHash);
   if (!ok) return res.status(400).json({ error: "Invalid email or password" });
 
-  const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "7d" });
-  res.json({ ok: true, token, name: user.name, email: user.email });
+  if (!user.verified) return res.status(403).json({ error: "Email not verified" });
+
+  const token = jwt.sign({ email: user.email, name: user.name }, JWT_SECRET, { expiresIn: "2h" });
+  res.json({ message: "Logged in", token, name: user.name });
 });
 
-// Me
-app.get("/api/me", authMiddleware, (req, res) => {
-  const user = users.find(u => u.id === req.userId);
-  if (!user) return res.status(404).json({ error: "User not found" });
-  res.json({ id: user.id, name: user.name, email: user.email });
+// Auth middleware
+function requireAuth(req, res, next) {
+  const header = req.headers.authorization || "";
+  const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+  if (!token) return res.status(401).json({ error: "Missing token" });
+
+  try {
+    req.user = jwt.verify(token, JWT_SECRET);
+    next();
+  } catch {
+    return res.status(401).json({ error: "Invalid token" });
+  }
+}
+
+// Add reading
+app.post("/api/readings", requireAuth, (req, res) => {
+  const { value, note } = req.body || {};
+  const num = Number(value);
+  if (!Number.isFinite(num)) return res.status(400).json({ error: "Glucose value must be a number" });
+
+  const email = req.user.email;
+  const arr = readings.get(email) || [];
+  arr.push({ value: num, note: note || "", ts: new Date().toISOString() });
+  readings.set(email, arr);
+
+  res.json({ message: "Reading added", count: arr.length });
 });
 
-// ====== GLUCOSE ROUTES ======
-app.post("/api/glucose", authMiddleware, (req, res) => {
-  const { valueMgDl, whenISO, note } = req.body || {};
-  const v = Number(valueMgDl);
-  if (!Number.isFinite(v)) return res.status(400).json({ error: "valueMgDl must be a number" });
-
-  const item = {
-    id: genId(),
-    userId: req.userId,
-    valueMgDl: v,
-    whenISO: whenISO ? String(whenISO) : new Date().toISOString(),
-    note: note ? String(note) : ""
-  };
-  glucoseLogs.push(item);
-  res.json({ ok: true, item });
+// Get readings
+app.get("/api/readings", requireAuth, (req, res) => {
+  const email = req.user.email;
+  res.json(readings.get(email) || []);
 });
 
-app.get("/api/glucose", authMiddleware, (req, res) => {
-  const list = glucoseLogs
-    .filter(x => x.userId === req.userId)
-    .sort((a, b) => (a.whenISO < b.whenISO ? 1 : -1));
-  res.json(list);
-});
-
-app.delete("/api/glucose/:id", authMiddleware, (req, res) => {
-  const id = req.params.id;
-  const idx = glucoseLogs.findIndex(x => x.id === id && x.userId === req.userId);
-  if (idx === -1) return res.status(404).json({ error: "Not found" });
-  glucoseLogs.splice(idx, 1);
-  res.json({ ok: true });
-});
-
-// Root
+// Root page
 app.get("/", (req, res) => {
   res.sendFile(__dirname + "/public/index.html");
 });
 
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

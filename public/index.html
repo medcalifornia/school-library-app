@@ -5,17 +5,25 @@
   <title>Health Tracker - Login/Register</title>
   <style>
     body { font-family: Arial; max-width: 720px; margin: 20px auto; padding: 20px; }
-    input, select { width: 100%; padding: 10px; margin: 6px 0; }
+    input, select { width: 100%; padding: 10px; margin: 6px 0; box-sizing: border-box; }
     button { padding: 10px 14px; margin-top: 8px; cursor: pointer; }
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
     .card { border: 1px solid #ddd; padding: 14px; border-radius: 10px; }
-    .msg { margin-top: 10px; }
+    .msg { margin-top: 10px; color: #b00020; min-height: 18px; }
+    hr { margin: 14px 0; border: none; border-top: 1px solid #eee; }
+    .ok { color: #0a7a0a; }
+    .muted { color: #666; font-size: 14px; }
+    @media (max-width: 860px) {
+      .row { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
+
 <body>
   <h2>Health Tracker</h2>
 
   <div class="row">
+    <!-- REGISTER -->
     <div class="card">
       <h3>Register</h3>
       <input id="rName" placeholder="Full name" />
@@ -26,92 +34,243 @@
       <div class="msg" id="rMsg"></div>
     </div>
 
+    <!-- LOGIN + FORGOT PASSWORD -->
     <div class="card">
       <h3>Login</h3>
       <input id="lEmail" placeholder="Email" />
       <input id="lPass" placeholder="Password" type="password" />
       <button onclick="login()">Login</button>
+      <div class="msg" id="lMsg"></div>
 
       <hr />
 
-      <h3>Forgot Password (SMS)</h3>
-      <input id="fpPhone" placeholder="+1-***-****" />
-      <button onclick="sendReset()">Send Code</button>
+      <!-- ===== Forgot Password (SMS) - STEP WIZARD ===== -->
+      <div style="border:1px solid #eee;padding:14px;border-radius:10px;">
+        <h3 style="margin:0 0 10px;">Forgot Password (SMS)</h3>
 
-      <input id="fpCode" placeholder="6-digit code" />
-      <button onclick="verifyCode()">Verify Code</button>
+        <!-- STEP 1 -->
+        <div id="fp1">
+          <div class="muted" style="margin-bottom:6px;">
+            Phone: <b id="fpMask">Enter your phone</b>
+          </div>
 
-      <input id="fpNewPass" placeholder="New password" type="password" />
-      <button onclick="resetPass()">Reset Password</button>
+          <input id="fpPhone" placeholder="+15625416709" style="width:100%;padding:10px;margin:8px 0;" />
 
-      <div class="msg" id="lMsg"></div>
+          <button onclick="fpSend()">Send Code</button>
+          <div class="msg" id="fpMsg1"></div>
+        </div>
+
+        <!-- STEP 2 -->
+        <div id="fp2" style="display:none;margin-top:12px;">
+          <div class="muted" style="margin-bottom:6px;">
+            Enter the 6-digit code sent to <b id="fpMask2"></b>
+          </div>
+
+          <input id="fpCode" maxlength="6" inputmode="numeric" placeholder="6-digit code" />
+
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button onclick="fpVerify()">Verify Code</button>
+            <button onclick="fpBack()">Back</button>
+            <button onclick="fpResend()">Resend</button>
+          </div>
+
+          <div class="msg" id="fpMsg2"></div>
+        </div>
+
+        <!-- STEP 3 -->
+        <div id="fp3" style="display:none;margin-top:12px;">
+          <div class="muted" style="margin-bottom:6px;">Set your new password</div>
+
+          <input id="fpNew" type="password" placeholder="New password (min 8 chars)" />
+
+          <button onclick="fpReset()">Reset Password</button>
+          <div class="msg" id="fpMsg3"></div>
+        </div>
+      </div>
+      <!-- ===== end wizard ===== -->
+
     </div>
   </div>
 
 <script>
+/* =========================
+   REGISTER + LOGIN (yours)
+========================= */
 async function register() {
+  rMsg.textContent = "";
   const body = {
     name: rName.value,
     email: rEmail.value,
     phone: rPhone.value,
     password: rPass.value
   };
+
   const res = await fetch("/api/register", {
     method: "POST",
     headers: {"Content-Type":"application/json"},
     body: JSON.stringify(body)
   });
+
   const data = await res.json();
   rMsg.textContent = data.message || data.error || "Done";
+  if (data.message) rMsg.className = "msg ok";
+  else rMsg.className = "msg";
 }
 
 async function login() {
+  lMsg.textContent = "";
   const body = { email: lEmail.value, password: lPass.value };
+
   const res = await fetch("/api/login", {
     method: "POST",
     headers: {"Content-Type":"application/json"},
     body: JSON.stringify(body)
   });
+
   const data = await res.json();
+
   if (data.userId) {
     localStorage.setItem("userId", data.userId);
     localStorage.setItem("name", data.name || "");
+    // ✅ store email so admin/server can use later if needed
+    localStorage.setItem("email", lEmail.value.trim());
+    // ✅ IMPORTANT: also store phone if server returns it (optional)
+    if (data.phone) localStorage.setItem("phone", data.phone);
+
     location.href = "/app.html";
   } else {
     lMsg.textContent = data.error || "Login failed";
+    lMsg.className = "msg";
   }
 }
 
-async function sendReset() {
-  const res = await fetch("/api/forgot-password", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({ phone: fpPhone.value })
-  });
-  const data = await res.json();
-  lMsg.textContent = data.message || data.error || "";
+/* =========================
+   FORGOT PASSWORD WIZARD
+   Uses YOUR endpoints:
+   1) /api/forgot-password
+   2) /api/verify-reset-code
+   3) /api/reset-password
+========================= */
+const FP_START  = "/api/forgot-password";
+const FP_VERIFY = "/api/verify-reset-code";
+const FP_RESET  = "/api/reset-password";
+
+const $ = (id) => document.getElementById(id);
+
+function maskPhone(p){
+  if(!p) return "••••••••••";
+  const clean = String(p).trim();
+  const last4 = clean.slice(-4);
+  return "••••••" + last4;
 }
 
-async function verifyCode() {
-  const res = await fetch("/api/verify-reset-code", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({ phone: fpPhone.value, code: fpCode.value })
-  });
-  const data = await res.json();
-  lMsg.textContent = data.message || data.error || "";
+function showSteps(a,b,c){
+  $("fp1").style.display = a;
+  $("fp2").style.display = b;
+  $("fp3").style.display = c;
 }
 
-async function resetPass() {
-  const res = await fetch("/api/reset-password", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({ phone: fpPhone.value, newPassword: fpNewPass.value })
-  });
-  const data = await res.json();
-  lMsg.textContent = data.message || data.error || "";
+function setMsg(elId, text, ok=false){
+  const e = $(elId);
+  e.textContent = text || "";
+  e.className = ok ? "msg ok" : "msg";
+}
+
+// Init: if phone already saved (from earlier), mask it and fill input
+(function initFP(){
+  const saved = localStorage.getItem("phone") || "";
+  if(saved){
+    $("fpPhone").value = saved;
+    $("fpMask").textContent = maskPhone(saved);
+    $("fpMask2").textContent = maskPhone(saved);
+  }
+})();
+
+async function fpSend(){
+  setMsg("fpMsg1","");
+  const phone = $("fpPhone").value.trim();
+  if(!phone) return setMsg("fpMsg1","Please enter your phone number.");
+
+  localStorage.setItem("phone", phone);
+  $("fpMask").textContent = maskPhone(phone);
+  $("fpMask2").textContent = maskPhone(phone);
+
+  try{
+    const r = await fetch(FP_START,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ phone })
+    });
+    const d = await r.json();
+    if(!r.ok) return setMsg("fpMsg1", d.error || "Failed to send code.");
+    setMsg("fpMsg1", d.message || "Code sent ✅", true);
+    showSteps("none","block","none");
+  }catch(e){
+    setMsg("fpMsg1","Network error.");
+  }
+}
+
+async function fpResend(){
+  setMsg("fpMsg2","");
+  await fpSend();
+}
+
+function fpBack(){
+  setMsg("fpMsg2","");
+  showSteps("block","none","none");
+}
+
+async function fpVerify(){
+  setMsg("fpMsg2","");
+  const phone = $("fpPhone").value.trim();
+  const code = $("fpCode").value.trim();
+  if(!phone) return setMsg("fpMsg2","Phone missing. Go back.");
+  if(!/^\d{6}$/.test(code)) return setMsg("fpMsg2","Enter a valid 6-digit code.");
+
+  try{
+    const r = await fetch(FP_VERIFY,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ phone, code })
+    });
+    const d = await r.json();
+    if(!r.ok) return setMsg("fpMsg2", d.error || "Invalid code.");
+    sessionStorage.setItem("fp_code", code);
+    setMsg("fpMsg2", d.message || "Verified ✅", true);
+    showSteps("none","none","block");
+  }catch(e){
+    setMsg("fpMsg2","Network error.");
+  }
+}
+
+async function fpReset(){
+  setMsg("fpMsg3","");
+  const phone = $("fpPhone").value.trim();
+  const code = sessionStorage.getItem("fp_code") || "";
+  const newPassword = $("fpNew").value;
+
+  if(!phone) return setMsg("fpMsg3","Phone missing.");
+  if(!code) return setMsg("fpMsg3","Verify the code first.");
+  if(!newPassword || newPassword.length < 8) return setMsg("fpMsg3","Password must be at least 8 characters.");
+
+  try{
+    const r = await fetch(FP_RESET,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ phone, newPassword })
+    });
+    const d = await r.json();
+    if(!r.ok) return setMsg("fpMsg3", d.error || "Reset failed.");
+    setMsg("fpMsg3", d.message || "Password changed ✅ You can login now.", true);
+    sessionStorage.removeItem("fp_code");
+    // reset wizard to step 1
+    showSteps("block","none","none");
+    $("fpCode").value = "";
+    $("fpNew").value = "";
+  }catch(e){
+    setMsg("fpMsg3","Network error.");
+  }
 }
 </script>
-
 </body>
 </html>

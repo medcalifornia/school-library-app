@@ -1,113 +1,116 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
 <head>
-  <title>Health Tracker</title>
+  <meta charset="utf-8" />
+  <title>Health Tracker - Login/Register</title>
   <style>
-    body { font-family: Arial; max-width: 400px; margin: auto; padding: 40px; }
-    input { width: 100%; padding: 8px; margin: 6px 0; }
-    button { width: 100%; padding: 8px; margin: 6px 0; }
-    .box { border: 1px solid #ddd; padding: 20px; margin-bottom: 20px; }
-    .link { color: blue; cursor: pointer; font-size: 14px; }
+    body { font-family: Arial; max-width: 720px; margin: 20px auto; padding: 20px; }
+    input, select { width: 100%; padding: 10px; margin: 6px 0; }
+    button { padding: 10px 14px; margin-top: 8px; cursor: pointer; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .card { border: 1px solid #ddd; padding: 14px; border-radius: 10px; }
+    .msg { margin-top: 10px; }
   </style>
 </head>
 <body>
+  <h2>Health Tracker</h2>
 
-<h2>Health Tracker</h2>
+  <div class="row">
+    <div class="card">
+      <h3>Register</h3>
+      <input id="rName" placeholder="Full name" />
+      <input id="rEmail" placeholder="Email" />
+      <input id="rPhone" placeholder="+15625416709" />
+      <input id="rPass" placeholder="Password" type="password" />
+      <button onclick="register()">Register</button>
+      <div class="msg" id="rMsg"></div>
+    </div>
 
-<div class="box">
-  <h3>Register</h3>
-  <input type="text" id="regName" placeholder="Full Name">
-  <input type="email" id="regEmail" placeholder="Email">
-  <input type="password" id="regPassword" placeholder="Password">
-  <button onclick="register()">Register</button>
-</div>
+    <div class="card">
+      <h3>Login</h3>
+      <input id="lEmail" placeholder="Email" />
+      <input id="lPass" placeholder="Password" type="password" />
+      <button onclick="login()">Login</button>
 
-<div class="box">
-  <h3>Login</h3>
-  <input type="email" id="loginEmail" placeholder="Email">
-  <input type="password" id="loginPassword" placeholder="Password">
-  <button onclick="login()">Login</button>
-  <div class="link" onclick="showRecovery()">Forgot Password?</div>
-</div>
+      <hr />
 
-<div class="box" id="recoveryBox" style="display:none;">
-  <h3>Recover Account</h3>
-  <input type="email" id="recoverEmail" placeholder="Enter your registered email">
-  <input type="password" id="newPassword" placeholder="New Password">
-  <button onclick="recoverPassword()">Reset Password</button>
-</div>
+      <h3>Forgot Password (SMS)</h3>
+      <input id="fpPhone" placeholder="+15625416709" />
+      <button onclick="sendReset()">Send Code</button>
+
+      <input id="fpCode" placeholder="6-digit code" />
+      <button onclick="verifyCode()">Verify Code</button>
+
+      <input id="fpNewPass" placeholder="New password" type="password" />
+      <button onclick="resetPass()">Reset Password</button>
+
+      <div class="msg" id="lMsg"></div>
+    </div>
+  </div>
 
 <script>
-
-let users = JSON.parse(localStorage.getItem("users")) || [];
-
-function saveUsers() {
-  localStorage.setItem("users", JSON.stringify(users));
+async function register() {
+  const body = {
+    name: rName.value,
+    email: rEmail.value,
+    phone: rPhone.value,
+    password: rPass.value
+  };
+  const res = await fetch("/api/register", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(body)
+  });
+  const data = await res.json();
+  rMsg.textContent = data.message || data.error || "Done";
 }
 
-function register() {
-  const name = regName.value;
-  const email = regEmail.value;
-  const password = regPassword.value;
-
-  if (!name || !email || !password) {
-    alert("Fill all fields");
-    return;
+async function login() {
+  const body = { email: lEmail.value, password: lPass.value };
+  const res = await fetch("/api/login", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(body)
+  });
+  const data = await res.json();
+  if (data.userId) {
+    localStorage.setItem("userId", data.userId);
+    localStorage.setItem("name", data.name || "");
+    location.href = "/app.html";
+  } else {
+    lMsg.textContent = data.error || "Login failed";
   }
-
-  if (users.find(u => u.email === email)) {
-    alert("User already exists");
-    return;
-  }
-
-  users.push({ name, email, password });
-  saveUsers();
-
-  alert("Registration successful!");
 }
 
-function login() {
-  const email = loginEmail.value;
-  const password = loginPassword.value;
-
-  const user = users.find(u => u.email === email && u.password === password);
-
-  if (!user) {
-    alert("Invalid email or password");
-    return;
-  }
-
-  localStorage.setItem("currentUser", JSON.stringify(user));
-  window.location.href = "app.html";
+async function sendReset() {
+  const res = await fetch("/api/forgot-password", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ phone: fpPhone.value })
+  });
+  const data = await res.json();
+  lMsg.textContent = data.message || data.error || "";
 }
 
-function showRecovery() {
-  document.getElementById("recoveryBox").style.display = "block";
+async function verifyCode() {
+  const res = await fetch("/api/verify-reset-code", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ phone: fpPhone.value, code: fpCode.value })
+  });
+  const data = await res.json();
+  lMsg.textContent = data.message || data.error || "";
 }
 
-function recoverPassword() {
-  const email = recoverEmail.value;
-  const newPass = newPassword.value;
-
-  const user = users.find(u => u.email === email);
-
-  if (!user) {
-    alert("Email not found");
-    return;
-  }
-
-  if (!newPass) {
-    alert("Enter new password");
-    return;
-  }
-
-  user.password = newPass;
-  saveUsers();
-
-  alert("Password updated successfully! You can login now.");
-  document.getElementById("recoveryBox").style.display = "none";
+async function resetPass() {
+  const res = await fetch("/api/reset-password", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ phone: fpPhone.value, newPassword: fpNewPass.value })
+  });
+  const data = await res.json();
+  lMsg.textContent = data.message || data.error || "";
 }
-
 </script>
 
 </body>

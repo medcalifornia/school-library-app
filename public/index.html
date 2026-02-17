@@ -1,54 +1,78 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Register</title>
+  <title>Health Tracker - Login</title>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 700px; margin: 30px auto; padding: 0 16px; }
-    .card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; }
-    input { width: 100%; padding: 10px; margin: 8px 0; }
-    button { padding: 10px 14px; cursor: pointer; }
-    pre { background: #f6f6f6; padding: 12px; border-radius: 10px; overflow:auto; }
+    body { font-family: Arial; max-width: 400px; margin: auto; padding: 40px; }
+    input { width: 100%; padding: 8px; margin: 6px 0; }
+    button { width: 100%; padding: 8px; margin: 6px 0; }
+    .box { border: 1px solid #ddd; padding: 20px; margin-bottom: 20px; }
   </style>
 </head>
 <body>
-  <h2>Register</h2>
 
-  <div class="card">
-    <input id="name" placeholder="Full name" />
-    <input id="email" placeholder="Email" />
-    <input id="phone" placeholder="Phone (SMS) e.g. +15625551234 or 5625551234" />
-    <input id="pass" type="password" placeholder="Password" />
-    <button onclick="register()">Register</button>
-    <pre id="out"></pre>
-  </div>
+<h2>Health Tracker</h2>
+
+<div class="box">
+  <h3>Register</h3>
+  <input type="text" id="regName" placeholder="Full Name">
+  <input type="email" id="regEmail" placeholder="Email">
+  <input type="password" id="regPassword" placeholder="Password">
+  <button onclick="register()">Register</button>
+</div>
+
+<div class="box">
+  <h3>Login</h3>
+  <input type="email" id="loginEmail" placeholder="Email">
+  <input type="password" id="loginPassword" placeholder="Password">
+  <button onclick="login()">Login</button>
+</div>
 
 <script>
-async function register(){
-  const body = {
-    name: document.getElementById("name").value.trim(),
-    email: document.getElementById("email").value.trim(),
-    phone: document.getElementById("phone").value.trim(),
-    password: document.getElementById("pass").value
-  };
 
-  const res = await fetch("/api/register", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify(body)
-  });
+let users = JSON.parse(localStorage.getItem("users")) || [];
 
-  const data = await res.json().catch(()=>({}));
-  document.getElementById("out").textContent = JSON.stringify(data, null, 2);
-
-  if (data.ok) {
-    // Save for verify page
-    localStorage.setItem("pendingEmail", body.email);
-    localStorage.setItem("pendingPhone", body.phone);
-    window.location.href = "/verify.html";
-  }
+function saveUsers() {
+  localStorage.setItem("users", JSON.stringify(users));
 }
+
+function register() {
+  const name = document.getElementById("regName").value;
+  const email = document.getElementById("regEmail").value;
+  const password = document.getElementById("regPassword").value;
+
+  if (!name || !email || !password) {
+    alert("Fill all fields");
+    return;
+  }
+
+  if (users.find(u => u.email === email)) {
+    alert("User already exists");
+    return;
+  }
+
+  users.push({ name, email, password });
+  saveUsers();
+
+  alert("Registration successful! You can login now.");
+}
+
+function login() {
+  const email = document.getElementById("loginEmail").value;
+  const password = document.getElementById("loginPassword").value;
+
+  const user = users.find(u => u.email === email && u.password === password);
+
+  if (!user) {
+    alert("Invalid email or password");
+    return;
+  }
+
+  localStorage.setItem("currentUser", JSON.stringify(user));
+  window.location.href = "app.html";
+}
+
 </script>
+
 </body>
 </html>

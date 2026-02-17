@@ -1,1 +1,171 @@
-f
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Health Tracker - Forgot Password</title>
+  <style>
+    body { font-family: Arial; max-width: 520px; margin: 40px auto; padding: 20px; }
+    .card { border: 1px solid #ddd; padding: 18px; border-radius: 12px; }
+    input { width: 100%; padding: 10px; margin: 8px 0; box-sizing: border-box; }
+    button { padding: 10px 14px; cursor: pointer; width: 100%; margin-top: 8px; }
+    .rowBtns { display:flex; gap:10px; margin-top: 8px; }
+    .rowBtns button { width: 100%; }
+    .msg { margin-top: 10px; color: #b00020; min-height: 18px; }
+    .ok { color: #0a7a0a; }
+    .muted { color:#666; font-size: 14px; }
+    a { text-decoration: none; display:inline-block; margin-top: 12px; }
+  </style>
+</head>
+<body>
+
+  <h2>Health Tracker</h2>
+
+  <div class="card">
+    <h3>Forgot Password (SMS)</h3>
+
+    <!-- STEP 1 -->
+    <div id="step1">
+      <div class="muted">Enter your phone number. We will send a 6-digit code.</div>
+      <input id="phone" placeholder="+15625416709" />
+      <button onclick="sendCode()">Send Code</button>
+      <div class="msg" id="msg1"></div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div id="step2" style="display:none;">
+      <div class="muted">Code sent to <b id="masked"></b></div>
+      <input id="code" placeholder="6-digit code" maxlength="6" inputmode="numeric" />
+      <div class="rowBtns">
+        <button onclick="verifyCode()">Verify</button>
+        <button onclick="resend()">Resend</button>
+      </div>
+      <button onclick="backTo1()" style="margin-top:10px;">Back</button>
+      <div class="msg" id="msg2"></div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div id="step3" style="display:none;">
+      <div class="muted">Verified ✅ Set a new password.</div>
+      <input id="newpass" type="password" placeholder="New password (min 8 chars)" />
+      <button onclick="resetPassword()">Reset Password</button>
+      <div class="msg" id="msg3"></div>
+    </div>
+
+    <a href="/index.html">← Back to Login</a>
+  </div>
+
+<script>
+const API_SEND   = "/api/forgot-password";
+const API_VERIFY = "/api/verify-reset-code";
+const API_RESET  = "/api/reset-password";
+
+const $ = (id)=>document.getElementById(id);
+
+function maskPhone(p){
+  if(!p) return "••••••••••";
+  const s = String(p).trim();
+  return "••••••" + s.slice(-4);
+}
+
+function setMsg(id, text, ok=false){
+  const el = $(id);
+  el.textContent = text || "";
+  el.className = ok ? "msg ok" : "msg";
+}
+
+function show(step){
+  $("step1").style.display = step===1 ? "block":"none";
+  $("step2").style.display = step===2 ? "block":"none";
+  $("step3").style.display = step===3 ? "block":"none";
+}
+
+async function sendCode(){
+  setMsg("msg1","");
+  const phone = $("phone").value.trim();
+  if(!phone) return setMsg("msg1","Please enter your phone number.");
+
+  localStorage.setItem("fp_phone", phone);
+  $("masked").textContent = maskPhone(phone);
+
+  try{
+    const res = await fetch(API_SEND,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ phone })
+    });
+    const data = await res.json();
+    if(!res.ok) return setMsg("msg1", data.error || "Failed to send code.");
+    setMsg("msg1", data.message || "Code sent ✅", true);
+    show(2);
+  }catch(e){
+    setMsg("msg1","Network error.");
+  }
+}
+
+async function resend(){
+  setMsg("msg2","");
+  await sendCode();
+}
+
+function backTo1(){
+  setMsg("msg2","");
+  show(1);
+}
+
+async function verifyCode(){
+  setMsg("msg2","");
+  const phone = localStorage.getItem("fp_phone") || $("phone").value.trim();
+  const code = $("code").value.trim();
+
+  if(!phone) return setMsg("msg2","Phone missing. Go back.");
+  if(!/^\d{6}$/.test(code)) return setMsg("msg2","Enter a valid 6-digit code.");
+
+  try{
+    const res = await fetch(API_VERIFY,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ phone, code })
+    });
+    const data = await res.json();
+    if(!res.ok) return setMsg("msg2", data.error || "Invalid code.");
+
+    sessionStorage.setItem("fp_code_ok", code);
+    setMsg("msg2", data.message || "Verified ✅", true);
+    show(3);
+  }catch(e){
+    setMsg("msg2","Network error.");
+  }
+}
+
+async function resetPassword(){
+  setMsg("msg3","");
+  const phone = localStorage.getItem("fp_phone") || "";
+  const code = sessionStorage.getItem("fp_code_ok") || "";
+  const newPassword = $("newpass").value;
+
+  if(!phone) return setMsg("msg3","Phone missing.");
+  if(!code) return setMsg("msg3","Verify code first.");
+  if(!newPassword || newPassword.length < 8) return setMsg("msg3","Password must be at least 8 characters.");
+
+  try{
+    // Your server currently accepts { phone, newPassword }
+    // If your backend needs { phone, code, newPassword }, tell me and I’ll change it.
+    const res = await fetch(API_RESET,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ phone, newPassword })
+    });
+    const data = await res.json();
+
+    if(!res.ok) return setMsg("msg3", data.error || "Reset failed.");
+    setMsg("msg3", data.message || "Password reset ✅ Now go back to login.", true);
+
+    sessionStorage.removeItem("fp_code_ok");
+  }catch(e){
+    setMsg("msg3","Network error.");
+  }
+}
+</script>
+
+</body>
+</html>

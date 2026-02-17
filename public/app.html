@@ -1,96 +1,153 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>App - Diabetes Tracker</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Health Tracker</title>
   <style>
-    body{font-family:Arial;margin:24px;background:#f6f7fb}
-    .card{max-width:900px;background:#fff;padding:18px;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08)}
-    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    input{width:100%;padding:10px;margin:8px 0}
-    button{padding:10px 14px;cursor:pointer;margin-right:8px}
-    pre{background:#111;color:#0f0;padding:10px;border-radius:10px;overflow:auto}
-    .small{font-size:12px;opacity:.75}
+    body { font-family: Arial, sans-serif; max-width: 900px; margin: 30px auto; padding: 0 16px; }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+    input { padding: 10px; margin: 6px 0; width: 100%; }
+    button { padding: 10px 14px; cursor:pointer; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: left; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    @media (max-width: 700px){ .row, .row3 { grid-template-columns: 1fr; } }
+    .muted { color: #666; font-size: 12px; }
   </style>
 </head>
 <body>
+  <h2>Health Tracker</h2>
+  <div class="muted">Auto date/time is added by the server when you save.</div>
+
   <div class="card">
-    <h2>Diabetes Tracker</h2>
-    <p class="small">Server automatically saves date/time for each entry.</p>
-
+    <h3>Add Glucose</h3>
     <div class="row">
-      <div>
-        <h3>Add Reading</h3>
-        <input id="glucose" placeholder="Glucose (mg/dL) optional e.g. 110" />
-        <input id="sys" placeholder="Blood Pressure Systolic optional e.g. 120" />
-        <input id="dia" placeholder="Blood Pressure Diastolic optional e.g. 80" />
-        <input id="note" placeholder="Note (optional)" />
+      <input id="glucose" placeholder="Glucose mg/dL (e.g. 110)" />
+      <input id="gNote" placeholder="Note (optional)" />
+    </div>
+    <button onclick="addGlucose()">Save Glucose</button>
+  </div>
 
-        <button onclick="addReading()">Add</button>
-        <button onclick="loadReadings()">Load My Readings</button>
-        <button onclick="logout()">Logout</button>
-      </div>
+  <div class="card">
+    <h3>Add Blood Pressure</h3>
+    <div class="row3">
+      <input id="sys" placeholder="Systolic (e.g. 120)" />
+      <input id="dia" placeholder="Diastolic (e.g. 80)" />
+      <input id="bpNote" placeholder="Note (optional)" />
+    </div>
+    <button onclick="addBP()">Save Blood Pressure</button>
+  </div>
 
-      <div>
-        <h3>Output</h3>
-        <pre id="out">...</pre>
-      </div>
+  <div class="card">
+    <div class="row">
+      <button onclick="loadReadings()">Load My Readings</button>
+      <button onclick="logout()">Logout</button>
     </div>
   </div>
 
+  <div class="card">
+    <h3>My Readings</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Date/Time</th>
+          <th>Type</th>
+          <th>Value</th>
+          <th>Note</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+
 <script>
-  function token(){ return localStorage.getItem("token"); }
+function token(){
+  return localStorage.getItem("token");
+}
 
-  async function addReading(){
-    const t = token();
-    if (!t) return show({error:"No token. Go to /verify.html and login."});
+function requireLogin(){
+  if (!token()) window.location.href = "/verify.html";
+}
+requireLogin();
 
-    const body = {
-      glucose: document.getElementById("glucose").value,
-      systolic: document.getElementById("sys").value,
-      diastolic: document.getElementById("dia").value,
-      note: document.getElementById("note").value
-    };
+async function api(url, method="GET", body=null){
+  const opts = {
+    method,
+    headers: {
+      "Content-Type":"application/json",
+      "Authorization": "Bearer " + token()
+    }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(url, opts);
+  const data = await res.json().catch(()=>({}));
+  if (!res.ok) throw data;
+  return data;
+}
 
-    const res = await fetch("/api/readings", {
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization":`Bearer ${t}`
-      },
-      body: JSON.stringify(body)
-    });
+async function addGlucose(){
+  const g = document.getElementById("glucose").value.trim();
+  const note = document.getElementById("gNote").value.trim();
 
-    const data = await res.json().catch(()=>({}));
-    show(data);
+  await api("/api/readings", "POST", {
+    type: "glucose",
+    glucose_mgdl: g,
+    note: note || null
+  });
+
+  document.getElementById("glucose").value = "";
+  document.getElementById("gNote").value = "";
+  await loadReadings();
+}
+
+async function addBP(){
+  const sys = document.getElementById("sys").value.trim();
+  const dia = document.getElementById("dia").value.trim();
+  const note = document.getElementById("bpNote").value.trim();
+
+  await api("/api/readings", "POST", {
+    type: "bp",
+    systolic: sys,
+    diastolic: dia,
+    note: note || null
+  });
+
+  document.getElementById("sys").value = "";
+  document.getElementById("dia").value = "";
+  document.getElementById("bpNote").value = "";
+  await loadReadings();
+}
+
+async function loadReadings(){
+  const data = await api("/api/readings");
+  const tbody = document.getElementById("rows");
+  tbody.innerHTML = "";
+
+  for (const r of data.rows || []) {
+    const dt = new Date(r.created_at).toLocaleString();
+    let value = "";
+    if (r.type === "glucose") value = `${r.glucose_mgdl} mg/dL`;
+    if (r.type === "bp") value = `${r.systolic}/${r.diastolic} mmHg`;
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${dt}</td>
+      <td>${r.type}</td>
+      <td>${value}</td>
+      <td>${r.note || ""}</td>
+    `;
+    tbody.appendChild(tr);
   }
+}
 
-  async function loadReadings(){
-    const t = token();
-    if (!t) return show({error:"No token. Go to /verify.html and login."});
+function logout(){
+  localStorage.removeItem("token");
+  window.location.href = "/verify.html";
+}
 
-    const res = await fetch("/api/readings", {
-      headers:{ "Authorization":`Bearer ${t}` }
-    });
-
-    const data = await res.json().catch(()=>({}));
-    show(data);
-  }
-
-  function logout(){
-    localStorage.removeItem("token");
-    window.location.href = "/register.html";
-  }
-
-  function show(obj){
-    document.getElementById("out").textContent = JSON.stringify(obj,null,2);
-  }
-
-  // If token missing, send user to verify/login
-  if (!token()) {
-    window.location.href = "/verify.html";
-  }
+loadReadings();
 </script>
 </body>
 </html>

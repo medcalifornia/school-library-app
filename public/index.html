@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Health Tracker - Login</title>
+  <title>Health Tracker</title>
   <style>
     body { font-family: Arial; max-width: 400px; margin: auto; padding: 40px; }
     input { width: 100%; padding: 8px; margin: 6px 0; }
     button { width: 100%; padding: 8px; margin: 6px 0; }
     .box { border: 1px solid #ddd; padding: 20px; margin-bottom: 20px; }
+    .link { color: blue; cursor: pointer; font-size: 14px; }
   </style>
 </head>
 <body>
@@ -26,6 +27,14 @@
   <input type="email" id="loginEmail" placeholder="Email">
   <input type="password" id="loginPassword" placeholder="Password">
   <button onclick="login()">Login</button>
+  <div class="link" onclick="showRecovery()">Forgot Password?</div>
+</div>
+
+<div class="box" id="recoveryBox" style="display:none;">
+  <h3>Recover Account</h3>
+  <input type="email" id="recoverEmail" placeholder="Enter your registered email">
+  <input type="password" id="newPassword" placeholder="New Password">
+  <button onclick="recoverPassword()">Reset Password</button>
 </div>
 
 <script>
@@ -37,9 +46,9 @@ function saveUsers() {
 }
 
 function register() {
-  const name = document.getElementById("regName").value;
-  const email = document.getElementById("regEmail").value;
-  const password = document.getElementById("regPassword").value;
+  const name = regName.value;
+  const email = regEmail.value;
+  const password = regPassword.value;
 
   if (!name || !email || !password) {
     alert("Fill all fields");
@@ -54,12 +63,12 @@ function register() {
   users.push({ name, email, password });
   saveUsers();
 
-  alert("Registration successful! You can login now.");
+  alert("Registration successful!");
 }
 
 function login() {
-  const email = document.getElementById("loginEmail").value;
-  const password = document.getElementById("loginPassword").value;
+  const email = loginEmail.value;
+  const password = loginPassword.value;
 
   const user = users.find(u => u.email === email && u.password === password);
 
@@ -70,6 +79,33 @@ function login() {
 
   localStorage.setItem("currentUser", JSON.stringify(user));
   window.location.href = "app.html";
+}
+
+function showRecovery() {
+  document.getElementById("recoveryBox").style.display = "block";
+}
+
+function recoverPassword() {
+  const email = recoverEmail.value;
+  const newPass = newPassword.value;
+
+  const user = users.find(u => u.email === email);
+
+  if (!user) {
+    alert("Email not found");
+    return;
+  }
+
+  if (!newPass) {
+    alert("Enter new password");
+    return;
+  }
+
+  user.password = newPass;
+  saveUsers();
+
+  alert("Password updated successfully! You can login now.");
+  document.getElementById("recoveryBox").style.display = "none";
 }
 
 </script>

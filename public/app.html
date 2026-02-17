@@ -1,206 +1,184 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
 <head>
+  <meta charset="utf-8" />
   <title>Health Tracker</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body { font-family: Arial; max-width: 900px; margin: auto; padding: 20px; }
-    input, select { padding: 6px; margin: 5px; }
-    button { padding: 6px 12px; margin: 5px; }
-    table { width: 100%; margin-top: 20px; border-collapse: collapse; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+    body { font-family: Arial; max-width: 900px; margin: 20px auto; padding: 20px; }
+    input, select { padding: 10px; margin: 6px 0; }
+    button { padding: 10px 14px; margin-top: 8px; cursor: pointer; }
+    .card { border: 1px solid #ddd; padding: 14px; border-radius: 10px; margin: 12px 0; }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
     th { background: #f2f2f2; }
-    canvas { margin-top: 30px; }
-    hr { margin: 25px 0; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; }
   </style>
 </head>
 <body>
+  <div class="topbar">
+    <h2>Health Tracker</h2>
+    <div>
+      <span id="hello"></span>
+      <button onclick="logout()">Logout</button>
+    </div>
+  </div>
 
-<h2>Health Tracker</h2>
+  <div class="card">
+    <h3>Add Glucose</h3>
+    <div class="grid3">
+      <input id="gVal" placeholder="Glucose mg/dL (e.g. 110)" />
+      <select id="gNote">
+        <option value="">(Choose note)</option>
+        <option>Fasting (morning)</option>
+        <option>Before breakfast</option>
+        <option>After breakfast</option>
+        <option>Before lunch</option>
+        <option>After lunch</option>
+        <option>Before dinner</option>
+        <option>After dinner</option>
+        <option>Before sleep</option>
+      </select>
+      <button onclick="saveGlucose()">Save Glucose</button>
+    </div>
+  </div>
 
-<!-- ================= GLUCOSE ================= -->
+  <div class="card">
+    <h3>Add Blood Pressure</h3>
+    <div class="grid3">
+      <input id="bpSys" placeholder="Systolic (e.g. 120)" />
+      <input id="bpDia" placeholder="Diastolic (e.g. 80)" />
+      <select id="bpNote">
+        <option value="">(Choose note)</option>
+        <option>Resting</option>
+        <option>After walking</option>
+        <option>After exercise</option>
+        <option>Before sleep</option>
+        <option>After coffee</option>
+        <option>Feeling dizzy</option>
+      </select>
+    </div>
+    <button onclick="saveBP()">Save Blood Pressure</button>
+  </div>
 
-<h3>Add Glucose</h3>
+  <div class="card">
+    <h3>My Readings</h3>
+    <button onclick="loadAll()">Load My Readings</button>
+    <table>
+      <thead>
+        <tr>
+          <th>Date/Time</th>
+          <th>Type</th>
+          <th>Value</th>
+          <th>Note</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
 
-<input type="number" id="glucoseValue" placeholder="Glucose mg/dL (e.g. 110)">
-
-<select id="glucoseNote">
-  <option value="">Select Note (optional)</option>
-  <option value="Fasting Morning">Fasting Morning</option>
-  <option value="Before Breakfast">Before Breakfast</option>
-  <option value="After Breakfast">After Breakfast</option>
-  <option value="Before Lunch">Before Lunch</option>
-  <option value="After Lunch">After Lunch</option>
-  <option value="Before Dinner">Before Dinner</option>
-  <option value="After Dinner">After Dinner</option>
-  <option value="Bedtime">Bedtime</option>
-</select>
-
-<button onclick="addGlucose()">Save Glucose</button>
-
-<hr>
-
-<!-- ================= BLOOD PRESSURE ================= -->
-
-<h3>Add Blood Pressure</h3>
-
-<input type="number" id="systolic" placeholder="Systolic (e.g. 120)">
-<input type="number" id="diastolic" placeholder="Diastolic (e.g. 80)">
-
-<select id="bpNote">
-  <option value="">Select Note (optional)</option>
-  <option value="Before Medication">Before Medication</option>
-  <option value="After Medication">After Medication</option>
-  <option value="Morning">Morning</option>
-  <option value="Afternoon">Afternoon</option>
-  <option value="Evening">Evening</option>
-  <option value="Before Sleep">Before Sleep</option>
-</select>
-
-<button onclick="addBP()">Save Blood Pressure</button>
-
-<hr>
-
-<!-- ================= TABLE ================= -->
-
-<h3>My Readings</h3>
-
-<table>
-  <thead>
-    <tr>
-      <th>Date & Time</th>
-      <th>Type</th>
-      <th>Value</th>
-      <th>Note</th>
-    </tr>
-  </thead>
-  <tbody id="readingsTable"></tbody>
-</table>
-
-<!-- ================= CHARTS ================= -->
-
-<h3>Glucose Chart</h3>
-<canvas id="glucoseChart"></canvas>
-
-<h3>Blood Pressure Chart</h3>
-<canvas id="bpChart"></canvas>
+  <div class="card">
+    <h3>Chart</h3>
+    <canvas id="chart" height="120"></canvas>
+  </div>
 
 <script>
+const userId = localStorage.getItem("userId");
+if (!userId) location.href = "/index.html";
 
-let readings = JSON.parse(localStorage.getItem("readings")) || [];
+hello.textContent = "Hello, " + (localStorage.getItem("name") || "");
 
-function saveData() {
-  localStorage.setItem("readings", JSON.stringify(readings));
+function logout(){
+  localStorage.removeItem("userId");
+  localStorage.removeItem("name");
+  location.href = "/index.html";
 }
 
-function getNow() {
-  return new Date().toLocaleString();
-}
+async function saveGlucose(){
+  const v = gVal.value.trim();
+  if (!v) return alert("Enter glucose value");
 
-function addGlucose() {
-  const value = document.getElementById("glucoseValue").value;
-  const note = document.getElementById("glucoseNote").value;
-
-  if (!value) return alert("Enter glucose value");
-
-  readings.push({
-    date: getNow(),
-    type: "glucose",
-    value: value,
-    note: note
+  await fetch("/api/readings", {
+    method:"POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({
+      userId,
+      type: "glucose",
+      value: v,
+      note: gNote.value
+    })
   });
 
-  saveData();
-  render();
+  gVal.value = "";
+  gNote.value = "";
+  loadAll();
 }
 
-function addBP() {
-  const sys = document.getElementById("systolic").value;
-  const dia = document.getElementById("diastolic").value;
-  const note = document.getElementById("bpNote").value;
+async function saveBP(){
+  const s = bpSys.value.trim();
+  const d = bpDia.value.trim();
+  if (!s || !d) return alert("Enter systolic and diastolic");
 
-  if (!sys || !dia) return alert("Enter blood pressure values");
-
-  readings.push({
-    date: getNow(),
-    type: "bp",
-    value: sys + "/" + dia,
-    note: note
+  await fetch("/api/readings", {
+    method:"POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({
+      userId,
+      type: "bp",
+      value: `${s}/${d}`,
+      note: bpNote.value
+    })
   });
 
-  saveData();
-  render();
+  bpSys.value = "";
+  bpDia.value = "";
+  bpNote.value = "";
+  loadAll();
 }
 
-function render() {
+async function loadAll(){
+  const res = await fetch(`/api/readings/${userId}`);
+  const data = await res.json();
 
-  const table = document.getElementById("readingsTable");
-  table.innerHTML = "";
-
-  readings.forEach(r => {
-    table.innerHTML += `
-      <tr>
-        <td>${r.date}</td>
-        <td>${r.type}</td>
-        <td>${r.value}</td>
-        <td>${r.note || ""}</td>
-      </tr>
+  rows.innerHTML = "";
+  for (const r of data.slice().reverse()) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${new Date(r.ts).toLocaleString()}</td>
+      <td>${r.type}</td>
+      <td>${r.value}</td>
+      <td>${r.note || ""}</td>
     `;
+    rows.appendChild(tr);
+  }
+
+  await loadChart();
+}
+
+let chartObj = null;
+async function loadChart(){
+  const res = await fetch(`/api/chart/${userId}`);
+  const data = await res.json();
+
+  const ctx = document.getElementById("chart");
+  if (chartObj) chartObj.destroy();
+
+  chartObj = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: data.labels,
+      datasets: [
+        { label: "Glucose Avg", data: data.glucoseAvg },
+        { label: "BP Systolic Avg", data: data.sysAvg },
+        { label: "BP Diastolic Avg", data: data.diaAvg }
+      ]
+    }
   });
-
-  renderCharts();
 }
 
-function renderCharts() {
-
-  const glucoseData = readings.filter(r => r.type === "glucose");
-  const bpData = readings.filter(r => r.type === "bp");
-
-  const glucoseLabels = glucoseData.map(r => r.date);
-  const glucoseValues = glucoseData.map(r => r.value);
-
-  const bpLabels = bpData.map(r => r.date);
-  const bpValues = bpData.map(r => parseInt(r.value.split("/")[0]));
-
-  if (window.glucoseChartInstance) window.glucoseChartInstance.destroy();
-  if (window.bpChartInstance) window.bpChartInstance.destroy();
-
-  window.glucoseChartInstance = new Chart(
-    document.getElementById("glucoseChart"),
-    {
-      type: "line",
-      data: {
-        labels: glucoseLabels,
-        datasets: [{
-          label: "Glucose mg/dL",
-          data: glucoseValues,
-          borderColor: "blue",
-          fill: false
-        }]
-      }
-    }
-  );
-
-  window.bpChartInstance = new Chart(
-    document.getElementById("bpChart"),
-    {
-      type: "line",
-      data: {
-        labels: bpLabels,
-        datasets: [{
-          label: "Systolic BP",
-          data: bpValues,
-          borderColor: "red",
-          fill: false
-        }]
-      }
-    }
-  );
-}
-
-render();
-
+loadAll();
 </script>
-
 </body>
 </html>

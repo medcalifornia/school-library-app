@@ -1,0 +1,96 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>App - Diabetes Tracker</title>
+  <style>
+    body{font-family:Arial;margin:24px;background:#f6f7fb}
+    .card{max-width:900px;background:#fff;padding:18px;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08)}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    input{width:100%;padding:10px;margin:8px 0}
+    button{padding:10px 14px;cursor:pointer;margin-right:8px}
+    pre{background:#111;color:#0f0;padding:10px;border-radius:10px;overflow:auto}
+    .small{font-size:12px;opacity:.75}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Diabetes Tracker</h2>
+    <p class="small">Server automatically saves date/time for each entry.</p>
+
+    <div class="row">
+      <div>
+        <h3>Add Reading</h3>
+        <input id="glucose" placeholder="Glucose (mg/dL) optional e.g. 110" />
+        <input id="sys" placeholder="Blood Pressure Systolic optional e.g. 120" />
+        <input id="dia" placeholder="Blood Pressure Diastolic optional e.g. 80" />
+        <input id="note" placeholder="Note (optional)" />
+
+        <button onclick="addReading()">Add</button>
+        <button onclick="loadReadings()">Load My Readings</button>
+        <button onclick="logout()">Logout</button>
+      </div>
+
+      <div>
+        <h3>Output</h3>
+        <pre id="out">...</pre>
+      </div>
+    </div>
+  </div>
+
+<script>
+  function token(){ return localStorage.getItem("token"); }
+
+  async function addReading(){
+    const t = token();
+    if (!t) return show({error:"No token. Go to /verify.html and login."});
+
+    const body = {
+      glucose: document.getElementById("glucose").value,
+      systolic: document.getElementById("sys").value,
+      diastolic: document.getElementById("dia").value,
+      note: document.getElementById("note").value
+    };
+
+    const res = await fetch("/api/readings", {
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization":`Bearer ${t}`
+      },
+      body: JSON.stringify(body)
+    });
+
+    const data = await res.json().catch(()=>({}));
+    show(data);
+  }
+
+  async function loadReadings(){
+    const t = token();
+    if (!t) return show({error:"No token. Go to /verify.html and login."});
+
+    const res = await fetch("/api/readings", {
+      headers:{ "Authorization":`Bearer ${t}` }
+    });
+
+    const data = await res.json().catch(()=>({}));
+    show(data);
+  }
+
+  function logout(){
+    localStorage.removeItem("token");
+    window.location.href = "/register.html";
+  }
+
+  function show(obj){
+    document.getElementById("out").textContent = JSON.stringify(obj,null,2);
+  }
+
+  // If token missing, send user to verify/login
+  if (!token()) {
+    window.location.href = "/verify.html";
+  }
+</script>
+</body>
+</html>

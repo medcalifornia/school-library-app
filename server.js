@@ -1,307 +1,220 @@
 const express = require("express");
 const path = require("path");
+const fs = require("fs");
 const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const sqlite3 = require("sqlite3").verbose();
-const cors = require("cors");
+const twilio = require("twilio");
 
 const app = express();
-app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
 const PORT = process.env.PORT || 8080;
 
-// ===== ENV =====
-const JWT_SECRET = process.env.JWT_SECRET || "dev_secret_change_me";
+// ---------- Simple JSON storage (persisted in /home) ----------
+const DATA_DIR = "/home/data";
+const USERS_FILE = path.join(DATA_DIR, "users.json");
+const READINGS_FILE = path.join(DATA_DIR, "readings.json");
 
-const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
-const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
-const TWILIO_VERIFY_SERVICE_SID = process.env.TWILIO_VERIFY_SERVICE_SID;
+function ensureDataFiles() {
+  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  if (!fs.existsSync(USERS_FILE)) fs.writeFileSync(USERS_FILE, JSON.stringify([]));
+  if (!fs.existsSync(READINGS_FILE)) fs.writeFileSync(READINGS_FILE, JSON.stringify([]));
+}
+ensureDataFiles();
 
-const hasTwilioVerify =
-  !!TWILIO_ACCOUNT_SID && !!TWILIO_AUTH_TOKEN && !!TWILIO_VERIFY_SERVICE_SID;
-
-let twilioClient = null;
-if (hasTwilioVerify) {
-  twilioClient = require("twilio")(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+function readJson(file) {
+  return JSON.parse(fs.readFileSync(file, "utf8"));
+}
+function writeJson(file, data) {
+  fs.writeFileSync(file, JSON.stringify(data, null, 2));
 }
 
-// ===== DB =====
-const db = new sqlite3.Database(path.join(__dirname, "diabetes.sqlite"));
+// ---------- Twilio ----------
+const hasTwilio =
+  process.env.TWILIO_ACCOUNT_SID &&
+  process.env.TWILIO_AUTH_TOKEN &&
+  process.env.TWILIO_VERIFY_SERVICE_SID;
 
-db.serialize(() => {
-  db.run(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      email TEXT NOT NULL UNIQUE,
-      phone TEXT NOT NULL,
-      pass_hash TEXT NOT NULL,
-      verified INTEGER NOT NULL DEFAULT 0,
-      created_at TEXT NOT NULL
-    )
-  `);
+const client = hasTwilio
+  ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+  : null;
 
-  db.run(`
-    CREATE TABLE IF NOT EXISTS readings (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL,
-      type TEXT NOT NULL,              -- 'glucose' or 'bp'
-      glucose_mgdl INTEGER,            -- for glucose
-      systolic INTEGER,                -- for bp
-      diastolic INTEGER,               -- for bp
-      note TEXT,
-      created_at TEXT NOT NULL,
-      FOREIGN KEY(user_id) REFERENCES users(id)
-    )
-  `);
-});
-
-// ===== HELPERS =====
-function nowIso() {
-  return new Date().toISOString();
-}
-
-function signToken(user) {
-  return jwt.sign({ uid: user.id, email: user.email }, JWT_SECRET, {
-    expiresIn: "7d"
-  });
-}
-
-function authMiddleware(req, res, next) {
-  const h = req.headers.authorization || "";
-  const token = h.startsWith("Bearer ") ? h.slice(7) : null;
-  if (!token) return res.status(401).json({ error: "Missing token" });
-
-  try {
-    const payload = jwt.verify(token, JWT_SECRET);
-    req.user = payload;
-    next();
-  } catch {
-    return res.status(401).json({ error: "Invalid token" });
-  }
-}
-
+// ---------- Helpers ----------
 function normalizePhone(phone) {
-  // Expect E.164 format like +15625416709
-  // If user typed 5625416709, we assume US and convert.
-  const p = String(phone || "").trim();
-  if (p.startsWith("+")) return p;
-  const digits = p.replace(/\D/g, "");
-  if (digits.length === 10) return "+1" + digits;
-  return p; // best effort
+  if (!phone) return "";
+  let p = String(phone).trim();
+  // if user typed 1562..., convert to +1562...
+  if (!p.startsWith("+")) p = "+" + p;
+  return p;
 }
 
-// ===== ROUTES =====
-app.get("/health", (req, res) => {
-  res.json({ ok: true, hasTwilioVerify });
-});
+// ---------- Routes ----------
+app.get("/health", (req, res) => res.json({ status: "OK" }));
 
-// Register (only creates user + sends OTP)
+// Register
 app.post("/api/register", async (req, res) => {
+  const { name, email, phone, password } = req.body;
+  if (!name || !email || !phone || !password) {
+    return res.status(400).json({ error: "Missing fields" });
+  }
+
+  const users = readJson(USERS_FILE);
+  const p = normalizePhone(phone);
+  const e = String(email).trim().toLowerCase();
+
+  if (users.find(u => u.email === e)) return res.status(400).json({ error: "Email already used" });
+  if (users.find(u => u.phone === p)) return res.status(400).json({ error: "Phone already used" });
+
+  const hash = await bcrypt.hash(password, 10);
+
+  users.push({
+    id: Date.now().toString(),
+    name: String(name).trim(),
+    email: e,
+    phone: p,
+    passwordHash: hash,
+    createdAt: new Date().toISOString(),
+  });
+
+  writeJson(USERS_FILE, users);
+  res.json({ message: "Registered successfully" });
+});
+
+// Login
+app.post("/api/login", async (req, res) => {
+  const { email, password } = req.body;
+  const e = String(email || "").trim().toLowerCase();
+  const users = readJson(USERS_FILE);
+  const user = users.find(u => u.email === e);
+  if (!user) return res.status(400).json({ error: "Invalid email or password" });
+
+  const ok = await bcrypt.compare(password || "", user.passwordHash);
+  if (!ok) return res.status(400).json({ error: "Invalid email or password" });
+
+  // Very simple session: store userId in client localStorage
+  res.json({ message: "Login OK", userId: user.id, name: user.name });
+});
+
+// Save reading (glucose / bp)
+app.post("/api/readings", (req, res) => {
+  const { userId, type, value, note } = req.body;
+  if (!userId || !type || !value) return res.status(400).json({ error: "Missing fields" });
+
+  const readings = readJson(READINGS_FILE);
+  readings.push({
+    id: Date.now().toString(),
+    userId,
+    type,
+    value,
+    note: note || "",
+    ts: new Date().toISOString(),
+  });
+  writeJson(READINGS_FILE, readings);
+  res.json({ message: "Saved" });
+});
+
+// Get readings for user
+app.get("/api/readings/:userId", (req, res) => {
+  const readings = readJson(READINGS_FILE);
+  res.json(readings.filter(r => r.userId === req.params.userId));
+});
+
+// Chart summary for user (daily averages)
+app.get("/api/chart/:userId", (req, res) => {
+  const readings = readJson(READINGS_FILE).filter(r => r.userId === req.params.userId);
+
+  // group by date
+  const byDate = {};
+  for (const r of readings) {
+    const d = r.ts.slice(0, 10); // YYYY-MM-DD
+    byDate[d] = byDate[d] || { glucose: [], bpSys: [], bpDia: [] };
+
+    if (r.type === "glucose") byDate[d].glucose.push(Number(r.value));
+    if (r.type === "bp") {
+      // value like "118/76"
+      const [s, di] = String(r.value).split("/").map(n => Number(n));
+      if (!Number.isNaN(s)) byDate[d].bpSys.push(s);
+      if (!Number.isNaN(di)) byDate[d].bpDia.push(di);
+    }
+  }
+
+  const labels = Object.keys(byDate).sort();
+  const glucoseAvg = labels.map(d => {
+    const arr = byDate[d].glucose;
+    if (!arr.length) return null;
+    return Math.round(arr.reduce((a, b) => a + b, 0) / arr.length);
+  });
+
+  const sysAvg = labels.map(d => {
+    const arr = byDate[d].bpSys;
+    if (!arr.length) return null;
+    return Math.round(arr.reduce((a, b) => a + b, 0) / arr.length);
+  });
+
+  const diaAvg = labels.map(d => {
+    const arr = byDate[d].bpDia;
+    if (!arr.length) return null;
+    return Math.round(arr.reduce((a, b) => a + b, 0) / arr.length);
+  });
+
+  res.json({ labels, glucoseAvg, sysAvg, diaAvg });
+});
+
+// ---------- Forgot password (SMS Code) ----------
+app.post("/api/forgot-password", async (req, res) => {
+  const phone = normalizePhone(req.body.phone);
+  if (!phone) return res.status(400).json({ error: "Phone required" });
+  if (!hasTwilio) return res.status(500).json({ error: "Twilio not configured on server" });
+
+  // only allow reset if phone exists
+  const users = readJson(USERS_FILE);
+  const user = users.find(u => u.phone === phone);
+  if (!user) return res.status(400).json({ error: "Phone not found" });
+
   try {
-    const { name, email, phone, password } = req.body || {};
-    if (!name || !email || !phone || !password) {
-      return res.status(400).json({ error: "Missing fields" });
-    }
+    await client.verify.v2
+      .services(process.env.TWILIO_VERIFY_SERVICE_SID)
+      .verifications.create({ to: phone, channel: "sms" });
 
-    const emailNorm = String(email).trim().toLowerCase();
-    const phoneNorm = normalizePhone(phone);
-
-    const pass_hash = await bcrypt.hash(String(password), 10);
-
-    db.run(
-      `INSERT INTO users (name, email, phone, pass_hash, verified, created_at)
-       VALUES (?, ?, ?, ?, 0, ?)`,
-      [String(name).trim(), emailNorm, phoneNorm, pass_hash, nowIso()],
-      async function (err) {
-        if (err) {
-          if (String(err).includes("UNIQUE")) {
-            return res.status(409).json({ error: "Email already registered" });
-          }
-          return res.status(500).json({ error: "DB error", details: String(err) });
-        }
-
-        // Send SMS OTP using Twilio Verify
-        if (!hasTwilioVerify) {
-          return res.status(200).json({
-            ok: true,
-            message:
-              "Registered, but Twilio Verify is not configured. Add TWILIO_* env vars."
-          });
-        }
-
-        try {
-          await twilioClient.verify.v2
-            .services(TWILIO_VERIFY_SERVICE_SID)
-            .verifications.create({ to: phoneNorm, channel: "sms" });
-
-          return res.status(200).json({
-            ok: true,
-            message: "User registered. SMS verification code sent.",
-            phone: phoneNorm
-          });
-        } catch (e) {
-          return res.status(200).json({
-            ok: true,
-            message:
-              "User registered, but SMS failed to send. Check Twilio Verify Service + verified phone in trial.",
-            details: String(e.message || e)
-          });
-        }
-      }
-    );
-  } catch (e) {
-    res.status(500).json({ error: "Server error", details: String(e.message || e) });
+    res.json({ message: "Code sent" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
-// Verify OTP (marks user verified)
-app.post("/api/verify", async (req, res) => {
+app.post("/api/verify-reset-code", async (req, res) => {
+  const phone = normalizePhone(req.body.phone);
+  const code = String(req.body.code || "").trim();
+  if (!phone || !code) return res.status(400).json({ error: "Phone & code required" });
+  if (!hasTwilio) return res.status(500).json({ error: "Twilio not configured on server" });
+
   try {
-    const { email, phone, code } = req.body || {};
-    if (!email || !phone || !code) {
-      return res.status(400).json({ error: "Missing fields" });
-    }
-    if (!hasTwilioVerify) {
-      return res.status(400).json({ error: "Twilio Verify not configured" });
-    }
+    const check = await client.verify.v2
+      .services(process.env.TWILIO_VERIFY_SERVICE_SID)
+      .verificationChecks.create({ to: phone, code });
 
-    const emailNorm = String(email).trim().toLowerCase();
-    const phoneNorm = normalizePhone(phone);
-
-    // Ensure user exists
-    db.get(
-      `SELECT id, email, phone, verified FROM users WHERE email = ?`,
-      [emailNorm],
-      async (err, user) => {
-        if (err) return res.status(500).json({ error: "DB error" });
-        if (!user) return res.status(404).json({ error: "User not found" });
-
-        if (normalizePhone(user.phone) !== phoneNorm) {
-          return res.status(400).json({ error: "Phone does not match this email" });
-        }
-
-        try {
-          const check = await twilioClient.verify.v2
-            .services(TWILIO_VERIFY_SERVICE_SID)
-            .verificationChecks.create({ to: phoneNorm, code: String(code).trim() });
-
-          if (check.status !== "approved") {
-            return res.status(400).json({ error: "Invalid code", status: check.status });
-          }
-
-          db.run(
-            `UPDATE users SET verified = 1 WHERE id = ?`,
-            [user.id],
-            (err2) => {
-              if (err2) return res.status(500).json({ error: "DB update failed" });
-
-              return res.json({ ok: true, message: "Verified successfully" });
-            }
-          );
-        } catch (e) {
-          return res.status(400).json({ error: "Verify failed", details: String(e.message || e) });
-        }
-      }
-    );
-  } catch (e) {
-    res.status(500).json({ error: "Server error", details: String(e.message || e) });
+    if (check.status === "approved") return res.json({ message: "Verified" });
+    return res.status(400).json({ error: "Invalid code" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
-// Login (only if verified) -> returns JWT
-app.post("/api/login", (req, res) => {
-  const { email, password } = req.body || {};
-  if (!email || !password) return res.status(400).json({ error: "Missing fields" });
+app.post("/api/reset-password", async (req, res) => {
+  const phone = normalizePhone(req.body.phone);
+  const newPassword = String(req.body.newPassword || "");
+  if (!phone || newPassword.length < 6) return res.status(400).json({ error: "Bad input" });
 
-  const emailNorm = String(email).trim().toLowerCase();
+  const users = readJson(USERS_FILE);
+  const idx = users.findIndex(u => u.phone === phone);
+  if (idx === -1) return res.status(400).json({ error: "Phone not found" });
 
-  db.get(
-    `SELECT id, email, pass_hash, verified FROM users WHERE email = ?`,
-    [emailNorm],
-    async (err, user) => {
-      if (err) return res.status(500).json({ error: "DB error" });
-      if (!user) return res.status(404).json({ error: "User not found" });
-      if (!user.verified) return res.status(403).json({ error: "Email/phone not verified" });
-
-      const ok = await bcrypt.compare(String(password), user.pass_hash);
-      if (!ok) return res.status(401).json({ error: "Invalid email or password" });
-
-      const token = signToken(user);
-      return res.json({ ok: true, token });
-    }
-  );
+  users[idx].passwordHash = await bcrypt.hash(newPassword, 10);
+  writeJson(USERS_FILE, users);
+  res.json({ message: "Password updated" });
 });
 
-// Add reading (glucose or bp) + auto date/time
-app.post("/api/readings", authMiddleware, (req, res) => {
-  const uid = req.user.uid;
-  const { type, glucose_mgdl, systolic, diastolic, note } = req.body || {};
+// default route
+app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 
-  if (type !== "glucose" && type !== "bp") {
-    return res.status(400).json({ error: "type must be 'glucose' or 'bp'" });
-  }
-
-  const created_at = nowIso();
-
-  if (type === "glucose") {
-    const g = Number(glucose_mgdl);
-    if (!Number.isFinite(g) || g <= 0) return res.status(400).json({ error: "Invalid glucose" });
-
-    db.run(
-      `INSERT INTO readings (user_id, type, glucose_mgdl, systolic, diastolic, note, created_at)
-       VALUES (?, 'glucose', ?, NULL, NULL, ?, ?)`,
-      [uid, Math.round(g), note ? String(note) : null, created_at],
-      function (err) {
-        if (err) return res.status(500).json({ error: "DB error" });
-        res.json({ ok: true, id: this.lastID, created_at });
-      }
-    );
-  } else {
-    const s = Number(systolic);
-    const d = Number(diastolic);
-    if (!Number.isFinite(s) || !Number.isFinite(d) || s <= 0 || d <= 0) {
-      return res.status(400).json({ error: "Invalid blood pressure" });
-    }
-
-    db.run(
-      `INSERT INTO readings (user_id, type, glucose_mgdl, systolic, diastolic, note, created_at)
-       VALUES (?, 'bp', NULL, ?, ?, ?, ?)`,
-      [uid, Math.round(s), Math.round(d), note ? String(note) : null, created_at],
-      function (err) {
-        if (err) return res.status(500).json({ error: "DB error" });
-        res.json({ ok: true, id: this.lastID, created_at });
-      }
-    );
-  }
-});
-
-// List readings
-app.get("/api/readings", authMiddleware, (req, res) => {
-  const uid = req.user.uid;
-
-  db.all(
-    `SELECT id, type, glucose_mgdl, systolic, diastolic, note, created_at
-     FROM readings
-     WHERE user_id = ?
-     ORDER BY datetime(created_at) DESC
-     LIMIT 200`,
-    [uid],
-    (err, rows) => {
-      if (err) return res.status(500).json({ error: "DB error" });
-      res.json({ ok: true, rows });
-    }
-  );
-});
-
-// Serve index by default
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
-app.listen(PORT, () => {
-  console.log("Server running on port", PORT);
-  console.log("Twilio Verify configured:", hasTwilioVerify);
-});
+app.listen(PORT, () => console.log("Server running on port", PORT));

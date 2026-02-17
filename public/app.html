@@ -1,153 +1,172 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Health Tracker</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 900px; margin: 30px auto; padding: 0 16px; }
-    .card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; margin-bottom: 14px; }
-    input { padding: 10px; margin: 6px 0; width: 100%; }
-    button { padding: 10px 14px; cursor:pointer; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: left; }
-    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-    @media (max-width: 700px){ .row, .row3 { grid-template-columns: 1fr; } }
-    .muted { color: #666; font-size: 12px; }
+    body { font-family: Arial; max-width: 900px; margin: auto; padding: 20px; }
+    input { padding: 6px; margin: 5px; }
+    button { padding: 6px 12px; margin: 5px; }
+    table { width: 100%; margin-top: 20px; border-collapse: collapse; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+    th { background: #f2f2f2; }
+    canvas { margin-top: 30px; }
   </style>
 </head>
 <body>
-  <h2>Health Tracker</h2>
-  <div class="muted">Auto date/time is added by the server when you save.</div>
 
-  <div class="card">
-    <h3>Add Glucose</h3>
-    <div class="row">
-      <input id="glucose" placeholder="Glucose mg/dL (e.g. 110)" />
-      <input id="gNote" placeholder="Note (optional)" />
-    </div>
-    <button onclick="addGlucose()">Save Glucose</button>
-  </div>
+<h2>Health Tracker</h2>
 
-  <div class="card">
-    <h3>Add Blood Pressure</h3>
-    <div class="row3">
-      <input id="sys" placeholder="Systolic (e.g. 120)" />
-      <input id="dia" placeholder="Diastolic (e.g. 80)" />
-      <input id="bpNote" placeholder="Note (optional)" />
-    </div>
-    <button onclick="addBP()">Save Blood Pressure</button>
-  </div>
+<!-- GLUCOSE -->
+<h3>Add Glucose</h3>
+<input type="number" id="glucoseValue" placeholder="Glucose mg/dL">
+<input type="text" id="glucoseNote" placeholder="Note (optional)">
+<button onclick="addGlucose()">Save Glucose</button>
 
-  <div class="card">
-    <div class="row">
-      <button onclick="loadReadings()">Load My Readings</button>
-      <button onclick="logout()">Logout</button>
-    </div>
-  </div>
+<!-- BLOOD PRESSURE -->
+<h3>Add Blood Pressure</h3>
+<input type="number" id="systolic" placeholder="Systolic">
+<input type="number" id="diastolic" placeholder="Diastolic">
+<input type="text" id="bpNote" placeholder="Note (optional)">
+<button onclick="addBP()">Save Blood Pressure</button>
 
-  <div class="card">
-    <h3>My Readings</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>Date/Time</th>
-          <th>Type</th>
-          <th>Value</th>
-          <th>Note</th>
-        </tr>
-      </thead>
-      <tbody id="rows"></tbody>
-    </table>
-  </div>
+<!-- TABLE -->
+<h3>My Readings</h3>
+<table>
+  <thead>
+    <tr>
+      <th>Date/Time</th>
+      <th>Type</th>
+      <th>Value</th>
+      <th>Note</th>
+    </tr>
+  </thead>
+  <tbody id="readingsTable"></tbody>
+</table>
+
+<!-- CHARTS -->
+<h3>Glucose Chart</h3>
+<canvas id="glucoseChart"></canvas>
+
+<h3>Blood Pressure Chart</h3>
+<canvas id="bpChart"></canvas>
 
 <script>
-function token(){
-  return localStorage.getItem("token");
+
+let readings = JSON.parse(localStorage.getItem("readings")) || [];
+
+function saveData() {
+  localStorage.setItem("readings", JSON.stringify(readings));
 }
 
-function requireLogin(){
-  if (!token()) window.location.href = "/verify.html";
-}
-requireLogin();
-
-async function api(url, method="GET", body=null){
-  const opts = {
-    method,
-    headers: {
-      "Content-Type":"application/json",
-      "Authorization": "Bearer " + token()
-    }
-  };
-  if (body) opts.body = JSON.stringify(body);
-  const res = await fetch(url, opts);
-  const data = await res.json().catch(()=>({}));
-  if (!res.ok) throw data;
-  return data;
+function getNow() {
+  return new Date().toLocaleString();
 }
 
-async function addGlucose(){
-  const g = document.getElementById("glucose").value.trim();
-  const note = document.getElementById("gNote").value.trim();
+function addGlucose() {
+  const value = document.getElementById("glucoseValue").value;
+  const note = document.getElementById("glucoseNote").value;
 
-  await api("/api/readings", "POST", {
+  if (!value) return alert("Enter glucose value");
+
+  readings.push({
+    date: getNow(),
     type: "glucose",
-    glucose_mgdl: g,
-    note: note || null
+    value: value,
+    note: note
   });
 
-  document.getElementById("glucose").value = "";
-  document.getElementById("gNote").value = "";
-  await loadReadings();
+  saveData();
+  render();
 }
 
-async function addBP(){
-  const sys = document.getElementById("sys").value.trim();
-  const dia = document.getElementById("dia").value.trim();
-  const note = document.getElementById("bpNote").value.trim();
+function addBP() {
+  const sys = document.getElementById("systolic").value;
+  const dia = document.getElementById("diastolic").value;
+  const note = document.getElementById("bpNote").value;
 
-  await api("/api/readings", "POST", {
+  if (!sys || !dia) return alert("Enter blood pressure values");
+
+  readings.push({
+    date: getNow(),
     type: "bp",
-    systolic: sys,
-    diastolic: dia,
-    note: note || null
+    value: sys + "/" + dia,
+    note: note
   });
 
-  document.getElementById("sys").value = "";
-  document.getElementById("dia").value = "";
-  document.getElementById("bpNote").value = "";
-  await loadReadings();
+  saveData();
+  render();
 }
 
-async function loadReadings(){
-  const data = await api("/api/readings");
-  const tbody = document.getElementById("rows");
-  tbody.innerHTML = "";
+function render() {
 
-  for (const r of data.rows || []) {
-    const dt = new Date(r.created_at).toLocaleString();
-    let value = "";
-    if (r.type === "glucose") value = `${r.glucose_mgdl} mg/dL`;
-    if (r.type === "bp") value = `${r.systolic}/${r.diastolic} mmHg`;
+  const table = document.getElementById("readingsTable");
+  table.innerHTML = "";
 
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${dt}</td>
-      <td>${r.type}</td>
-      <td>${value}</td>
-      <td>${r.note || ""}</td>
+  readings.forEach(r => {
+    table.innerHTML += `
+      <tr>
+        <td>${r.date}</td>
+        <td>${r.type}</td>
+        <td>${r.value}</td>
+        <td>${r.note || ""}</td>
+      </tr>
     `;
-    tbody.appendChild(tr);
-  }
+  });
+
+  renderCharts();
 }
 
-function logout(){
-  localStorage.removeItem("token");
-  window.location.href = "/verify.html";
+function renderCharts() {
+
+  const glucoseData = readings.filter(r => r.type === "glucose");
+  const bpData = readings.filter(r => r.type === "bp");
+
+  const glucoseLabels = glucoseData.map(r => r.date);
+  const glucoseValues = glucoseData.map(r => r.value);
+
+  const bpLabels = bpData.map(r => r.date);
+  const bpValues = bpData.map(r => parseInt(r.value.split("/")[0]));
+
+  if (window.glucoseChartInstance) window.glucoseChartInstance.destroy();
+  if (window.bpChartInstance) window.bpChartInstance.destroy();
+
+  window.glucoseChartInstance = new Chart(
+    document.getElementById("glucoseChart"),
+    {
+      type: "line",
+      data: {
+        labels: glucoseLabels,
+        datasets: [{
+          label: "Glucose mg/dL",
+          data: glucoseValues,
+          borderColor: "blue",
+          fill: false
+        }]
+      }
+    }
+  );
+
+  window.bpChartInstance = new Chart(
+    document.getElementById("bpChart"),
+    {
+      type: "line",
+      data: {
+        labels: bpLabels,
+        datasets: [{
+          label: "Systolic BP",
+          data: bpValues,
+          borderColor: "red",
+          fill: false
+        }]
+      }
+    }
+  );
 }
 
-loadReadings();
+render();
+
 </script>
+
 </body>
 </html>

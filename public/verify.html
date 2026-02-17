@@ -1,73 +1,84 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Verify - Diabetes Tracker</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Verify</title>
   <style>
-    body{font-family:Arial;margin:24px;background:#f6f7fb}
-    .card{max-width:520px;background:#fff;padding:18px;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08)}
-    input{width:100%;padding:10px;margin:8px 0}
-    button{padding:10px 14px;cursor:pointer}
-    pre{background:#111;color:#0f0;padding:10px;border-radius:10px;overflow:auto}
+    body { font-family: Arial, sans-serif; max-width: 700px; margin: 30px auto; padding: 0 16px; }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; }
+    input { width: 100%; padding: 10px; margin: 8px 0; }
+    button { padding: 10px 14px; cursor: pointer; }
+    pre { background: #f6f6f6; padding: 12px; border-radius: 10px; overflow:auto; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 640px){ .row{ grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h2>Verify Account</h2>
-    <input id="email" placeholder="Email" />
-    <input id="code" placeholder="6-digit code" />
-    <button onclick="verify()">Verify</button>
+  <h2>Verify (SMS Code)</h2>
 
-    <hr/>
-    <h3>Login after verification</h3>
+  <div class="card">
+    <div class="row">
+      <input id="email" placeholder="Email" />
+      <input id="phone" placeholder="Phone used in registration" />
+    </div>
+    <input id="code" placeholder="6-digit code from SMS" />
+    <button onclick="verifyCode()">Verify</button>
+
+    <hr />
+
+    <h3>Login</h3>
     <input id="pass" type="password" placeholder="Password" />
     <button onclick="login()">Login</button>
 
-    <pre id="out">...</pre>
+    <pre id="out"></pre>
   </div>
 
 <script>
-  // auto-fill email from registration
+(function fill(){
   document.getElementById("email").value = localStorage.getItem("pendingEmail") || "";
+  document.getElementById("phone").value = localStorage.getItem("pendingPhone") || "";
+})();
 
-  async function verify(){
-    const body = {
-      email: document.getElementById("email").value,
-      code: document.getElementById("code").value
-    };
+async function verifyCode(){
+  const body = {
+    email: document.getElementById("email").value.trim(),
+    phone: document.getElementById("phone").value.trim(),
+    code: document.getElementById("code").value.trim()
+  };
 
-    const res = await fetch("/api/verify", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body: JSON.stringify(body)
-    });
+  const res = await fetch("/api/verify", {
+    method:"POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(body)
+  });
 
-    const data = await res.json().catch(()=>({}));
-    document.getElementById("out").textContent = JSON.stringify(data,null,2);
+  const data = await res.json().catch(()=>({}));
+  document.getElementById("out").textContent = JSON.stringify(data, null, 2);
+}
+
+async function login(){
+  const body = {
+    email: document.getElementById("email").value.trim(),
+    password: document.getElementById("pass").value
+  };
+
+  const res = await fetch("/api/login", {
+    method:"POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(body)
+  });
+
+  const data = await res.json().catch(()=>({}));
+  document.getElementById("out").textContent = JSON.stringify(data, null, 2);
+
+  if (data.token) {
+    localStorage.setItem("token", data.token);
+    localStorage.removeItem("pendingEmail");
+    localStorage.removeItem("pendingPhone");
+    window.location.href = "/app.html";
   }
-
-  async function login(){
-    const body = {
-      email: document.getElementById("email").value,
-      password: document.getElementById("pass").value
-    };
-
-    const res = await fetch("/api/login", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body: JSON.stringify(body)
-    });
-
-    const data = await res.json().catch(()=>({}));
-    document.getElementById("out").textContent = JSON.stringify(data,null,2);
-
-    if (data.token) {
-      localStorage.setItem("token", data.token);
-      localStorage.removeItem("pendingEmail");
-      window.location.href = "/app.html";
-    }
-  }
+}
 </script>
 </body>
 </html>

@@ -5,37 +5,70 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body { font-family: Arial; max-width: 900px; margin: auto; padding: 20px; }
-    input { padding: 6px; margin: 5px; }
+    input, select { padding: 6px; margin: 5px; }
     button { padding: 6px 12px; margin: 5px; }
     table { width: 100%; margin-top: 20px; border-collapse: collapse; }
     th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
     th { background: #f2f2f2; }
     canvas { margin-top: 30px; }
+    hr { margin: 25px 0; }
   </style>
 </head>
 <body>
 
 <h2>Health Tracker</h2>
 
-<!-- GLUCOSE -->
+<!-- ================= GLUCOSE ================= -->
+
 <h3>Add Glucose</h3>
-<input type="number" id="glucoseValue" placeholder="Glucose mg/dL">
-<input type="text" id="glucoseNote" placeholder="Note (optional)">
+
+<input type="number" id="glucoseValue" placeholder="Glucose mg/dL (e.g. 110)">
+
+<select id="glucoseNote">
+  <option value="">Select Note (optional)</option>
+  <option value="Fasting Morning">Fasting Morning</option>
+  <option value="Before Breakfast">Before Breakfast</option>
+  <option value="After Breakfast">After Breakfast</option>
+  <option value="Before Lunch">Before Lunch</option>
+  <option value="After Lunch">After Lunch</option>
+  <option value="Before Dinner">Before Dinner</option>
+  <option value="After Dinner">After Dinner</option>
+  <option value="Bedtime">Bedtime</option>
+</select>
+
 <button onclick="addGlucose()">Save Glucose</button>
 
-<!-- BLOOD PRESSURE -->
+<hr>
+
+<!-- ================= BLOOD PRESSURE ================= -->
+
 <h3>Add Blood Pressure</h3>
-<input type="number" id="systolic" placeholder="Systolic">
-<input type="number" id="diastolic" placeholder="Diastolic">
-<input type="text" id="bpNote" placeholder="Note (optional)">
+
+<input type="number" id="systolic" placeholder="Systolic (e.g. 120)">
+<input type="number" id="diastolic" placeholder="Diastolic (e.g. 80)">
+
+<select id="bpNote">
+  <option value="">Select Note (optional)</option>
+  <option value="Before Medication">Before Medication</option>
+  <option value="After Medication">After Medication</option>
+  <option value="Morning">Morning</option>
+  <option value="Afternoon">Afternoon</option>
+  <option value="Evening">Evening</option>
+  <option value="Before Sleep">Before Sleep</option>
+</select>
+
 <button onclick="addBP()">Save Blood Pressure</button>
 
-<!-- TABLE -->
+<hr>
+
+<!-- ================= TABLE ================= -->
+
 <h3>My Readings</h3>
+
 <table>
   <thead>
     <tr>
-      <th>Date/Time</th>
+      <th>Date & Time</th>
       <th>Type</th>
       <th>Value</th>
       <th>Note</th>
@@ -44,7 +77,8 @@
   <tbody id="readingsTable"></tbody>
 </table>
 
-<!-- CHARTS -->
+<!-- ================= CHARTS ================= -->
+
 <h3>Glucose Chart</h3>
 <canvas id="glucoseChart"></canvas>
 

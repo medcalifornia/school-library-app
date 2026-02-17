@@ -1,57 +1,63 @@
 <!doctype html>
 <html>
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Register - Diabetes Tracker</title>
+  <meta charset="utf-8" />
+  <title>Health Tracker - Register</title>
   <style>
-    body{font-family:Arial;margin:24px;background:#f6f7fb}
-    .card{max-width:520px;background:#fff;padding:18px;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08)}
-    input{width:100%;padding:10px;margin:8px 0}
-    button{padding:10px 14px;cursor:pointer}
-    pre{background:#111;color:#0f0;padding:10px;border-radius:10px;overflow:auto}
-    .small{font-size:12px;opacity:.75}
+    body { font-family: Arial; max-width: 520px; margin: 40px auto; padding: 20px; }
+    .card { border: 1px solid #ddd; padding: 18px; border-radius: 12px; }
+    input { width: 100%; padding: 10px; margin: 8px 0; box-sizing: border-box; }
+    button { padding: 10px 14px; cursor: pointer; width: 100%; margin-top: 8px; }
+    a { text-decoration: none; display:inline-block; margin-top: 12px; }
+    .msg { margin-top: 10px; color: #b00020; min-height: 18px; }
+    .ok { color: #0a7a0a; }
   </style>
 </head>
 <body>
+
+  <h2>Health Tracker</h2>
+
   <div class="card">
-    <h2>Create Account</h2>
-    <p class="small">After you register, you will receive a 6-digit SMS code.</p>
-
-    <input id="name" placeholder="Full name" />
-    <input id="email" placeholder="Email" />
-    <input id="phone" placeholder='Phone (SMS) like +15625551234' />
-    <input id="pass" type="password" placeholder="Password (6+)" />
-
+    <h3>Create account</h3>
+    <input id="rName" placeholder="Full name" />
+    <input id="rEmail" placeholder="Email" />
+    <input id="rPhone" placeholder="+15625416709" />
+    <input id="rPass" placeholder="Password" type="password" />
     <button onclick="register()">Register</button>
-    <pre id="out">...</pre>
+
+    <div class="msg" id="rMsg"></div>
+
+    <a href="/index.html">← Back to Login</a>
   </div>
 
 <script>
-  async function register(){
-    const body = {
-      name: document.getElementById("name").value,
-      email: document.getElementById("email").value,
-      phone: document.getElementById("phone").value,
-      password: document.getElementById("pass").value
-    };
+async function register() {
+  rMsg.textContent = "";
+  rMsg.className = "msg";
 
-    const res = await fetch("/api/register", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body: JSON.stringify(body)
-    });
+  const body = {
+    name: rName.value.trim(),
+    email: rEmail.value.trim(),
+    phone: rPhone.value.trim(),
+    password: rPass.value
+  };
 
-    const data = await res.json().catch(()=>({}));
-    document.getElementById("out").textContent = JSON.stringify(data,null,2);
+  const res = await fetch("/api/register", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(body)
+  });
 
-    if (data.ok) {
-      // Save email for next page
-      localStorage.setItem("pendingEmail", body.email);
-      // Go to verify page
-      window.location.href = "/verify.html";
-    }
+  const data = await res.json();
+
+  if (res.ok) {
+    rMsg.textContent = data.message || "Registered ✅ Now go back to login.";
+    rMsg.className = "msg ok";
+  } else {
+    rMsg.textContent = data.error || "Registration failed";
   }
+}
 </script>
+
 </body>
 </html>

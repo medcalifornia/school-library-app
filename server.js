@@ -1,258 +1,229 @@
-// server.js
 const express = require("express");
+const path = require("path");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const sgMail = require("@sendgrid/mail");
-const path = require("path");
+
+let twilioClient = null;
+try {
+  const twilio = require("twilio");
+  if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+    twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+  }
+} catch {}
 
 const app = express();
 app.use(express.json());
 
-// ===== ENV =====
-const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
-const FROM_EMAIL = process.env.FROM_EMAIL;
-const JWT_SECRET = process.env.JWT_SECRET;
+// ===== Config =====
+const PORT = process.env.PORT || 8080;
+const JWT_SECRET = process.env.JWT_SECRET || "dev_secret_change_me";
 
-if (!JWT_SECRET) {
-  console.error("Missing JWT_SECRET in App Service Application settings");
-}
-if (SENDGRID_API_KEY) sgMail.setApiKey(SENDGRID_API_KEY);
+const TWILIO_FROM_NUMBER = process.env.TWILIO_FROM_NUMBER || ""; // +1xxxx
+const VERIFY_CHANNEL = "sms"; // fixed to sms here
 
-// ===== In-memory DB (temporary) =====
-// IMPORTANT: This resets if Azure restarts your app.
-// Later we can move to Cosmos DB / Azure SQL.
+// ===== In-memory DB (demo only) =====
 const usersByEmail = new Map(); // email -> user
-// user shape:
-// { id, name, email, passwordHash, verified, verifyCode, verifyExpiresAt, readings: [] }
+const readingsByUserId = new Map(); // uid -> readings[]
 
-const makeId = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
-const make6DigitCode = () => String(Math.floor(100000 + Math.random() * 900000));
-
-function isValidEmail(email) {
-  return typeof email === "string" && email.includes("@") && email.includes(".");
+function newId() {
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
-function signToken(user) {
-  return jwt.sign(
-    { sub: user.id, email: user.email, name: user.name },
-    JWT_SECRET,
-    { expiresIn: "7d" }
-  );
+function normalizeEmail(email) {
+  return String(email || "").trim().toLowerCase();
 }
 
+function makeCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString(); // 6 digits
+}
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+// ===== Auth middleware =====
 function auth(req, res, next) {
-  const header = req.headers.authorization || "";
-  const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+  const h = req.headers.authorization || "";
+  const token = h.startsWith("Bearer ") ? h.slice(7) : null;
   if (!token) return res.status(401).json({ error: "Missing token" });
 
   try {
     const payload = jwt.verify(token, JWT_SECRET);
-    req.user = payload; // {sub,email,name}
+    req.user = payload;
     next();
-  } catch (e) {
-    return res.status(401).json({ error: "Invalid or expired token" });
+  } catch {
+    return res.status(401).json({ error: "Invalid token" });
   }
 }
 
-// ===== API ROUTES (IMPORTANT: put BEFORE static hosting) =====
-
+// ===== Health check (use in Azure health check path) =====
 app.get("/api/health", (req, res) => {
   res.json({ status: "OK", message: "API is healthy" });
 });
 
-// Register: name, email, password
+// ===== Send verification by SMS =====
+async function sendSms(to, text) {
+  if (!twilioClient) throw new Error("Twilio client not configured");
+  if (!TWILIO_FROM_NUMBER) throw new Error("TWILIO_FROM_NUMBER missing");
+  await twilioClient.messages.create({ from: TWILIO_FROM_NUMBER, to, body: text });
+}
+
+// ===== Register =====
 app.post("/api/register", async (req, res) => {
   try {
-    const { name, email, password } = req.body || {};
+    const name = String(req.body.name || "").trim();
+    const email = normalizeEmail(req.body.email);
+    const phone = String(req.body.phone || "").trim(); // must be +1...
+    const password = String(req.body.password || "");
 
-    if (!name || typeof name !== "string") {
-      return res.status(400).json({ error: "Name is required" });
+    if (!name) return res.status(400).json({ error: "Name required" });
+    if (!email) return res.status(400).json({ error: "Email required" });
+    if (!phone || !phone.startsWith("+")) {
+      return res.status(400).json({ error: 'Phone required in format like "+15625551234"' });
     }
-    if (!isValidEmail(email)) {
-      return res.status(400).json({ error: "Valid email is required" });
-    }
-    if (!password || typeof password !== "string" || password.length < 6) {
-      return res.status(400).json({ error: "Password must be at least 6 characters" });
-    }
+    if (password.length < 6) return res.status(400).json({ error: "Password must be 6+ chars" });
 
-    const normalizedEmail = email.trim().toLowerCase();
-
-    if (usersByEmail.has(normalizedEmail)) {
+    if (usersByEmail.has(email)) {
       return res.status(409).json({ error: "Email already registered" });
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
-    const verifyCode = make6DigitCode();
-    const verifyExpiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
-
+    const passHash = await bcrypt.hash(password, 10);
     const user = {
-      id: makeId(),
-      name: name.trim(),
-      email: normalizedEmail,
-      passwordHash,
+      id: newId(),
+      name,
+      email,
+      phone,
+      passHash,
       verified: false,
-      verifyCode,
-      verifyExpiresAt,
-      readings: [],
-      createdAt: new Date().toISOString(),
+      verifyCode: null,
+      verifyExpiresAt: null,
+      createdAt: nowIso() // auto date/time
     };
 
-    usersByEmail.set(normalizedEmail, user);
+    // create code
+    const code = makeCode();
+    user.verifyCode = code;
+    user.verifyExpiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
 
-    // Send email (if configured)
-    if (SENDGRID_API_KEY && FROM_EMAIL) {
-      const msg = {
-        to: normalizedEmail,
-        from: FROM_EMAIL,
-        subject: "Your Diabetes Tracker verification code",
-        text: `Your verification code is: ${verifyCode}\n\nThis code expires in 10 minutes.`,
-      };
+    usersByEmail.set(email, user);
 
-      try {
-        await sgMail.send(msg);
-      } catch (e) {
-        console.error("SendGrid error:", e?.response?.body || e.message || e);
-        // Still allow registration, but tell user email failed
-        return res.status(201).json({
-          ok: true,
-          message:
-            "User registered, but email failed to send. Check SENDGRID_API_KEY / FROM_EMAIL in Azure settings.",
-        });
-      }
-
-      return res.status(201).json({
+    // send SMS
+    const msg = `Your verification code is: ${code} (valid 10 min)`;
+    try {
+      await sendSms(user.phone, msg);
+      return res.json({
         ok: true,
-        message: "User registered. Check email for code.",
+        message: "Registered. SMS code sent.",
+        createdAt: user.createdAt
+      });
+    } catch (e) {
+      // user exists but SMS failed
+      return res.json({
+        ok: true,
+        message: "Registered, but SMS failed. Check Twilio settings.",
+        providerError: String(e.message || e),
+        createdAt: user.createdAt
       });
     }
-
-    // If SendGrid not set, return code for testing
-    return res.status(201).json({
-      ok: true,
-      message:
-        "User registered. Email service not configured. For testing, use the code returned.",
-      code: verifyCode,
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Server error in register" });
+  } catch (e) {
+    return res.status(500).json({ error: "Server error", details: String(e.message || e) });
   }
 });
 
-// Verify: email + code
+// ===== Verify =====
 app.post("/api/verify", (req, res) => {
-  try {
-    const { email, code } = req.body || {};
-    if (!isValidEmail(email)) return res.status(400).json({ error: "Valid email is required" });
-    if (!code || typeof code !== "string") return res.status(400).json({ error: "Code is required" });
+  const email = normalizeEmail(req.body.email);
+  const code = String(req.body.code || "").trim();
 
-    const normalizedEmail = email.trim().toLowerCase();
-    const user = usersByEmail.get(normalizedEmail);
-    if (!user) return res.status(404).json({ error: "User not found" });
+  const user = usersByEmail.get(email);
+  if (!user) return res.status(404).json({ error: "User not found" });
 
-    if (user.verified) {
-      return res.json({ ok: true, message: "Already verified. You can log in." });
-    }
-
-    if (Date.now() > user.verifyExpiresAt) {
-      return res.status(400).json({ error: "Code expired. Register again (or we can add resend)." });
-    }
-
-    if (String(code).trim() !== String(user.verifyCode)) {
-      return res.status(400).json({ error: "Invalid code" });
-    }
-
-    user.verified = true;
-    user.verifyCode = null;
-    user.verifyExpiresAt = null;
-
-    return res.json({ ok: true, message: "Email verified. You can now log in." });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Server error in verify" });
+  if (!user.verifyCode || !user.verifyExpiresAt) {
+    return res.status(400).json({ error: "No verification pending. Register again." });
   }
+
+  if (Date.now() > user.verifyExpiresAt) {
+    return res.status(400).json({ error: "Code expired. Register again to get a new code." });
+  }
+
+  if (code !== user.verifyCode) {
+    return res.status(400).json({ error: "Invalid code" });
+  }
+
+  user.verified = true;
+  user.verifyCode = null;
+  user.verifyExpiresAt = null;
+
+  return res.json({ ok: true, message: "Verified. You can login now." });
 });
 
-// Login: email + password => JWT
+// ===== Login =====
 app.post("/api/login", async (req, res) => {
-  try {
-    const { email, password } = req.body || {};
-    if (!isValidEmail(email)) return res.status(400).json({ error: "Valid email is required" });
-    if (!password) return res.status(400).json({ error: "Password is required" });
+  const email = normalizeEmail(req.body.email);
+  const password = String(req.body.password || "");
 
-    const normalizedEmail = email.trim().toLowerCase();
-    const user = usersByEmail.get(normalizedEmail);
-    if (!user) return res.status(404).json({ error: "User not found" });
+  const user = usersByEmail.get(email);
+  if (!user) return res.status(404).json({ error: "User not found" });
 
-    const ok = await bcrypt.compare(password, user.passwordHash);
-    if (!ok) return res.status(401).json({ error: "Invalid email or password" });
+  const ok = await bcrypt.compare(password, user.passHash);
+  if (!ok) return res.status(401).json({ error: "Invalid email or password" });
 
-    if (!user.verified) return res.status(403).json({ error: "Email not verified" });
+  if (!user.verified) return res.status(403).json({ error: "Not verified yet" });
 
-    const token = signToken(user);
+  const token = jwt.sign(
+    { uid: user.id, email: user.email, name: user.name },
+    JWT_SECRET,
+    { expiresIn: "7d" }
+  );
 
-    return res.json({
-      ok: true,
-      message: "Logged in",
-      token,
-      user: { name: user.name, email: user.email },
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Server error in login" });
-  }
+  return res.json({ ok: true, token, user: { name: user.name, email: user.email } });
 });
 
-// Add glucose reading (auth required)
+// ===== Add reading (Glucose + BP) with auto date/time =====
 app.post("/api/readings", auth, (req, res) => {
-  try {
-    const { glucose, note } = req.body || {};
-    const value = Number(glucose);
+  const glucose = req.body.glucose === "" || req.body.glucose == null ? null : Number(req.body.glucose);
+  const systolic = req.body.systolic === "" || req.body.systolic == null ? null : Number(req.body.systolic);
+  const diastolic = req.body.diastolic === "" || req.body.diastolic == null ? null : Number(req.body.diastolic);
+  const note = String(req.body.note || "").trim();
 
-    if (!Number.isFinite(value) || value <= 0) {
-      return res.status(400).json({ error: "glucose must be a positive number" });
-    }
-
-    const user = usersByEmail.get(req.user.email);
-    if (!user) return res.status(404).json({ error: "User not found" });
-
-    const reading = {
-      id: makeId(),
-      glucose: value,
-      note: typeof note === "string" ? note.trim() : "",
-      at: new Date().toISOString(),
-    };
-
-    user.readings.unshift(reading);
-    return res.status(201).json({ ok: true, message: "Reading added", reading });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Server error adding reading" });
+  // Validate: at least one of glucose or BP must exist
+  const hasGlucose = Number.isFinite(glucose) && glucose > 0;
+  const hasBP = Number.isFinite(systolic) && systolic > 0 && Number.isFinite(diastolic) && diastolic > 0;
+  if (!hasGlucose && !hasBP) {
+    return res.status(400).json({
+      error: "Enter glucose and/or blood pressure (systolic + diastolic)."
+    });
   }
+
+  const item = {
+    id: newId(),
+    createdAt: nowIso(), // auto date/time here
+    glucose: hasGlucose ? glucose : null,
+    bloodPressure: hasBP ? { systolic, diastolic } : null,
+    note
+  };
+
+  const uid = req.user.uid;
+  if (!readingsByUserId.has(uid)) readingsByUserId.set(uid, []);
+  readingsByUserId.get(uid).unshift(item);
+
+  return res.json({ ok: true, item });
 });
 
-// Get my readings (auth required)
+// ===== List readings =====
 app.get("/api/readings", auth, (req, res) => {
-  try {
-    const user = usersByEmail.get(req.user.email);
-    if (!user) return res.status(404).json({ error: "User not found" });
-    return res.json({ ok: true, readings: user.readings });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Server error loading readings" });
-  }
+  const uid = req.user.uid;
+  const list = readingsByUserId.get(uid) || [];
+  res.json({ ok: true, list });
 });
 
-// ===== STATIC FRONTEND (MUST BE AFTER API ROUTES) =====
+// ===== Serve public pages =====
 app.use(express.static(path.join(__dirname, "public")));
 
-// Optional: force root to index.html
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+  res.redirect("/register.html");
 });
 
-// ===== START =====
-const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

@@ -1,170 +1,57 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Diabetes Tracker</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Register - Diabetes Tracker</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 24px; }
-    h1 { margin-bottom: 6px; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
-    .card { border: 1px solid #ddd; border-radius: 10px; padding: 14px; }
-    label { display:block; margin-top: 10px; font-size: 14px; }
-    input { width: 100%; padding: 8px; margin-top: 4px; }
-    button { margin-top: 10px; padding: 8px 12px; cursor: pointer; }
-    pre { background:#f6f6f6; padding:10px; border-radius:8px; overflow:auto; }
-    .full { grid-column: 1 / -1; }
-    .muted { color:#666; font-size: 13px; }
+    body{font-family:Arial;margin:24px;background:#f6f7fb}
+    .card{max-width:520px;background:#fff;padding:18px;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08)}
+    input{width:100%;padding:10px;margin:8px 0}
+    button{padding:10px 14px;cursor:pointer}
+    pre{background:#111;color:#0f0;padding:10px;border-radius:10px;overflow:auto}
+    .small{font-size:12px;opacity:.75}
   </style>
 </head>
 <body>
-  <h1>Diabetes Tracker</h1>
-  <div class="muted">Register → Verify email code → Login → Add glucose readings</div>
+  <div class="card">
+    <h2>Create Account</h2>
+    <p class="small">After you register, you will receive a 6-digit SMS code.</p>
 
-  <div class="grid" style="margin-top:16px;">
-    <div class="card">
-      <h3>Register</h3>
-      <label>Name</label>
-      <input id="regName" placeholder="Full name" />
-      <label>Email</label>
-      <input id="regEmail" placeholder="you@email.com" />
-      <label>Password</label>
-      <input id="regPassword" type="password" placeholder="Password" />
-      <button onclick="register()">Register</button>
-      <pre id="regResult"></pre>
-    </div>
+    <input id="name" placeholder="Full name" />
+    <input id="email" placeholder="Email" />
+    <input id="phone" placeholder='Phone (SMS) like +15625551234' />
+    <input id="pass" type="password" placeholder="Password (6+)" />
 
-    <div class="card">
-      <h3>Verify Email</h3>
-      <label>Email</label>
-      <input id="verifyEmail" placeholder="same email" />
-      <label>6-digit code</label>
-      <input id="verifyCode" placeholder="123456" />
-      <button onclick="verify()">Verify</button>
-      <pre id="verifyResult"></pre>
-    </div>
-
-    <div class="card">
-      <h3>Login</h3>
-      <label>Email</label>
-      <input id="loginEmail" placeholder="you@email.com" />
-      <label>Password</label>
-      <input id="loginPassword" type="password" placeholder="Password" />
-      <button onclick="login()">Login</button>
-      <pre id="loginResult"></pre>
-    </div>
-
-    <div class="card full">
-      <h3>Add Glucose Reading</h3>
-      <div class="muted">You must login first (token required).</div>
-      <label>Glucose mg/dL</label>
-      <input id="glucoseValue" placeholder="e.g., 110" />
-      <label>Note (optional)</label>
-      <input id="glucoseNote" placeholder="e.g., after lunch" />
-      <button onclick="addReading()">Add</button>
-      <button onclick="loadReadings()">Load My Readings</button>
-      <pre id="readingsResult"></pre>
-    </div>
+    <button onclick="register()">Register</button>
+    <pre id="out">...</pre>
   </div>
 
 <script>
-  let TOKEN = "";
-
-  async function safeJson(res) {
-    const txt = await res.text();
-    try { return JSON.parse(txt); } catch { return { raw: txt }; }
-  }
-
-  async function register() {
-    const name = document.getElementById("regName").value;
-    const email = document.getElementById("regEmail").value;
-    const password = document.getElementById("regPassword").value;
-
-    const out = document.getElementById("regResult");
-    out.textContent = "Loading...";
+  async function register(){
+    const body = {
+      name: document.getElementById("name").value,
+      email: document.getElementById("email").value,
+      phone: document.getElementById("phone").value,
+      password: document.getElementById("pass").value
+    };
 
     const res = await fetch("/api/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password })
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(body)
     });
 
-    const data = await safeJson(res);
-    out.textContent = JSON.stringify(data, null, 2);
-  }
+    const data = await res.json().catch(()=>({}));
+    document.getElementById("out").textContent = JSON.stringify(data,null,2);
 
-  async function verify() {
-    const email = document.getElementById("verifyEmail").value;
-    const code = document.getElementById("verifyCode").value;
-
-    const out = document.getElementById("verifyResult");
-    out.textContent = "Loading...";
-
-    const res = await fetch("/api/verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, code })
-    });
-
-    const data = await safeJson(res);
-    out.textContent = JSON.stringify(data, null, 2);
-  }
-
-  async function login() {
-    const email = document.getElementById("loginEmail").value;
-    const password = document.getElementById("loginPassword").value;
-
-    const out = document.getElementById("loginResult");
-    out.textContent = "Loading...";
-
-    const res = await fetch("/api/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password })
-    });
-
-    const data = await safeJson(res);
-
-    if (data.ok && data.token) TOKEN = data.token;
-
-    out.textContent = JSON.stringify({
-      ...data,
-      tokenSaved: TOKEN ? true : false
-    }, null, 2);
-  }
-
-  async function addReading() {
-    const value = document.getElementById("glucoseValue").value;
-    const note = document.getElementById("glucoseNote").value;
-
-    const out = document.getElementById("readingsResult");
-    out.textContent = "Loading...";
-
-    const res = await fetch("/api/readings", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + TOKEN
-      },
-      body: JSON.stringify({ value, note })
-    });
-
-    const data = await safeJson(res);
-    out.textContent = JSON.stringify(data, null, 2);
-  }
-
-  async function loadReadings() {
-    const out = document.getElementById("readingsResult");
-    out.textContent = "Loading...";
-
-    const res = await fetch("/api/readings", {
-      headers: { "Authorization": "Bearer " + TOKEN }
-    });
-
-    const data = await safeJson(res);
-    out.textContent = JSON.stringify(data, null, 2);
+    if (data.ok) {
+      // Save email for next page
+      localStorage.setItem("pendingEmail", body.email);
+      // Go to verify page
+      window.location.href = "/verify.html";
+    }
   }
 </script>
-
 </body>
 </html>

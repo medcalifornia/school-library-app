@@ -4,7 +4,16 @@ const path = require("path");
 const fs = require("fs");
 const bcrypt = require("bcryptjs");
 const twilio = require("twilio");
-
+const dbConfig = {
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  server: process.env.DB_SERVER,
+  database: process.env.DB_NAME,
+  options: {
+    encrypt: true,
+    trustServerCertificate: false
+  }
+};
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));

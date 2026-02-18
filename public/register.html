@@ -4,127 +4,94 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Health Tracker - Register</title>
-  <style>
-    body{
-      font-family: Arial, sans-serif;
-      background:#f6f7fb;
-      max-width: 520px;
-      margin: 40px auto;
-      padding: 20px;
-      font-size: 18px;
-    }
-    .card{
-      background:#fff;
-      border: 1px solid #ddd;
-      padding: 18px;
-      border-radius: 12px;
-      box-shadow: 0 6px 18px rgba(0,0,0,.06);
-    }
-    input{
-      width: 100%;
-      padding: 14px 12px;
-      margin: 10px 0;
-      box-sizing: border-box;
-      font-size: 18px;
-      border-radius: 10px;
-      border: 1px solid #d9d9e3;
-    }
-    button{
-      padding: 14px 12px;
-      cursor: pointer;
-      width: 100%;
-      margin-top: 8px;
-      font-size: 18px;
-      border-radius: 10px;
-      border: 0;
-      background: #e9e9ee;
-      font-weight: 700;
-    }
-    button:disabled{ opacity: .6; cursor: not-allowed; }
-    a{ text-decoration: none; display:inline-block; margin-top: 12px; font-weight: 600; }
-    .msg{ margin-top: 10px; color: #b00020; min-height: 20px; }
-    .ok{ color: #0a7a0a; }
-  </style>
+
+  <!-- ربط ملف التصميم الموحد -->
+  <link rel="stylesheet" href="/style.css">
 </head>
+
 <body>
 
-  <h2>Health Tracker</h2>
+  <div class="container">
+    <h2>Health Tracker</h2>
 
-  <div class="card">
-    <h3>Create account</h3>
+    <div class="card">
+      <h3>Create account</h3>
 
-    <form id="registerForm">
-      <input id="rName" placeholder="Full name" autocomplete="name" required />
-      <input id="rEmail" placeholder="Email" type="email" autocomplete="email" required />
-      <input id="rPhone" placeholder="+15625416709" autocomplete="tel" required />
-      <input id="rPass" placeholder="Password" type="password" autocomplete="new-password" required />
-      <button id="rBtn" type="submit">Register</button>
-    </form>
+      <form id="registerForm">
+        <input id="rName" placeholder="Full name" autocomplete="name" required />
+        <input id="rEmail" placeholder="Email" type="email" autocomplete="email" required />
+        <input id="rPhone" placeholder="+15625416709" autocomplete="tel" required />
+        <input id="rPass" placeholder="Password" type="password" autocomplete="new-password" required />
 
-    <div class="msg" id="rMsg"></div>
-    <a href="/index.html">← Back to Login</a>
+        <button id="rBtn" type="submit">Register</button>
+      </form>
+
+      <div class="msg" id="rMsg"></div>
+
+      <div class="links">
+        <a href="/index.html">← Back to Login</a>
+      </div>
+    </div>
   </div>
 
 <script>
-  const rForm = document.getElementById("registerForm");
-  const rBtn  = document.getElementById("rBtn");
-  const rMsg  = document.getElementById("rMsg");
+const rForm = document.getElementById("registerForm");
+const rBtn  = document.getElementById("rBtn");
+const rMsg  = document.getElementById("rMsg");
 
-  function normalizePhone(p){
-    p = (p || "").trim();
-    if (!p) return "";
-    return p.startsWith("+") ? p : ("+" + p);
+function normalizePhone(p){
+  p = (p || "").trim();
+  if (!p) return "";
+  return p.startsWith("+") ? p : ("+" + p);
+}
+
+rForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  rMsg.textContent = "";
+  rMsg.className = "msg";
+  rBtn.disabled = true;
+
+  const body = {
+    name: document.getElementById("rName").value.trim(),
+    email: document.getElementById("rEmail").value.trim().toLowerCase(),
+    phone: normalizePhone(document.getElementById("rPhone").value),
+    password: document.getElementById("rPass").value
+  };
+
+  if (!body.name || !body.email || !body.phone || !body.password) {
+    rMsg.textContent = "Please fill all fields.";
+    rBtn.disabled = false;
+    return;
   }
 
-  rForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
+  try {
+    const res = await fetch("/api/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
 
-    rMsg.textContent = "";
-    rMsg.className = "msg";
-    rBtn.disabled = true;
+    const data = await res.json().catch(() => ({}));
 
-    const body = {
-      name: document.getElementById("rName").value.trim(),
-      email: document.getElementById("rEmail").value.trim().toLowerCase(),
-      phone: normalizePhone(document.getElementById("rPhone").value),
-      password: document.getElementById("rPass").value
-    };
-
-    // تحقق سريع قبل الإرسال
-    if (!body.name || !body.email || !body.phone || !body.password) {
-      rMsg.textContent = "Please fill all fields.";
+    if (!res.ok) {
+      rMsg.textContent = data.error || "Registration failed";
       rBtn.disabled = false;
       return;
     }
 
-    try {
-      const res = await fetch("/api/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-      });
+    rMsg.textContent = "Registered successfully ✅ Redirecting to login...";
+    rMsg.className = "msg ok";
 
-      const data = await res.json().catch(() => ({}));
+    setTimeout(() => {
+      window.location.href = "/index.html";
+    }, 1000);
 
-      if (!res.ok) {
-        rMsg.textContent = data.error || "Registration failed";
-        rBtn.disabled = false;
-        return;
-      }
-
-      rMsg.textContent = (data.message || "Registered successfully ✅") + " Redirecting to login...";
-      rMsg.className = "msg ok";
-
-      // ✅ رجوع تلقائي للـ Login
-      setTimeout(() => {
-        window.location.href = "/index.html";
-      }, 1000);
-
-    } catch (err) {
-      rMsg.textContent = "Network error: " + (err?.message || "unknown");
-      rBtn.disabled = false;
-    }
-  });
+  } catch (err) {
+    rMsg.textContent = "Network error";
+    rBtn.disabled = false;
+  }
+});
 </script>
 
 </body>

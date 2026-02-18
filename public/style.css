@@ -11,12 +11,9 @@ body{
   line-height: 1.4;
   background: linear-gradient(to bottom, #f6f7fb, #eef1f7);
   color: #111;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
 }
 
-/* Main container */
+/* Main container centered */
 .container{
   width: min(520px, 92vw);
   margin: 40px auto;
@@ -35,13 +32,6 @@ body{
 h1,h2{
   margin: 8px 0 14px;
   font-size: 26px;
-}
-
-/* Labels */
-label{
-  display:block;
-  margin: 12px 0 6px;
-  font-weight: 600;
 }
 
 /* Inputs */
@@ -82,9 +72,16 @@ a{
   color: #4a6cf7;
 }
 
-/* ===== NEW IMAGE STYLE (FIXED & CLEAN) ===== */
+/* Message */
+.msg{
+  margin-top: 10px;
+  color: #b00020;
+  min-height: 18px;
+}
+
+/* ===== CENTERED IMAGE ===== */
 .hero-image{
-  margin-top: 16px;
+  margin-top: 20px;
   border-radius: 16px;
   overflow: hidden;
 }
@@ -92,12 +89,13 @@ a{
 .hero-image img{
   display: block;
   width: 100%;
-  height: 210px;        /* مناسب للموبايل */
-  object-fit: cover;    /* يخلي الصورة مرتبة */
+  height: 220px;
+  object-fit: cover;
   object-position: center;
+  border-radius: 16px;
 }
 
-/* أكبر شوية على الشاشات الكبيرة */
+/* Bigger on desktop */
 @media (min-width: 768px){
   .hero-image img{
     height: 260px;

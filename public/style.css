@@ -108,3 +108,18 @@ a{
   h1,h2{ font-size: 22px; }
   .container{ margin: 18px auto; }
 }
+button {
+  -webkit-appearance: none;   /* مهم للآيفون */
+  appearance: none;
+  background: #4a6cf7;
+  color: #ffffff;
+  border: none;
+  font-weight: 700;
+  opacity: 1;
+}
+
+button:disabled {
+  background: #4a6cf7;
+  color: #ffffff;
+  opacity: 1;
+}

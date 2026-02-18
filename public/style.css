@@ -1,1 +1,68 @@
-rfkhffh
+:root{
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+*{ box-sizing: border-box; }
+
+body{
+  margin: 0;
+  font-family: var(--font);
+  font-size: 18px;           /* 👈 خط أكبر */
+  line-height: 1.4;
+  background: #f6f7fb;
+  color: #111;
+}
+
+.container{
+  width: min(520px, 92vw);   /* 👈 مناسب للموبايل والكمبيوتر */
+  margin: 40px auto;
+  padding: 18px;
+}
+
+.card{
+  background: #fff;
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.08);
+}
+
+h1,h2{
+  margin: 8px 0 14px;
+  font-size: 26px;
+}
+
+label{
+  display:block;
+  margin: 12px 0 6px;
+  font-weight: 600;
+}
+
+input, select, button{
+  width: 100%;
+  font-size: 18px;
+  padding: 14px 12px;        /* 👈 مريح على iPhone */
+  border-radius: 12px;
+  border: 1px solid #d9d9e3;
+  outline: none;
+}
+
+button{
+  margin-top: 14px;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.links{
+  display:flex;
+  justify-content: space-between;
+  margin-top: 12px;
+}
+
+a{ text-decoration:none; font-weight:600; }
+
+@media (max-width: 420px){
+  body{ font-size: 17px; }
+  h1,h2{ font-size: 22px; }
+  .container{ margin: 18px auto; }
+}

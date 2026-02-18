@@ -1,72 +1,298 @@
+
 <!doctype html>
-<html lang="en">
+<html>
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Health Tracker - Login</title>
 
+  <!-- ربط ملف CSS -->
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 
-  <div class="container">
+<div class="container">
 
-    <h2>Health Tracker</h2>
+  <h2>Health Tracker</h2>
 
-    <div class="card">
-      <h3>Login</h3>
+  <div class="card">
+    <h3>Login</h3>
 
-      <input id="lEmail" placeholder="Email" autocomplete="email" inputmode="email" />
-      <input id="lPass" placeholder="Password" type="password" autocomplete="current-password" />
-      <button onclick="login()">Login</button>
+    <input id="lEmail" placeholder="Email" />
+    <input id="lPass" placeholder="Password" type="password" />
+    <button onclick="login()">Login</button>
 
-      <div class="links">
-        <a href="/register.html">Create account</a>
-        <a href="/forgot.html">Forgot password?</a>
-      </div>
-
-      <div class="msg" id="lMsg"></div>
+    <div class="links">
+      <a href="/register.html">Create account</a>
+      <a href="/forgot.html">Forgot password?</a>
     </div>
 
-    <div class="hero-image">
-      <img src="/images/health-app.jpg" alt="Health App">
-    </div>
-
+    <div class="msg" id="lMsg"></div>
   </div>
+
+  <!-- الصورة داخل نفس الـ container -->
+  <div class="hero-image">
+    <img src="/images/health-app.jpg" alt="Health App">
+  </div>
+
+</div>
 
 <script>
 async function login() {
-  const lMsg = document.getElementById("lMsg");
-  const lEmail = document.getElementById("lEmail");
-  const lPass = document.getElementById("lPass");
-
   lMsg.textContent = "";
 
   const body = { email: lEmail.value.trim(), password: lPass.value };
 
-  try {
-    const res = await fetch("/api/login", {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify(body)
-    });
+  const res = await fetch("/api/login", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(body)
+  });
 
-    const data = await res.json().catch(() => ({}));
+  const data = await res.json();
 
-    if (data.userId) {
-      localStorage.setItem("userId", data.userId);
-      localStorage.setItem("name", data.name || "");
-      localStorage.setItem("email", body.email);
-      if (data.phone) localStorage.setItem("phone", data.phone);
-      location.href = "/app.html";
-    } else {
-      lMsg.textContent = data.error || "Login failed";
-    }
-  } catch (e) {
-    lMsg.textContent = "Network error";
+  if (data.userId) {
+    localStorage.setItem("userId", data.userId);
+    localStorage.setItem("name", data.name || "");
+    localStorage.setItem("email", body.email);
+    if (data.phone) localStorage.setItem("phone", data.phone);
+    location.href = "/app.html";
+  } else {
+    lMsg.textContent = data.error || "Login failed";
   }
 }
 </script>
 
 </body>
+</html>  
+و
+Register.html
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Health Tracker - Register</title>
+
+  <!-- ربط ملف التصميم الموحد -->
+  <link rel="stylesheet" href="/style.css">
+</head>
+
+<body>
+
+  <div class="container">
+    <h2>Health Tracker</h2>
+
+    <div class="card">
+      <h3>Create account</h3>
+
+      <form id="registerForm">
+        <input id="rName" placeholder="Full name" autocomplete="name" required />
+        <input id="rEmail" placeholder="Email" type="email" autocomplete="email" required />
+        <input id="rPhone" placeholder="+12225554444" autocomplete="tel" required />
+        <input id="rPass" placeholder="Password" type="password" autocomplete="new-password" required />
+
+        <button id="rBtn" type="submit">Register</button>
+      </form>
+
+      <div class="msg" id="rMsg"></div>
+
+      <div class="links">
+        <a href="/index.html">← Back to Login</a>
+      </div>
+    </div>
+  </div>
+
+<script>
+const rForm = document.getElementById("registerForm");
+const rBtn  = document.getElementById("rBtn");
+const rMsg  = document.getElementById("rMsg");
+
+function normalizePhone(p){
+  p = (p || "").trim();
+  if (!p) return "";
+  return p.startsWith("+") ? p : ("+" + p);
+}
+
+rForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  rMsg.textContent = "";
+  rMsg.className = "msg";
+  rBtn.disabled = true;
+
+  const body = {
+    name: document.getElementById("rName").value.trim(),
+    email: document.getElementById("rEmail").value.trim().toLowerCase(),
+    phone: normalizePhone(document.getElementById("rPhone").value),
+    password: document.getElementById("rPass").value
+  };
+
+  if (!body.name || !body.email || !body.phone || !body.password) {
+    rMsg.textContent = "Please fill all fields.";
+    rBtn.disabled = false;
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      rMsg.textContent = data.error || "Registration failed";
+      rBtn.disabled = false;
+      return;
+    }
+
+    rMsg.textContent = "Registered successfully ✅ Redirecting to login...";
+    rMsg.className = "msg ok";
+
+    setTimeout(() => {
+      window.location.href = "/index.html";
+    }, 1000);
+
+  } catch (err) {
+    rMsg.textContent = "Network error";
+    rBtn.disabled = false;
+  }
+});
+</script>
+
+</body>
 </html>
+
+
+و
+style.css
+
+:root{
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+*{ box-sizing: border-box; }
+
+body{
+  margin: 0;
+  font-family: var(--font);
+  font-size: 18px;
+  line-height: 1.4;
+  background: linear-gradient(to bottom, #f6f7fb, #eef1f7);
+  color: #111;
+}
+
+/* Main container centered */
+.container{
+  width: min(520px, 92vw);
+  margin: 40px auto;
+  padding: 18px;
+}
+
+/* Card */
+.card{
+  background: #fff;
+  border-radius: 16px;
+  padding: 22px;
+  box-shadow: 0 8px 22px rgba(0,0,0,.08);
+}
+
+/* Titles */
+h1,h2{
+  margin: 8px 0 14px;
+  font-size: 26px;
+}
+
+/* Inputs */
+input, select, button{
+  width: 100%;
+  font-size: 18px;
+  padding: 14px 12px;
+  border-radius: 12px;
+  border: 1px solid #d9d9e3;
+  outline: none;
+}
+
+/* Buttons */
+button{
+  margin-top: 14px;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+  background: #4a6cf7;
+  color: white;
+  transition: 0.2s ease;
+}
+
+button:hover{
+  background: #3757d6;
+}
+
+/* Links */
+.links{
+  display:flex;
+  justify-content: space-between;
+  margin-top: 12px;
+}
+
+a{
+  text-decoration:none;
+  font-weight:600;
+  color: #4a6cf7;
+}
+
+/* Message */
+.msg{
+  margin-top: 10px;
+  color: #b00020;
+  min-height: 18px;
+}
+
+/* ===== CENTERED IMAGE ===== */
+.hero-image{
+  margin-top: 20px;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.hero-image img{
+  display: block;
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 16px;
+}
+
+/* Bigger on desktop */
+@media (min-width: 768px){
+  .hero-image img{
+    height: 260px;
+  }
+}
+
+/* Mobile adjustments */
+@media (max-width: 420px){
+  body{ font-size: 17px; }
+  h1,h2{ font-size: 22px; }
+  .container{ margin: 18px auto; }
+}
+button {
+  -webkit-appearance: none;   /* مهم للآيفون */
+  appearance: none;
+  background: #4a6cf7;
+  color: #ffffff;
+  border: none;
+  font-weight: 700;
+  opacity: 1;
+}
+
+button:disabled {
+  background: #4a6cf7;
+  color: #ffffff;
+  opacity: 1;
+}
+فهاهم جميعهم صحيحهم لي تاني وبعتهم لي من جديد

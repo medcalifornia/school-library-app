@@ -1,62 +1,69 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Health Tracker - Login</title>
 
-  <!-- ربط ملف CSS -->
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 
-<div class="container">
+  <div class="container">
 
-  <h2>Health Tracker</h2>
+    <h2>Health Tracker</h2>
 
-  <div class="card">
-    <h3>Login</h3>
+    <div class="card">
+      <h3>Login</h3>
 
-    <input id="lEmail" placeholder="Email" />
-    <input id="lPass" placeholder="Password" type="password" />
-    <button onclick="login()">Login</button>
+      <input id="lEmail" placeholder="Email" autocomplete="email" inputmode="email" />
+      <input id="lPass" placeholder="Password" type="password" autocomplete="current-password" />
+      <button onclick="login()">Login</button>
 
-    <div class="links">
-      <a href="/register.html">Create account</a>
-      <a href="/forgot.html">Forgot password?</a>
+      <div class="links">
+        <a href="/register.html">Create account</a>
+        <a href="/forgot.html">Forgot password?</a>
+      </div>
+
+      <div class="msg" id="lMsg"></div>
     </div>
 
-    <div class="msg" id="lMsg"></div>
-  </div>
+    <div class="hero-image">
+      <img src="/images/health-app.jpg" alt="Health App">
+    </div>
 
-  <!-- الصورة داخل نفس الـ container -->
-  <div class="hero-image">
-    <img src="/images/health-app.jpg" alt="Health App">
   </div>
-
-</div>
 
 <script>
 async function login() {
+  const lMsg = document.getElementById("lMsg");
+  const lEmail = document.getElementById("lEmail");
+  const lPass = document.getElementById("lPass");
+
   lMsg.textContent = "";
 
   const body = { email: lEmail.value.trim(), password: lPass.value };
 
-  const res = await fetch("/api/login", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify(body)
-  });
+  try {
+    const res = await fetch("/api/login", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(body)
+    });
 
-  const data = await res.json();
+    const data = await res.json().catch(() => ({}));
 
-  if (data.userId) {
-    localStorage.setItem("userId", data.userId);
-    localStorage.setItem("name", data.name || "");
-    localStorage.setItem("email", body.email);
-    if (data.phone) localStorage.setItem("phone", data.phone);
-    location.href = "/app.html";
-  } else {
-    lMsg.textContent = data.error || "Login failed";
+    if (data.userId) {
+      localStorage.setItem("userId", data.userId);
+      localStorage.setItem("name", data.name || "");
+      localStorage.setItem("email", body.email);
+      if (data.phone) localStorage.setItem("phone", data.phone);
+      location.href = "/app.html";
+    } else {
+      lMsg.textContent = data.error || "Login failed";
+    }
+  } catch (e) {
+    lMsg.textContent = "Network error";
   }
 }
 </script>

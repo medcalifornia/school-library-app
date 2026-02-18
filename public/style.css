@@ -7,60 +7,95 @@
 body{
   margin: 0;
   font-family: var(--font);
-  font-size: 18px;           /* 👈 خط أكبر */
+  font-size: 18px;
   line-height: 1.4;
-  background: #f6f7fb;
+  background: linear-gradient(to bottom, #f6f7fb, #eef1f7);
   color: #111;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
+/* Main container */
 .container{
-  width: min(520px, 92vw);   /* 👈 مناسب للموبايل والكمبيوتر */
+  width: min(520px, 92vw);
   margin: 40px auto;
   padding: 18px;
 }
 
+/* Card */
 .card{
   background: #fff;
   border-radius: 14px;
-  padding: 18px;
-  box-shadow: 0 6px 18px rgba(0,0,0,.08);
+  padding: 22px;
+  box-shadow: 0 8px 22px rgba(0,0,0,.08);
 }
 
+/* Titles */
 h1,h2{
   margin: 8px 0 14px;
   font-size: 26px;
 }
 
+/* Labels */
 label{
   display:block;
   margin: 12px 0 6px;
   font-weight: 600;
 }
 
+/* Inputs */
 input, select, button{
   width: 100%;
   font-size: 18px;
-  padding: 14px 12px;        /* 👈 مريح على iPhone */
+  padding: 14px 12px;
   border-radius: 12px;
   border: 1px solid #d9d9e3;
   outline: none;
 }
 
+/* Buttons */
 button{
   margin-top: 14px;
   border: none;
   cursor: pointer;
   font-weight: 700;
+  background: #4a6cf7;
+  color: white;
+  transition: 0.2s ease;
 }
 
+button:hover{
+  background: #3757d6;
+}
+
+/* Links */
 .links{
   display:flex;
   justify-content: space-between;
   margin-top: 12px;
 }
 
-a{ text-decoration:none; font-weight:600; }
+a{
+  text-decoration:none;
+  font-weight:600;
+  color: #4a6cf7;
+}
 
+/* Image section */
+.hero-image {
+  margin-top: 40px;
+  text-align: center;
+}
+
+.hero-image img {
+  width: 100%;
+  max-width: 420px;
+  border-radius: 18px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+}
+
+/* Mobile adjustments */
 @media (max-width: 420px){
   body{ font-size: 17px; }
   h1,h2{ font-size: 22px; }

@@ -3,22 +3,19 @@
 <head>
   <meta charset="utf-8" />
   <title>Health Tracker - Login</title>
-  <style>
-    body { font-family: Arial; max-width: 520px; margin: 40px auto; padding: 20px; }
-    .card { border: 1px solid #ddd; padding: 18px; border-radius: 12px; }
-    input { width: 100%; padding: 10px; margin: 8px 0; box-sizing: border-box; }
-    button { padding: 10px 14px; cursor: pointer; width: 100%; margin-top: 8px; }
-    .links { display:flex; justify-content: space-between; margin-top: 12px; }
-    a { text-decoration: none; }
-    .msg { margin-top: 10px; color: #b00020; min-height: 18px; }
-  </style>
+
+  <!-- ربط ملف CSS -->
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
+
+<div class="container">
 
   <h2>Health Tracker</h2>
 
   <div class="card">
     <h3>Login</h3>
+
     <input id="lEmail" placeholder="Email" />
     <input id="lPass" placeholder="Password" type="password" />
     <button onclick="login()">Login</button>
@@ -30,14 +27,20 @@
 
     <div class="msg" id="lMsg"></div>
   </div>
+
+  <!-- الصورة داخل نفس الـ container -->
   <div class="hero-image">
-  <img src="/images/health-app.jpg" alt="Health App" />
+    <img src="/images/health-app.jpg" alt="Health App">
+  </div>
+
 </div>
+
 <script>
 async function login() {
   lMsg.textContent = "";
 
   const body = { email: lEmail.value.trim(), password: lPass.value };
+
   const res = await fetch("/api/login", {
     method: "POST",
     headers: {"Content-Type":"application/json"},
@@ -50,8 +53,7 @@ async function login() {
     localStorage.setItem("userId", data.userId);
     localStorage.setItem("name", data.name || "");
     localStorage.setItem("email", body.email);
-    if (data.phone) localStorage.setItem("phone", data.phone); // optional
-
+    if (data.phone) localStorage.setItem("phone", data.phone);
     location.href = "/app.html";
   } else {
     lMsg.textContent = data.error || "Login failed";

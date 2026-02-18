@@ -6,7 +6,8 @@ const path = require("path");
 const bcrypt = require("bcryptjs");
 const twilio = require("twilio");
 const crypto = require("crypto");
-
+const cors = require("cors");
+app.use(cors());
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));

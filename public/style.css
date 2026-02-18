@@ -26,7 +26,7 @@ body{
 /* Card */
 .card{
   background: #fff;
-  border-radius: 14px;
+  border-radius: 16px;
   padding: 22px;
   box-shadow: 0 8px 22px rgba(0,0,0,.08);
 }
@@ -82,17 +82,26 @@ a{
   color: #4a6cf7;
 }
 
-/* Image section */
-.hero-image {
-  margin-top: 40px;
-  text-align: center;
+/* ===== NEW IMAGE STYLE (FIXED & CLEAN) ===== */
+.hero-image{
+  margin-top: 16px;
+  border-radius: 16px;
+  overflow: hidden;
 }
 
-.hero-image img {
+.hero-image img{
+  display: block;
   width: 100%;
-  max-width: 420px;
-  border-radius: 18px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+  height: 210px;        /* مناسب للموبايل */
+  object-fit: cover;    /* يخلي الصورة مرتبة */
+  object-position: center;
+}
+
+/* أكبر شوية على الشاشات الكبيرة */
+@media (min-width: 768px){
+  .hero-image img{
+    height: 260px;
+  }
 }
 
 /* Mobile adjustments */

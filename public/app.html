@@ -1,39 +1,31 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Health Tracker</title>
+
+  <link rel="stylesheet" href="/style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body { font-family: Arial; max-width: 900px; margin: 20px auto; padding: 20px; }
-    input, select { padding: 10px; margin: 6px 0; box-sizing: border-box; }
-    button { padding: 10px 14px; margin-top: 8px; cursor: pointer; }
-    .card { border: 1px solid #ddd; padding: 14px; border-radius: 10px; margin: 12px 0; }
-    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; align-items: end; }
-    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-    th { background: #f2f2f2; }
-    .topbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-    @media (max-width: 860px) {
-      .grid3 { grid-template-columns: 1fr; }
-    }
-  </style>
 </head>
 
 <body>
+
+<div class="container">
+
   <div class="topbar">
     <h2>Health Tracker</h2>
-    <div>
+    <div class="topbar-right">
       <span id="hello"></span>
-      <button onclick="logout()">Logout</button>
+      <button class="btnSmall" onclick="logout()">Logout</button>
     </div>
   </div>
 
   <div class="card">
     <h3>Add Glucose</h3>
+
     <div class="grid3">
-      <input id="gVal" placeholder="Glucose mg/dL (e.g. 110)" />
+      <input id="gVal" placeholder="Glucose mg/dL (e.g. 110)" inputmode="numeric" />
       <select id="gNote">
         <option value="">(Choose note)</option>
         <option>Fasting (morning)</option>
@@ -51,9 +43,10 @@
 
   <div class="card">
     <h3>Add Blood Pressure</h3>
+
     <div class="grid3">
-      <input id="bpSys" placeholder="Systolic (e.g. 120)" />
-      <input id="bpDia" placeholder="Diastolic (e.g. 80)" />
+      <input id="bpSys" placeholder="Systolic (e.g. 120)" inputmode="numeric" />
+      <input id="bpDia" placeholder="Diastolic (e.g. 80)" inputmode="numeric" />
       <select id="bpNote">
         <option value="">(Choose note)</option>
         <option>Resting</option>
@@ -64,29 +57,37 @@
         <option>Feeling dizzy</option>
       </select>
     </div>
+
     <button onclick="saveBP()">Save Blood Pressure</button>
   </div>
 
   <div class="card">
     <h3>My Readings</h3>
     <button onclick="loadAll()">Load My Readings</button>
-    <table>
-      <thead>
-        <tr>
-          <th>Date/Time</th>
-          <th>Type</th>
-          <th>Value</th>
-          <th>Note</th>
-        </tr>
-      </thead>
-      <tbody id="rows"></tbody>
-    </table>
+
+    <div class="tableWrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date/Time</th>
+            <th>Type</th>
+            <th>Value</th>
+            <th>Note</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
   </div>
 
   <div class="card">
     <h3>Chart</h3>
-    <canvas id="chart" height="120"></canvas>
+    <div class="chartWrap">
+      <canvas id="chart" height="140"></canvas>
+    </div>
   </div>
+
+</div>
 
 <script>
 const userId = localStorage.getItem("userId");
@@ -98,8 +99,6 @@ function logout(){
   localStorage.removeItem("userId");
   localStorage.removeItem("name");
   localStorage.removeItem("email");
-  // keep phone if you want, or remove it:
-  // localStorage.removeItem("phone");
   location.href = "/index.html";
 }
 
@@ -147,7 +146,7 @@ async function saveBP(){
 
 async function loadAll(){
   const res = await fetch(`/api/readings/${userId}`);
-  const data = await res.json();
+  const data = await res.json().catch(()=>[]);
 
   rows.innerHTML = "";
   for (const r of data.slice().reverse()) {
@@ -167,7 +166,7 @@ async function loadAll(){
 let chartObj = null;
 async function loadChart(){
   const res = await fetch(`/api/chart/${userId}`);
-  const data = await res.json();
+  const data = await res.json().catch(()=>({labels:[], glucoseAvg:[], sysAvg:[], diaAvg:[]}));
 
   const ctx = document.getElementById("chart");
   if (chartObj) chartObj.destroy();
@@ -187,5 +186,6 @@ async function loadChart(){
 
 loadAll();
 </script>
+
 </body>
 </html>

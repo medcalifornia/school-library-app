@@ -132,7 +132,7 @@ async function saveBP(){
     headers: {"Content-Type":"application/json"},
     body: JSON.stringify({
       userId,
-      type: "Blood Pressure",
+      type: "bp",
       value: `${s}/${d}`,
       note: bpNote.value
     })

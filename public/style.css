@@ -13,14 +13,12 @@ body{
   color: #111;
 }
 
-/* Main container centered */
 .container{
   width: min(520px, 92vw);
   margin: 40px auto;
   padding: 18px;
 }
 
-/* Card */
 .card{
   background: #fff;
   border-radius: 16px;
@@ -28,13 +26,11 @@ body{
   box-shadow: 0 8px 22px rgba(0,0,0,.08);
 }
 
-/* Titles */
 h1,h2{
   margin: 8px 0 14px;
   font-size: 26px;
 }
 
-/* Inputs */
 input, select, button{
   width: 100%;
   font-size: 18px;
@@ -44,7 +40,6 @@ input, select, button{
   outline: none;
 }
 
-/* Buttons */
 button{
   margin-top: 14px;
   border: none;
@@ -53,13 +48,21 @@ button{
   background: #4a6cf7;
   color: white;
   transition: 0.2s ease;
+  -webkit-appearance: none;
+  appearance: none;
+  opacity: 1;
 }
 
 button:hover{
   background: #3757d6;
 }
 
-/* Links */
+button:disabled{
+  background: #4a6cf7;
+  color: #ffffff;
+  opacity: 1;
+}
+
 .links{
   display:flex;
   justify-content: space-between;
@@ -72,14 +75,31 @@ a{
   color: #4a6cf7;
 }
 
-/* Message */
 .msg{
   margin-top: 10px;
   color: #b00020;
   min-height: 18px;
 }
 
-/* ===== CENTERED IMAGE ===== */
+.msg.ok{
+  color: #0b7a2a;
+}
+
+.muted{
+  color: #555;
+  font-size: 15px;
+  margin-bottom: 10px;
+}
+
+.rowBtns{
+  display: flex;
+  gap: 10px;
+}
+
+.rowBtns button{
+  width: 100%;
+}
+
 .hero-image{
   margin-top: 20px;
   border-radius: 16px;
@@ -95,31 +115,14 @@ a{
   border-radius: 16px;
 }
 
-/* Bigger on desktop */
 @media (min-width: 768px){
   .hero-image img{
     height: 260px;
   }
 }
 
-/* Mobile adjustments */
 @media (max-width: 420px){
   body{ font-size: 17px; }
   h1,h2{ font-size: 22px; }
   .container{ margin: 18px auto; }
-}
-button {
-  -webkit-appearance: none;   /* مهم للآيفون */
-  appearance: none;
-  background: #4a6cf7;
-  color: #ffffff;
-  border: none;
-  font-weight: 700;
-  opacity: 1;
-}
-
-button:disabled {
-  background: #4a6cf7;
-  color: #ffffff;
-  opacity: 1;
 }

@@ -1,44 +1,39 @@
-<!doctype html>
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Health Tracker - Verify</title>
-
-  <link rel="stylesheet" href="/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Verify</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 700px; margin: 30px auto; padding: 0 16px; }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; }
+    input { width: 100%; padding: 10px; margin: 8px 0; }
+    button { padding: 10px 14px; cursor: pointer; }
+    pre { background: #f6f6f6; padding: 12px; border-radius: 10px; overflow:auto; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 640px){ .row{ grid-template-columns: 1fr; } }
+  </style>
 </head>
-
 <body>
-
-<div class="container">
-
-  <h2>Health Tracker</h2>
+  <h2>Verify (SMS Code)</h2>
 
   <div class="card">
-    <h3>Verify (SMS Code)</h3>
-
-    <div class="row2">
-      <input id="email" placeholder="Email" type="email" autocomplete="email" />
-      <input id="phone" placeholder="Phone used in registration" autocomplete="tel" />
+    <div class="row">
+      <input id="email" placeholder="Email" />
+      <input id="phone" placeholder="Phone used in registration" />
     </div>
-
-    <input id="code" placeholder="6-digit code from SMS" maxlength="6" inputmode="numeric" />
+    <input id="code" placeholder="6-digit code from SMS" />
     <button onclick="verifyCode()">Verify</button>
 
-    <hr class="sep" />
+    <hr />
 
     <h3>Login</h3>
-    <input id="pass" type="password" placeholder="Password" autocomplete="current-password" />
+    <input id="pass" type="password" placeholder="Password" />
     <button onclick="login()">Login</button>
 
-    <pre id="out" class="preBox"></pre>
-
-    <div class="links" style="margin-top:12px;">
-      <a href="/index.html">← Back to Login</a>
-    </div>
+    <pre id="out"></pre>
   </div>
-
-</div>
 
 <script>
 (function fill(){
@@ -78,20 +73,13 @@ async function login(){
   const data = await res.json().catch(()=>({}));
   document.getElementById("out").textContent = JSON.stringify(data, null, 2);
 
-  // ✅ مطابق لطريقة مشروعك الحالية (userId)
-  if (data.userId) {
-    localStorage.setItem("userId", data.userId);
-    localStorage.setItem("name", data.name || "");
-    localStorage.setItem("email", body.email);
-    if (data.phone) localStorage.setItem("phone", data.phone);
-
+  if (data.token) {
+    localStorage.setItem("token", data.token);
     localStorage.removeItem("pendingEmail");
     localStorage.removeItem("pendingPhone");
-
     window.location.href = "/app.html";
   }
 }
 </script>
-
 </body>
 </html>

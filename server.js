@@ -7,8 +7,12 @@ const bcrypt = require("bcryptjs");
 const twilio = require("twilio");
 const crypto = require("crypto");
 const cors = require("cors");
-app.use(cors());
+
+// ✅ لازم تعريف app قبل أي app.use
 const app = express();
+
+// ✅ Middlewares
+app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -63,7 +67,7 @@ function normalizePhone(phone) {
   return p;
 }
 
-// In-memory reset tokens (simple + safe enough for now)
+// In-memory reset tokens
 const resetTokens = new Map(); // token -> { phone, expiresAt }
 function createResetToken(phone) {
   const token = crypto.randomBytes(24).toString("hex");
@@ -88,6 +92,7 @@ function consumeResetToken(token) {
 // ================= INIT TABLES (auto-create if missing) =================
 async function ensureTables() {
   const pool = await getPool();
+
   await pool.request().query(`
     IF OBJECT_ID('dbo.Users', 'U') IS NULL
     BEGIN
@@ -157,7 +162,6 @@ app.post("/api/register", async (req, res) => {
 
     const pool = await getPool();
 
-    // Check duplicates
     const dup = await pool
       .request()
       .input("Email", sql.NVarChar(255), e)
@@ -202,13 +206,13 @@ app.post("/api/login", async (req, res) => {
          WHERE Email=@Email`
       );
 
-    if (!result.recordset.length) return res.status(400).json({ error: "Invalid email or password" });
+    if (!result.recordset.length)
+      return res.status(400).json({ error: "Invalid email or password" });
 
     const user = result.recordset[0];
     const ok = await bcrypt.compare(String(password), String(user.PasswordHash));
     if (!ok) return res.status(400).json({ error: "Invalid email or password" });
 
-    // Return userId + name (+ phone so you can store it for masked phone UI)
     res.json({
       message: "Login OK",
       userId: user.Id,
@@ -291,7 +295,6 @@ app.get("/api/chart/:userId", async (req, res) => {
 
     const readings = result.recordset;
 
-    // group by YYYY-MM-DD
     const byDate = {};
     for (const r of readings) {
       const d = new Date(r.Ts).toISOString().slice(0, 10);
@@ -308,7 +311,8 @@ app.get("/api/chart/:userId", async (req, res) => {
     }
 
     const labels = Object.keys(byDate).sort();
-    const avg = (arr) => (arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null);
+    const avg = (arr) =>
+      arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
 
     res.json({
       labels,
@@ -328,7 +332,6 @@ app.post("/api/forgot-password", async (req, res) => {
     if (!phone) return res.status(400).json({ error: "Phone required" });
     if (!hasTwilio) return res.status(500).json({ error: "Twilio not configured on server" });
 
-    // check phone exists
     const pool = await getPool();
     const userCheck = await pool
       .request()
@@ -360,9 +363,7 @@ app.post("/api/verify-reset-code", async (req, res) => {
 
     if (check.status !== "approved") return res.status(400).json({ error: "Invalid code" });
 
-    // Issue short-lived reset token (safer than letting reset without proof)
     const resetToken = createResetToken(phone);
-
     res.json({ message: "Verified", resetToken });
   } catch (err) {
     res.status(500).json({ error: "Verify failed", details: err.message });
@@ -375,11 +376,13 @@ app.post("/api/reset-password", async (req, res) => {
     const newPassword = String(req.body?.newPassword || "");
     const resetToken = String(req.body?.resetToken || "");
     if (!phone || !newPassword) return res.status(400).json({ error: "Bad input" });
-    if (newPassword.length < 8) return res.status(400).json({ error: "Password must be at least 8 characters" });
+    if (newPassword.length < 8)
+      return res.status(400).json({ error: "Password must be at least 8 characters" });
 
-    // Require resetToken (professional & secure)
     if (!resetToken || !verifyResetToken(resetToken, phone)) {
-      return res.status(400).json({ error: "Reset token missing/expired. Please verify code again." });
+      return res
+        .status(400)
+        .json({ error: "Reset token missing/expired. Please verify code again." });
     }
 
     const hash = await bcrypt.hash(newPassword, 10);

@@ -1,11 +1,10 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Health Tracker - Forgot Password</title>
 
-  <!-- نفس التصميم الموحد -->
   <link rel="stylesheet" href="/style.css">
 </head>
 
@@ -18,15 +17,13 @@
   <div class="card">
     <h3>Forgot Password (SMS)</h3>
 
-    <!-- STEP 1 -->
     <div id="step1">
       <div class="muted">Enter your phone number. We will send a 6-digit code.</div>
-      <input id="phone" placeholder="+12225554444" />
+      <input id="phone" placeholder="+12225554444" inputmode="tel" autocomplete="tel" />
       <button onclick="sendCode()">Send Code</button>
       <div class="msg" id="msg1"></div>
     </div>
 
-    <!-- STEP 2 -->
     <div id="step2" style="display:none;">
       <div class="muted">Code sent to <b id="masked"></b></div>
       <input id="code" placeholder="6-digit code" maxlength="6" inputmode="numeric" />
@@ -38,10 +35,9 @@
       <div class="msg" id="msg2"></div>
     </div>
 
-    <!-- STEP 3 -->
     <div id="step3" style="display:none;">
       <div class="muted">Verified ✅ Set a new password.</div>
-      <input id="newpass" type="password" placeholder="New password (min 8 chars)" />
+      <input id="newpass" type="password" placeholder="New password (min 8 chars)" autocomplete="new-password" />
       <button onclick="resetPassword()">Reset Password</button>
       <div class="msg" id="msg3"></div>
     </div>
@@ -92,7 +88,7 @@ async function sendCode(){
       headers:{"Content-Type":"application/json"},
       body: JSON.stringify({ phone })
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if(!res.ok) return setMsg("msg1", data.error || "Failed to send code.");
     setMsg("msg1", data.message || "Code sent ✅", true);
     show(2);
@@ -125,7 +121,7 @@ async function verifyCode(){
       headers:{"Content-Type":"application/json"},
       body: JSON.stringify({ phone, code })
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if(!res.ok) return setMsg("msg2", data.error || "Invalid code.");
 
     sessionStorage.setItem("fp_code_ok", code);
@@ -150,7 +146,7 @@ async function resetPassword(){
       headers:{"Content-Type":"application/json"},
       body: JSON.stringify({ phone, newPassword })
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
 
     if(!res.ok) return setMsg("msg3", data.error || "Reset failed.");
     setMsg("msg3", data.message || "Password reset ✅ Now go back to login.", true);

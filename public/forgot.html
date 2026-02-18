@@ -2,21 +2,16 @@
 <html>
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Health Tracker - Forgot Password</title>
-  <style>
-    body { font-family: Arial; max-width: 520px; margin: 40px auto; padding: 20px; }
-    .card { border: 1px solid #ddd; padding: 18px; border-radius: 12px; }
-    input { width: 100%; padding: 10px; margin: 8px 0; box-sizing: border-box; }
-    button { padding: 10px 14px; cursor: pointer; width: 100%; margin-top: 8px; }
-    .rowBtns { display:flex; gap:10px; margin-top: 8px; }
-    .rowBtns button { width: 100%; }
-    .msg { margin-top: 10px; color: #b00020; min-height: 18px; }
-    .ok { color: #0a7a0a; }
-    .muted { color:#666; font-size: 14px; }
-    a { text-decoration: none; display:inline-block; margin-top: 12px; }
-  </style>
+
+  <!-- نفس التصميم الموحد -->
+  <link rel="stylesheet" href="/style.css">
 </head>
+
 <body>
+
+<div class="container">
 
   <h2>Health Tracker</h2>
 
@@ -51,8 +46,12 @@
       <div class="msg" id="msg3"></div>
     </div>
 
-    <a href="/index.html">← Back to Login</a>
+    <div class="links">
+      <a href="/index.html">← Back to Login</a>
+    </div>
+
   </div>
+</div>
 
 <script>
 const API_SEND   = "/api/forgot-password";
@@ -140,16 +139,12 @@ async function verifyCode(){
 async function resetPassword(){
   setMsg("msg3","");
   const phone = localStorage.getItem("fp_phone") || "";
-  const code = sessionStorage.getItem("fp_code_ok") || "";
   const newPassword = $("newpass").value;
 
   if(!phone) return setMsg("msg3","Phone missing.");
-  if(!code) return setMsg("msg3","Verify code first.");
   if(!newPassword || newPassword.length < 8) return setMsg("msg3","Password must be at least 8 characters.");
 
   try{
-    // Your server currently accepts { phone, newPassword }
-    // If your backend needs { phone, code, newPassword }, tell me and I’ll change it.
     const res = await fetch(API_RESET,{
       method:"POST",
       headers:{"Content-Type":"application/json"},
@@ -159,8 +154,6 @@ async function resetPassword(){
 
     if(!res.ok) return setMsg("msg3", data.error || "Reset failed.");
     setMsg("msg3", data.message || "Password reset ✅ Now go back to login.", true);
-
-    sessionStorage.removeItem("fp_code_ok");
   }catch(e){
     setMsg("msg3","Network error.");
   }

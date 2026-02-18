@@ -153,7 +153,7 @@ async function loadAll(){
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${new Date(r.ts).toLocaleString()}</td>
-      <td>${r.type}</td>
+      <td>${r.type === "bp" ? "Blood Pressure" : "Glucose"}</td>
       <td>${r.value}</td>
       <td>${r.note || ""}</td>
     `;

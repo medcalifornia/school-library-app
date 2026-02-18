@@ -42,11 +42,35 @@ async function register() {
     password: rPass.value
   };
 
+  const res = await async function handleRegister(e) {
+  e.preventDefault();
+
+  const name = document.getElementById("regName").value.trim();
+  const email = document.getElementById("regEmail").value.trim();
+  const phone = document.getElementById("regPhone").value.trim();
+  const password = document.getElementById("regPassword").value;
+
   const res = await fetch("/api/register", {
     method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify(body)
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, email, phone, password }),
   });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    alert(data.error || "Register failed");
+    return;
+  }
+
+  alert("Registered successfully ✅ الآن سجّل دخول");
+
+  // ✅ رجّع لصفحة اللوجين
+  showLogin(); // إذا عندك function تبدّل بين login/register
+  // اختياري: عبّي الإيميل تلقائيًا في login
+  const loginEmail = document.getElementById("loginEmail");
+  if (loginEmail) loginEmail.value = email;
+}
 
   const data = await res.json();
 

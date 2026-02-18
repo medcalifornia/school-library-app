@@ -1,10 +1,12 @@
+
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Health Tracker - Register</title>
 
+  <!-- ربط ملف التصميم الموحد -->
   <link rel="stylesheet" href="/style.css">
 </head>
 
@@ -18,8 +20,8 @@
 
       <form id="registerForm">
         <input id="rName" placeholder="Full name" autocomplete="name" required />
-        <input id="rEmail" placeholder="Email" type="email" autocomplete="email" inputmode="email" required />
-        <input id="rPhone" placeholder="+12225554444" autocomplete="tel" inputmode="tel" required />
+        <input id="rEmail" placeholder="Email" type="email" autocomplete="email" required />
+        <input id="rPhone" placeholder="+12225554444" autocomplete="tel" required />
         <input id="rPass" placeholder="Password" type="password" autocomplete="new-password" required />
 
         <button id="rBtn" type="submit">Register</button>
@@ -95,3 +97,4 @@ rForm.addEventListener("submit", async (e) => {
 
 </body>
 </html>
+

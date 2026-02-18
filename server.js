@@ -4,6 +4,18 @@ const path = require("path");
 const fs = require("fs");
 const bcrypt = require("bcryptjs");
 const twilio = require("twilio");
+
+const app = express();
+app.use(express.json());
+app.use(express.static(path.join(__dirname, "public")));
+
+const PORT = process.env.PORT || 8080;
+
+/* =========================
+   Azure SQL Config (Node)
+   Put these in Azure App Service -> Configuration -> Application settings:
+   DB_SERVER, DB_NAME, DB_USER, DB_PASSWORD
+========================= */
 const dbConfig = {
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
@@ -14,13 +26,10 @@ const dbConfig = {
     trustServerCertificate: false
   }
 };
-const app = express();
-app.use(express.json());
-app.use(express.static(path.join(__dirname, "public")));
 
-const PORT = process.env.PORT || 8080;
-
-// ---------- Simple JSON storage (persisted in /home) ----------
+/* =========================
+   Simple JSON storage (persisted in /home)
+========================= */
 const DATA_DIR = "/home/data";
 const USERS_FILE = path.join(DATA_DIR, "users.json");
 const READINGS_FILE = path.join(DATA_DIR, "readings.json");
@@ -39,7 +48,9 @@ function writeJson(file, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2));
 }
 
-// ---------- Twilio ----------
+/* =========================
+   Twilio
+========================= */
 const hasTwilio =
   process.env.TWILIO_ACCOUNT_SID &&
   process.env.TWILIO_AUTH_TOKEN &&
@@ -49,17 +60,31 @@ const client = hasTwilio
   ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
   : null;
 
-// ---------- Helpers ----------
+/* =========================
+   Helpers
+========================= */
 function normalizePhone(phone) {
   if (!phone) return "";
   let p = String(phone).trim();
-  // if user typed 1562..., convert to +1562...
   if (!p.startsWith("+")) p = "+" + p;
   return p;
 }
 
-// ---------- Routes ----------
+/* =========================
+   Routes
+========================= */
 app.get("/health", (req, res) => res.json({ status: "OK" }));
+
+// ✅ Azure SQL connection test
+app.get("/api/db-test", async (req, res) => {
+  try {
+    const pool = await sql.connect(dbConfig);
+    const result = await pool.request().query("SELECT 1 AS ok");
+    res.json({ connected: true, result: result.recordset });
+  } catch (err) {
+    res.status(500).json({ connected: false, error: err.message });
+  }
+});
 
 // Register
 app.post("/api/register", async (req, res) => {
@@ -101,8 +126,7 @@ app.post("/api/login", async (req, res) => {
   const ok = await bcrypt.compare(password || "", user.passwordHash);
   if (!ok) return res.status(400).json({ error: "Invalid email or password" });
 
-  // Very simple session: store userId in client localStorage
-  res.json({ message: "Login OK", userId: user.id, name: user.name });
+  res.json({ message: "Login OK", userId: user.id, name: user.name, phone: user.phone });
 });
 
 // Save reading (glucose / bp)
@@ -133,15 +157,13 @@ app.get("/api/readings/:userId", (req, res) => {
 app.get("/api/chart/:userId", (req, res) => {
   const readings = readJson(READINGS_FILE).filter(r => r.userId === req.params.userId);
 
-  // group by date
   const byDate = {};
   for (const r of readings) {
-    const d = r.ts.slice(0, 10); // YYYY-MM-DD
+    const d = r.ts.slice(0, 10);
     byDate[d] = byDate[d] || { glucose: [], bpSys: [], bpDia: [] };
 
     if (r.type === "glucose") byDate[d].glucose.push(Number(r.value));
     if (r.type === "bp") {
-      // value like "118/76"
       const [s, di] = String(r.value).split("/").map(n => Number(n));
       if (!Number.isNaN(s)) byDate[d].bpSys.push(s);
       if (!Number.isNaN(di)) byDate[d].bpDia.push(di);
@@ -170,13 +192,12 @@ app.get("/api/chart/:userId", (req, res) => {
   res.json({ labels, glucoseAvg, sysAvg, diaAvg });
 });
 
-// ---------- Forgot password (SMS Code) ----------
+// Forgot password (SMS Code)
 app.post("/api/forgot-password", async (req, res) => {
   const phone = normalizePhone(req.body.phone);
   if (!phone) return res.status(400).json({ error: "Phone required" });
   if (!hasTwilio) return res.status(500).json({ error: "Twilio not configured on server" });
 
-  // only allow reset if phone exists
   const users = readJson(USERS_FILE);
   const user = users.find(u => u.phone === phone);
   if (!user) return res.status(400).json({ error: "Phone not found" });

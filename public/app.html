@@ -4,61 +4,153 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta charset="utf-8" />
   <title>Health Tracker</title>
-
-  <link rel="stylesheet" href="/style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body { font-family: Arial; max-width: 900px; margin: 20px auto; padding: 20px; }
+    input, select { padding: 10px; margin: 6px 0; box-sizing: border-box; }
+
+    /* ===== Buttons same as login ===== */
+    button {
+      padding: 12px 16px;
+      margin-top: 8px;
+      cursor: pointer;
+      background: #4a6cf7;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      transition: 0.2s ease;
+    }
+    button:hover { background: #3757d6; }
+
+    .card { border: 1px solid #ddd; padding: 14px; border-radius: 10px; margin: 12px 0; }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; align-items: end; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background: #f2f2f2; }
+
+    /* ===== Topbar as a small card ===== */
+    .topbar{
+      display:flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 12px 14px;
+      box-shadow: 0 6px 18px rgba(0,0,0,.06);
+      margin-bottom: 12px;
+    }
+
+    .titleWrap { display:flex; flex-direction: column; gap: 6px; }
+    .brandTitle{ margin:0; font-size: 22px; }
+
+    .badgesRow{
+      display:flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .badge{
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #1f2937;
+      background: #eef2ff;
+      border: 1px solid #c7d2fe;
+      padding: 6px 10px;
+      border-radius: 999px;
+      width: fit-content;
+      white-space: nowrap;
+    }
+    .badgeIcon{
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #4a6cf7;
+      color: #fff;
+      font-size: 14px;
+      line-height: 1;
+      flex: 0 0 auto;
+    }
+    .badgeText{
+      display:flex;
+      flex-direction: column;
+      line-height: 1.1;
+    }
+    .badgeText small{
+      font-weight: 700;
+      color: #4b5563;
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    .rightActions{
+      display:flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .rightActions button{ margin-top: 0; } /* important */
+
+    @media (max-width: 860px) { .grid3 { grid-template-columns: 1fr; } }
+    @media (max-width: 640px){
+      .topbar{ align-items: flex-start; }
+      .rightActions{ width: 100%; justify-content: flex-start; }
+    }
+
+    /* ===== Glucose Colors ===== */
+    .glucose-low { color: green; font-weight: 700; }
+    .glucose-mid { color: orange; font-weight: 700; }
+    .glucose-high{ color: red; font-weight: 700; }
+  </style>
 </head>
 
 <body>
 
-<div class="container container-wide">
-
-  <h2>Health Tracker</h2>
-
-  <!-- TOP BAR (Date/Time + Hello + Email + Buttons) -->
   <div class="topbar">
-    <div class="badgesRow">
+    <div class="titleWrap">
+      <h2 class="brandTitle">Health Tracker</h2>
 
-      <!-- Date & Time -->
-      <div class="badge" title="Current date & time">
-        <span class="badgeIcon">🕒</span>
-        <span class="badgeText">
-          <span id="dateLine"></span>
-          <small id="timeLine"></small>
-        </span>
+      <div class="badgesRow">
+        <!-- Date & Time badge -->
+        <div class="badge" title="Current date & time">
+          <span class="badgeIcon">🕒</span>
+          <span class="badgeText">
+            <span id="dateLine"></span>
+            <small id="timeLine"></small>
+          </span>
+        </div>
+
+        <!-- Hello badge -->
+        <div class="badge" title="Current user">
+          <span class="badgeIcon">👋</span>
+          <span class="badgeText">
+            <span id="helloLine"></span>
+            <small>Welcome back</small>
+          </span>
+        </div>
       </div>
-
-      <!-- Hello -->
-      <div class="badge" title="Current user">
-        <span class="badgeIcon">👋</span>
-        <span class="badgeText">
-          <span id="helloLine"></span>
-          <small>Welcome back</small>
-        </span>
-      </div>
-
-      <!-- Email -->
-      <div class="badge" title="Account email">
-        <span class="badgeIcon">📧</span>
-        <span class="badgeText">
-          <span id="emailLine"></span>
-          <small>Account</small>
-        </span>
-      </div>
-
     </div>
 
-    <div class="topActions">
-      <button type="button" class="btn-secondary" onclick="loadAll()">Refresh</button>
-      <button type="button" onclick="logout()">Logout</button>
+    <div class="rightActions">
+      <button onclick="logout()">Logout</button>
     </div>
   </div>
 
-  <!-- ADD GLUCOSE -->
   <div class="card">
     <h3>Add Glucose</h3>
     <div class="grid3">
-      <input id="gVal" placeholder="Glucose mg/dL (e.g. 110)" inputmode="numeric" />
+      <input id="gVal" placeholder="Glucose mg/dL (e.g. 110)" />
       <select id="gNote">
         <option value="">(Choose note)</option>
         <option>Fasting (morning)</option>
@@ -74,12 +166,11 @@
     </div>
   </div>
 
-  <!-- ADD BLOOD PRESSURE -->
   <div class="card">
     <h3>Add Blood Pressure</h3>
     <div class="grid3">
-      <input id="bpSys" placeholder="Systolic (e.g. 120)" inputmode="numeric" />
-      <input id="bpDia" placeholder="Diastolic (e.g. 80)" inputmode="numeric" />
+      <input id="bpSys" placeholder="Systolic (e.g. 120)" />
+      <input id="bpDia" placeholder="Diastolic (e.g. 80)" />
       <select id="bpNote">
         <option value="">(Choose note)</option>
         <option>Resting</option>
@@ -93,76 +184,60 @@
     <button onclick="saveBP()">Save Blood Pressure</button>
   </div>
 
-  <!-- READINGS -->
   <div class="card">
     <h3>My Readings</h3>
-    <button class="btn-secondary" onclick="loadAll()">Load My Readings</button>
-
-    <div class="tableWrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Date/Time</th>
-            <th>Type</th>
-            <th>Value</th>
-            <th>Note</th>
-          </tr>
-        </thead>
-        <tbody id="rows"></tbody>
-      </table>
-    </div>
+    <button onclick="loadAll()">Load My Readings</button>
+    <table>
+      <thead>
+        <tr>
+          <th>Date/Time</th>
+          <th>Type</th>
+          <th>Value</th>
+          <th>Note</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
   </div>
 
-  <!-- CHART -->
   <div class="card">
     <h3>Chart</h3>
-    <div class="chartWrap">
-      <canvas id="chart" height="140"></canvas>
-    </div>
+    <canvas id="chart" height="120"></canvas>
   </div>
 
-</div>
-
 <script>
-/* ================= AUTH CHECK ================= */
 const userId = localStorage.getItem("userId");
 if (!userId) location.href = "/index.html";
 
-const userName  = (localStorage.getItem("name") || "").trim();
-const userEmail = (localStorage.getItem("email") || "").trim();
-
-/* ================= UI HELPERS ================= */
-function maskEmail(email){
-  if(!email || !email.includes("@")) return email || "";
-  const [name, domain] = email.split("@");
-  if(name.length <= 2) return name + "****@" + domain;
-  return name.slice(0,2) + "****@" + domain;
-}
-
-function updateClock(){
-  const now = new Date();
-  const dateStr = now.toLocaleDateString(undefined, { weekday:"long", year:"numeric", month:"short", day:"numeric" });
-  const timeStr = now.toLocaleTimeString(undefined, { hour:"2-digit", minute:"2-digit", second:"2-digit" });
-
-  document.getElementById("dateLine").textContent = dateStr;
-  document.getElementById("timeLine").textContent = timeStr;
-}
-
+const userName = (localStorage.getItem("name") || "").trim();
 document.getElementById("helloLine").textContent = "Hello, " + (userName || "User");
-document.getElementById("emailLine").textContent = maskEmail(userEmail);
 
-updateClock();
-setInterval(updateClock, 1000);
+/* ===== Date & Time ===== */
+function updateDateTime(){
+  const now = new Date();
+  const dateOptions = { weekday:'long', year:'numeric', month:'long', day:'numeric' };
+  const dateText = now.toLocaleDateString(undefined, dateOptions);
+  const timeText = now.toLocaleTimeString(undefined, { hour:'2-digit', minute:'2-digit', second:'2-digit' });
 
-/* ================= LOGOUT ================= */
+  document.getElementById("dateLine").textContent = dateText;
+  document.getElementById("timeLine").textContent = timeText;
+}
+setInterval(updateDateTime, 1000);
+updateDateTime();
+
 function logout(){
-  localStorage.removeItem("userId");
-  localStorage.removeItem("name");
-  localStorage.removeItem("email");
+  localStorage.clear();
   location.href = "/index.html";
 }
 
-/* ================= API CALLS ================= */
+function glucoseClass(v){
+  const n = Number(v);
+  if (Number.isNaN(n)) return "";
+  if (n < 100) return "glucose-low";
+  if (n <= 125) return "glucose-mid";
+  return "glucose-high";
+}
+
 async function saveGlucose(){
   const v = gVal.value.trim();
   if (!v) return alert("Enter glucose value");
@@ -210,14 +285,21 @@ async function loadAll(){
   const data = await res.json();
 
   rows.innerHTML = "";
+
   for (const r of data.slice().reverse()) {
     const tr = document.createElement("tr");
+
     tr.innerHTML = `
       <td>${new Date(r.ts).toLocaleString()}</td>
       <td>${r.type === "bp" ? "Blood Pressure" : "Glucose"}</td>
-      <td>${r.value}</td>
+      <td>${
+        r.type === "glucose"
+          ? `<span class="${glucoseClass(r.value)}">${r.value}</span>`
+          : r.value
+      }</td>
       <td>${r.note || ""}</td>
     `;
+
     rows.appendChild(tr);
   }
 
@@ -225,6 +307,7 @@ async function loadAll(){
 }
 
 let chartObj = null;
+
 async function loadChart(){
   const res = await fetch(`/api/chart/${userId}`);
   const data = await res.json();
@@ -241,10 +324,6 @@ async function loadChart(){
         { label: "BP Systolic Avg", data: data.sysAvg },
         { label: "BP Diastolic Avg", data: data.diaAvg }
       ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false
     }
   });
 }

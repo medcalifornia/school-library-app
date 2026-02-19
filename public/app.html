@@ -20,12 +20,12 @@
       .grid3 { grid-template-columns: 1fr; }
     }
 
-    /* ===== Glucose Color Levels ===== */
+    /* ===== Glucose Colors ===== */
     .glucose-low { color: #16a34a; font-weight: 700; }
     .glucose-mid { color: #f59e0b; font-weight: 700; }
     .glucose-high{ color: #dc2626; font-weight: 700; }
 
-    /* ===== Blood Pressure Color Levels ===== */
+    /* ===== BP Colors ===== */
     .bp-low { color: #16a34a; font-weight: 700; }
     .bp-mid { color: #f59e0b; font-weight: 700; }
     .bp-high{ color: #dc2626; font-weight: 700; }
@@ -114,7 +114,6 @@
       <tbody id="rows"></tbody>
     </table>
 
-    <!-- Legend -->
     <div class="legend">
       <div><span class="dot ok"></span> Normal</div>
       <div><span class="dot warn"></span> Elevated / Prediabetes</div>
@@ -134,13 +133,12 @@ if (!userId) location.href = "/index.html";
 hello.textContent = "Hello, " + (localStorage.getItem("name") || "");
 
 function logout(){
-  localStorage.removeItem("userId");
-  localStorage.removeItem("name");
-  localStorage.removeItem("email");
+  localStorage.clear();
   location.href = "/index.html";
 }
 
-/* ===== Coloring Helpers ===== */
+/* ===== Coloring Functions ===== */
+
 function glucoseClass(v){
   const n = Number(v);
   if (Number.isNaN(n)) return "";
@@ -150,31 +148,29 @@ function glucoseClass(v){
 }
 
 function bpHtml(v){
-  // v مثل "120/80"
   const parts = String(v).split("/");
   const s = Number(parts[0]);
   const d = Number(parts[1]);
 
-  // Systolic
-  const sysClass =
-    Number.isNaN(s) ? "" :
-    s < 120 ? "bp-low" :
-    s <= 129 ? "bp-mid" :
-    "bp-high";
-
-  // Diastolic
-  const diaClass =
-    Number.isNaN(d) ? "" :
-    d < 80 ? "bp-low" :
-    d <= 89 ? "bp-mid" :
-    "bp-high";
-
   if (Number.isNaN(s) || Number.isNaN(d)) return String(v);
 
-  return `<span class="${sysClass}">${s}</span>/<span class="${diaClass}">${d}</span>`;
+  let cls = "bp-low"; // Normal
+
+  // Elevated
+  if (s >= 120 && s <= 129 && d < 80) {
+    cls = "bp-mid";
+  }
+
+  // High (Stage 1/2)
+  if (s >= 130 || d >= 80) {
+    cls = "bp-high";
+  }
+
+  return `<span class="${cls}">${s}/${d}</span>`;
 }
 
-/* ===== Save Readings ===== */
+/* ===== Save ===== */
+
 async function saveGlucose(){
   const v = gVal.value.trim();
   if (!v) return alert("Enter glucose value");
@@ -217,7 +213,8 @@ async function saveBP(){
   loadAll();
 }
 
-/* ===== Load Table + Chart ===== */
+/* ===== Load ===== */
+
 async function loadAll(){
   const res = await fetch(`/api/readings/${userId}`);
   const data = await res.json();
@@ -244,7 +241,10 @@ async function loadAll(){
   await loadChart();
 }
 
+/* ===== Chart ===== */
+
 let chartObj = null;
+
 async function loadChart(){
   const res = await fetch(`/api/chart/${userId}`);
   const data = await res.json();

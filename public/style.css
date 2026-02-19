@@ -1,104 +1,125 @@
-/* ===== Extras for App + Verify to keep same theme ===== */
-
-.muted{
-  color: #666;
-  font-size: 15px;
+:root{
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
 }
 
-/* success message */
-.msg.ok{
-  color: #0b7a2a;
+*{ box-sizing: border-box; }
+
+body{
+  margin: 0;
+  font-family: var(--font);
+  font-size: 18px;
+  line-height: 1.4;
+  background: linear-gradient(to bottom, #f6f7fb, #eef1f7);
+  color: #111;
 }
 
-/* Top bar */
-.topbar{
+/* Main container centered */
+.container{
+  width: min(520px, 92vw);
+  margin: 40px auto;
+  padding: 18px;
+}
+
+/* Card */
+.card{
+  background: #fff;
+  border-radius: 16px;
+  padding: 22px;
+  box-shadow: 0 8px 22px rgba(0,0,0,.08);
+}
+
+/* Titles */
+h1,h2{
+  margin: 8px 0 14px;
+  font-size: 26px;
+}
+
+/* Inputs */
+input, select, button{
+  width: 100%;
+  font-size: 18px;
+  padding: 14px 12px;
+  border-radius: 12px;
+  border: 1px solid #d9d9e3;
+  outline: none;
+}
+
+/* Buttons */
+button{
+  margin-top: 14px;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+  background: #4a6cf7;
+  color: white;
+  transition: 0.2s ease;
+}
+
+button:hover{
+  background: #3757d6;
+}
+
+/* Links */
+.links{
   display:flex;
   justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-
-.topbar-right{
-  display:flex;
-  align-items:center;
-  gap: 10px;
-}
-
-/* Inline button (for topbar) */
-.btn-inline{
-  width: auto;
-  margin-top: 0;
-  padding: 10px 14px;
-  border-radius: 12px;
-}
-
-/* Grid layouts */
-.grid3{
-  display:grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 10px;
-  align-items:end;
-}
-
-.row2{
-  display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-/* Mobile */
-@media (max-width: 860px){
-  .grid3{ grid-template-columns: 1fr; }
-}
-@media (max-width: 640px){
-  .row2{ grid-template-columns: 1fr; }
-}
-
-/* Table styling */
-.tableWrap{
-  width: 100%;
-  overflow-x: auto;
-  border-radius: 12px;
   margin-top: 12px;
 }
 
-table{
+a{
+  text-decoration:none;
+  font-weight:600;
+  color: #4a6cf7;
+}
+
+/* Message */
+.msg{
+  margin-top: 10px;
+  color: #b00020;
+  min-height: 18px;
+}
+
+/* ===== CENTERED IMAGE ===== */
+.hero-image{
+  margin-top: 20px;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.hero-image img{
+  display: block;
   width: 100%;
-  border-collapse: collapse;
-  min-width: 520px;
+  height: 220px;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 16px;
 }
 
-th, td{
-  border: 1px solid #e6e6ef;
-  padding: 10px;
-  text-align: left;
-  font-size: 16px;
+/* Bigger on desktop */
+@media (min-width: 768px){
+  .hero-image img{
+    height: 260px;
+  }
 }
 
-th{
-  background: #f3f5ff;
+/* Mobile adjustments */
+@media (max-width: 420px){
+  body{ font-size: 17px; }
+  h1,h2{ font-size: 22px; }
+  .container{ margin: 18px auto; }
 }
-
-/* Chart wrap to fit nicely */
-.chartWrap{
-  width: 100%;
-  height: 260px;
-}
-
-/* Verify output */
-.preBox{
-  margin-top: 12px;
-  background: #f6f7fb;
-  padding: 12px;
-  border-radius: 12px;
-  overflow:auto;
-  font-size: 14px;
-}
-
-/* Separator */
-.sep{
+button {
+  -webkit-appearance: none;   /* مهم للآيفون */
+  appearance: none;
+  background: #4a6cf7;
+  color: #ffffff;
   border: none;
-  border-top: 1px solid #e6e6ef;
-  margin: 16px 0;
+  font-weight: 700;
+  opacity: 1;
+}
+
+button:disabled {
+  background: #4a6cf7;
+  color: #ffffff;
+  opacity: 1;
 }

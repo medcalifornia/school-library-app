@@ -4,126 +4,93 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta charset="utf-8" />
   <title>Health Tracker</title>
+
+  <!-- ✅ نفس التصميم الموحد -->
+  <link rel="stylesheet" href="/style.css">
+
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  <style>
-    body { font-family: Arial; max-width: 900px; margin: 20px auto; padding: 20px; }
-    input, select { padding: 10px; margin: 6px 0; box-sizing: border-box; width: 100%; }
-    button { padding: 10px 14px; margin-top: 8px; cursor: pointer; }
-    .card { border: 1px solid #ddd; padding: 14px; border-radius: 10px; margin: 12px 0; }
-    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; align-items: end; }
-    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-    th { background: #f2f2f2; }
-    .topbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-    @media (max-width: 860px) {
-      .grid3 { grid-template-columns: 1fr; }
-    }
-
-    /* ===== Glucose Colors ===== */
-    .glucose-low { color: #16a34a; font-weight: 700; }
-    .glucose-mid { color: #f59e0b; font-weight: 700; }
-    .glucose-high{ color: #dc2626; font-weight: 700; }
-
-    /* ===== BP Colors ===== */
-    .bp-low { color: #16a34a; font-weight: 700; }
-    .bp-mid { color: #f59e0b; font-weight: 700; }
-    .bp-high{ color: #dc2626; font-weight: 700; }
-
-    /* ===== Legend ===== */
-    .legend{
-      margin-top: 10px;
-      display: flex;
-      gap: 14px;
-      flex-wrap: wrap;
-      font-size: 14px;
-      color: #333;
-    }
-    .legend .dot{
-      display: inline-block;
-      width: 10px;
-      height: 10px;
-      border-radius: 999px;
-      margin-right: 6px;
-      vertical-align: middle;
-    }
-    .legend .dot.ok{ background: #16a34a; }
-    .legend .dot.warn{ background: #f59e0b; }
-    .legend .dot.bad{ background: #dc2626; }
-  </style>
 </head>
 
 <body>
-  <div class="topbar">
-    <h2>Health Tracker</h2>
-    <div>
-      <span id="hello"></span>
-      <button onclick="logout()">Logout</button>
+
+  <div class="app-container">
+
+    <div class="topbar">
+      <h2>Health Tracker</h2>
+      <div class="topbar-right">
+        <span id="hello"></span>
+        <button class="btn-inline" onclick="logout()">Logout</button>
+      </div>
     </div>
-  </div>
 
-  <div class="card">
-    <h3>Add Glucose</h3>
-    <div class="grid3">
-      <input id="gVal" placeholder="Glucose mg/dL (e.g. 110)" />
-      <select id="gNote">
-        <option value="">(Choose note)</option>
-        <option>Fasting (morning)</option>
-        <option>Before breakfast</option>
-        <option>After breakfast</option>
-        <option>Before lunch</option>
-        <option>After lunch</option>
-        <option>Before dinner</option>
-        <option>After dinner</option>
-        <option>Before sleep</option>
-      </select>
-      <button onclick="saveGlucose()">Save Glucose</button>
+    <div class="card">
+      <h3>Add Glucose</h3>
+      <div class="grid3">
+        <input id="gVal" placeholder="Glucose mg/dL (e.g. 110)" inputmode="numeric" />
+        <select id="gNote">
+          <option value="">(Choose note)</option>
+          <option>Fasting (morning)</option>
+          <option>Before breakfast</option>
+          <option>After breakfast</option>
+          <option>Before lunch</option>
+          <option>After lunch</option>
+          <option>Before dinner</option>
+          <option>After dinner</option>
+          <option>Before sleep</option>
+        </select>
+        <button onclick="saveGlucose()">Save Glucose</button>
+      </div>
+
+      <!-- ✅ توضيح الألوان -->
+      <div class="legend">
+        <span class="pill g-ok">Below 100</span>
+        <span class="pill g-mid">100–125</span>
+        <span class="pill g-high">126+</span>
+      </div>
     </div>
-  </div>
 
-  <div class="card">
-    <h3>Add Blood Pressure</h3>
-    <div class="grid3">
-      <input id="bpSys" placeholder="Systolic (e.g. 120)" />
-      <input id="bpDia" placeholder="Diastolic (e.g. 80)" />
-      <select id="bpNote">
-        <option value="">(Choose note)</option>
-        <option>Resting</option>
-        <option>After walking</option>
-        <option>After exercise</option>
-        <option>Before sleep</option>
-        <option>After coffee</option>
-        <option>Feeling dizzy</option>
-      </select>
+    <div class="card">
+      <h3>Add Blood Pressure</h3>
+      <div class="grid3">
+        <input id="bpSys" placeholder="Systolic (e.g. 120)" inputmode="numeric" />
+        <input id="bpDia" placeholder="Diastolic (e.g. 80)" inputmode="numeric" />
+        <select id="bpNote">
+          <option value="">(Choose note)</option>
+          <option>Resting</option>
+          <option>After walking</option>
+          <option>After exercise</option>
+          <option>Before sleep</option>
+          <option>After coffee</option>
+          <option>Feeling dizzy</option>
+        </select>
+      </div>
+      <button onclick="saveBP()">Save Blood Pressure</button>
     </div>
-    <button onclick="saveBP()">Save Blood Pressure</button>
-  </div>
 
-  <div class="card">
-    <h3>My Readings</h3>
-    <button onclick="loadAll()">Load My Readings</button>
-    <table>
-      <thead>
-        <tr>
-          <th>Date/Time</th>
-          <th>Type</th>
-          <th>Value</th>
-          <th>Note</th>
-        </tr>
-      </thead>
-      <tbody id="rows"></tbody>
-    </table>
+    <div class="card">
+      <h3>My Readings</h3>
+      <button onclick="loadAll()">Load My Readings</button>
 
-    <div class="legend">
-      <div><span class="dot ok"></span> Normal</div>
-      <div><span class="dot warn"></span> Elevated / Prediabetes</div>
-      <div><span class="dot bad"></span> High</div>
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date/Time</th>
+              <th>Type</th>
+              <th>Value</th>
+              <th>Note</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
     </div>
-  </div>
 
-  <div class="card">
-    <h3>Chart</h3>
-    <canvas id="chart" height="120"></canvas>
+    <div class="card">
+      <h3>Chart</h3>
+      <canvas id="chart" height="120"></canvas>
+    </div>
+
   </div>
 
 <script>
@@ -133,43 +100,23 @@ if (!userId) location.href = "/index.html";
 hello.textContent = "Hello, " + (localStorage.getItem("name") || "");
 
 function logout(){
-  localStorage.clear();
+  localStorage.removeItem("userId");
+  localStorage.removeItem("name");
+  localStorage.removeItem("email");
   location.href = "/index.html";
 }
 
-/* ===== Coloring Functions ===== */
-
-function glucoseClass(v){
-  const n = Number(v);
+function glucoseClassFromValue(v){
+  // ✅ rules:
+  // Below 100 => green
+  // 100-125 => orange
+  // 126+ => red
+  const n = Number(String(v).trim());
   if (Number.isNaN(n)) return "";
-  if (n < 100) return "glucose-low";
-  if (n <= 125) return "glucose-mid";
-  return "glucose-high";
+  if (n < 100) return "g-ok";
+  if (n <= 125) return "g-mid";
+  return "g-high";
 }
-
-function bpHtml(v){
-  const parts = String(v).split("/");
-  const s = Number(parts[0]);
-  const d = Number(parts[1]);
-
-  if (Number.isNaN(s) || Number.isNaN(d)) return String(v);
-
-  let cls = "bp-low"; // Normal
-
-  // Elevated
-  if (s >= 120 && s <= 129 && d < 80) {
-    cls = "bp-mid";
-  }
-
-  // High (Stage 1/2)
-  if (s >= 130 || d >= 80) {
-    cls = "bp-high";
-  }
-
-  return `<span class="${cls}">${s}/${d}</span>`;
-}
-
-/* ===== Save ===== */
 
 async function saveGlucose(){
   const v = gVal.value.trim();
@@ -213,8 +160,6 @@ async function saveBP(){
   loadAll();
 }
 
-/* ===== Load ===== */
-
 async function loadAll(){
   const res = await fetch(`/api/readings/${userId}`);
   const data = await res.json();
@@ -224,27 +169,31 @@ async function loadAll(){
   for (const r of data.slice().reverse()) {
     const tr = document.createElement("tr");
 
+    const isBP = (r.type === "bp");
+    const typeLabel = isBP ? "Blood Pressure" : "Glucose";
+
+    // ✅ value cell coloring for glucose only
+    let valueHtml = "";
+    if (isBP) {
+      valueHtml = `<span class="value">${r.value}</span>`;
+    } else {
+      const cls = glucoseClassFromValue(r.value);
+      valueHtml = `<span class="value ${cls}">${r.value}</span>`;
+    }
+
     tr.innerHTML = `
       <td>${new Date(r.ts).toLocaleString()}</td>
-      <td>${r.type === "bp" ? "Blood Pressure" : "Glucose"}</td>
-      <td>${
-        r.type === "glucose"
-          ? `<span class="${glucoseClass(r.value)}">${r.value}</span>`
-          : bpHtml(r.value)
-      }</td>
+      <td>${typeLabel}</td>
+      <td>${valueHtml}</td>
       <td>${r.note || ""}</td>
     `;
-
     rows.appendChild(tr);
   }
 
   await loadChart();
 }
 
-/* ===== Chart ===== */
-
 let chartObj = null;
-
 async function loadChart(){
   const res = await fetch(`/api/chart/${userId}`);
   const data = await res.json();
@@ -267,5 +216,6 @@ async function loadChart(){
 
 loadAll();
 </script>
+
 </body>
 </html>

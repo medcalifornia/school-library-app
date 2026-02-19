@@ -20,27 +20,18 @@ body{
   padding: 18px;
 }
 
-/* Wider container for app page */
-.container-wide{
-  width: min(980px, 94vw);
-}
-
 /* Card */
 .card{
   background: #fff;
   border-radius: 16px;
   padding: 22px;
   box-shadow: 0 8px 22px rgba(0,0,0,.08);
-  margin: 14px 0;
 }
 
 /* Titles */
 h1,h2{
   margin: 8px 0 14px;
   font-size: 26px;
-}
-h3{
-  margin: 0 0 12px;
 }
 
 /* Inputs */
@@ -53,7 +44,7 @@ input, select, button{
   outline: none;
 }
 
-/* Buttons (same as login) */
+/* Buttons */
 button{
   margin-top: 14px;
   border: none;
@@ -62,26 +53,10 @@ button{
   background: #4a6cf7;
   color: white;
   transition: 0.2s ease;
-  -webkit-appearance: none;
-  appearance: none;
 }
 
-button:hover{ background: #3757d6; }
-
-button:disabled{
-  background: #4a6cf7;
-  color: #ffffff;
-  opacity: 1;
-}
-
-/* Secondary button (still consistent) */
-.btn-secondary{
-  background: #eef2ff;
-  color: #1f2a7a;
-  border: 1px solid #d9defa;
-}
-.btn-secondary:hover{
-  background: #e3e8ff;
+button:hover{
+  background: #3757d6;
 }
 
 /* Links */
@@ -103,9 +78,8 @@ a{
   color: #b00020;
   min-height: 18px;
 }
-.msg.ok{ color: #0b7a36; }
 
-/* Hero image (login) */
+/* ===== CENTERED IMAGE ===== */
 .hero-image{
   margin-top: 20px;
   border-radius: 16px;
@@ -121,106 +95,85 @@ a{
   border-radius: 16px;
 }
 
-/* ===== APP LAYOUT ===== */
-.topbar{
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
-  flex-wrap: wrap;
-}
-
-.badgesRow{
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.badge{
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  background: #ffffff;
-  border: 1px solid #e7e7f0;
-  border-radius: 14px;
-  padding: 10px 12px;
-  box-shadow: 0 6px 16px rgba(0,0,0,.06);
-  min-width: 220px;
-}
-
-.badgeIcon{
-  font-size: 20px;
-}
-
-.badgeText{
-  display: flex;
-  flex-direction: column;
-  line-height: 1.1;
-}
-.badgeText small{
-  color: #666;
-  margin-top: 4px;
-}
-
-.topActions{
-  display: flex;
-  gap: 10px;
-}
-.topActions button{
-  width: auto;
-  margin-top: 0;
-  padding: 12px 14px;
-}
-
-/* grids */
-.grid3{
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 10px;
-  align-items: end;
-}
-
-/* tables */
-.tableWrap{ overflow: auto; }
-table{
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 12px;
-  background: #fff;
-}
-th, td{
-  border: 1px solid #e6e6ef;
-  padding: 10px;
-  text-align: left;
-  font-size: 16px;
-}
-th{
-  background: #f3f5ff;
-  font-weight: 700;
-}
-
-/* chart area */
-.chartWrap{
-  width: 100%;
-  height: 280px;
-}
-
 /* Bigger on desktop */
 @media (min-width: 768px){
-  .hero-image img{ height: 260px; }
+  .hero-image img{
+    height: 260px;
+  }
 }
 
-/* Responsive */
-@media (max-width: 860px){
-  .grid3{ grid-template-columns: 1fr; }
-  .badge{ min-width: unset; width: 100%; }
-  .topActions{ width: 100%; }
-  .topActions button{ flex: 1; }
-}
-
+/* Mobile adjustments */
 @media (max-width: 420px){
   body{ font-size: 17px; }
   h1,h2{ font-size: 22px; }
   .container{ margin: 18px auto; }
 }
+
+button {
+  -webkit-appearance: none;   /* مهم للآيفون */
+  appearance: none;
+  background: #4a6cf7;
+  color: #ffffff;
+  border: none;
+  font-weight: 700;
+  opacity: 1;
+}
+
+button:disabled {
+  background: #4a6cf7;
+  color: #ffffff;
+  opacity: 1;
+}
+
+/* ========================= */
+/* NEW: Glucose/BP + Legend  */
+/* ========================= */
+
+/* ===== Glucose Color Levels ===== */
+.glucose-low{
+  color: #16a34a;
+  font-weight: 700;
+}
+.glucose-mid{
+  color: #f59e0b;
+  font-weight: 700;
+}
+.glucose-high{
+  color: #dc2626;
+  font-weight: 700;
+}
+
+/* ===== Blood Pressure Color Levels ===== */
+.bp-low{
+  color: #16a34a;
+  font-weight: 700;
+}
+.bp-mid{
+  color: #f59e0b;
+  font-weight: 700;
+}
+.bp-high{
+  color: #dc2626;
+  font-weight: 700;
+}
+
+/* ===== Legend UI ===== */
+.legend{
+  margin-top: 10px;
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 14px;
+  color: #333;
+}
+.legend .dot{
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.legend .dot.ok{ background: #16a34a; }
+.legend .dot.warn{ background: #f59e0b; }
+.legend .dot.bad{ background: #dc2626; }

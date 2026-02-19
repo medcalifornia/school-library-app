@@ -108,6 +108,7 @@ a{
   h1,h2{ font-size: 22px; }
   .container{ margin: 18px auto; }
 }
+
 button {
   -webkit-appearance: none;   /* مهم للآيفون */
   appearance: none;
@@ -123,3 +124,56 @@ button:disabled {
   color: #ffffff;
   opacity: 1;
 }
+
+/* ========================= */
+/* NEW: Glucose/BP + Legend  */
+/* ========================= */
+
+/* ===== Glucose Color Levels ===== */
+.glucose-low{
+  color: #16a34a;
+  font-weight: 700;
+}
+.glucose-mid{
+  color: #f59e0b;
+  font-weight: 700;
+}
+.glucose-high{
+  color: #dc2626;
+  font-weight: 700;
+}
+
+/* ===== Blood Pressure Color Levels ===== */
+.bp-low{
+  color: #16a34a;
+  font-weight: 700;
+}
+.bp-mid{
+  color: #f59e0b;
+  font-weight: 700;
+}
+.bp-high{
+  color: #dc2626;
+  font-weight: 700;
+}
+
+/* ===== Legend UI ===== */
+.legend{
+  margin-top: 10px;
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 14px;
+  color: #333;
+}
+.legend .dot{
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.legend .dot.ok{ background: #16a34a; }
+.legend .dot.warn{ background: #f59e0b; }
+.legend .dot.bad{ background: #dc2626; }

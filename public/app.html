@@ -5,11 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Health Tracker · Dashboard</title>
   <link rel="stylesheet" href="./style.css" />
-  <style>
-    /* تحسينات بسيطة */
-    .sv-chart-wrap { touch-action: pan-y; user-select: none; }
-    .chart-tooltip { transition: opacity 0.15s ease; }
-  </style>
 </head>
 
 <body class="app-page">
@@ -148,7 +143,7 @@
             </div>
           </div>
 
-          <!-- Chart Section -->
+          <!-- Chart Section (محسّن) -->
           <div class="chart-card" id="trendCard">
             <div class="chart-head">
               <div>
@@ -369,9 +364,8 @@
         return { category, colorClass, value: num };
       }
 
-      // ========== NEW: BP Color Coding (5 categories) ==========
+      // ========== BP Color Coding (5 categories) ==========
       function getBPStatus(bpString) {
-        // bpString format: "s/d" like "135/85"
         if (!bpString || typeof bpString !== 'string') {
           return { category: 'unknown', colorClass: '', explanation: '', sys: null, dia: null };
         }
@@ -408,7 +402,7 @@
           colorClass = 'bp-normal';
           explanation = 'ضغط طبيعي ممتاز';
         } else {
-          // Mixed cases not covered above (e.g., sys 125, dia 85) -> take higher stage
+          // Mixed cases: take higher stage
           if (sys >= 140 || dia >= 90) {
             category = 'Stage 2';
             colorClass = 'bp-stage2';
@@ -534,7 +528,7 @@
           $('kpiGlucose').textContent = '—';
         }
 
-        // BP with color and tooltip explanation (using title attribute)
+        // BP with color and tooltip
         if (latestBP) {
           const bpStatus = getBPStatus(latestBP.value);
           $('kpiBP').innerHTML = `<span class="${bpStatus.colorClass}" title="${bpStatus.explanation}">${bpStatus.display}</span>`;
@@ -687,9 +681,9 @@
         }
       }
 
-      // ========== CHART RENDERING ==========
+      // ========== CHART RENDERING (محسّن بشكل احترافي) ==========
       const SVG_W = 1000, SVG_H = 240;
-      const PAD = { l: 50, r: 30, t: 15, b: 35 };
+      const PAD = { l: 60, r: 40, t: 20, b: 40 };
 
       function getLastNDays(n = 14) {
         const days = [];
@@ -802,62 +796,94 @@
         bg.setAttribute('rx', '12'); bg.setAttribute('ry', '12');
         svg.appendChild(bg);
 
-        // Grid lines
-        const grid = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        grid.setAttribute('opacity', '0.2');
+        // Horizontal grid (dashed)
+        const gridGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        gridGroup.setAttribute('opacity', '0.15');
         for (let i = 0; i <= 4; i++) {
           const y = PAD.t + (i * (chartH / 4));
           const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
           line.setAttribute('x1', PAD.l); line.setAttribute('y1', y);
           line.setAttribute('x2', SVG_W - PAD.r); line.setAttribute('y2', y);
-          line.setAttribute('stroke', 'rgba(255,255,255,0.3)');
+          line.setAttribute('stroke', '#ffffff');
           line.setAttribute('stroke-width', '1');
-          grid.appendChild(line);
+          line.setAttribute('stroke-dasharray', '4,4');
+          gridGroup.appendChild(line);
         }
-        svg.appendChild(grid);
+        svg.appendChild(gridGroup);
 
-        // Axis labels
-        const labelsGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        labelsGroup.setAttribute('fill', 'rgba(255,255,255,0.5)');
-        labelsGroup.setAttribute('font-size', '10');
+        // Vertical grid (every 2 days)
+        const vGridGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        vGridGroup.setAttribute('opacity', '0.1');
+        for (let i = 0; i < n; i += 2) {
+          const x = xPos(i);
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          line.setAttribute('x1', x); line.setAttribute('y1', PAD.t);
+          line.setAttribute('x2', x); line.setAttribute('y2', SVG_H - PAD.b);
+          line.setAttribute('stroke', '#ffffff');
+          line.setAttribute('stroke-width', '1');
+          line.setAttribute('stroke-dasharray', '2,2');
+          vGridGroup.appendChild(line);
+        }
+        svg.appendChild(vGridGroup);
+
+        // Axis labels (left & right)
+        const axisGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        axisGroup.setAttribute('fill', 'rgba(255,255,255,0.7)');
+        axisGroup.setAttribute('font-size', '11');
+        axisGroup.setAttribute('font-weight', '500');
+        
         for (let i = 0; i <= 4; i++) {
           const y = PAD.t + (i * (chartH / 4));
           const gVal = Math.round(gRange.max - i * (gRange.max - gRange.min) / 4);
           const bpVal = Math.round(bpRange.max - i * (bpRange.max - bpRange.min) / 4);
 
-          const left = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-          left.setAttribute('x', PAD.l - 8); left.setAttribute('y', y + 3);
-          left.setAttribute('text-anchor', 'end');
-          left.textContent = gVal;
-          labelsGroup.appendChild(left);
+          const leftText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          leftText.setAttribute('x', PAD.l - 12);
+          leftText.setAttribute('y', y + 4);
+          leftText.setAttribute('text-anchor', 'end');
+          leftText.textContent = gVal;
+          axisGroup.appendChild(leftText);
 
-          const right = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-          right.setAttribute('x', SVG_W - PAD.r + 8); right.setAttribute('y', y + 3);
-          right.setAttribute('text-anchor', 'start');
-          right.textContent = bpVal;
-          labelsGroup.appendChild(right);
+          const rightText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          rightText.setAttribute('x', SVG_W - PAD.r + 12);
+          rightText.setAttribute('y', y + 4);
+          rightText.setAttribute('text-anchor', 'start');
+          rightText.textContent = bpVal;
+          axisGroup.appendChild(rightText);
         }
-        svg.appendChild(labelsGroup);
+        svg.appendChild(axisGroup);
 
-        // X-axis labels
-        const xLabels = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        xLabels.setAttribute('fill', 'rgba(255,255,255,0.5)');
-        xLabels.setAttribute('font-size', '10');
-        xLabels.setAttribute('text-anchor', 'middle');
-        [0, Math.floor((n - 1) / 2), n - 1].forEach(i => {
+        // X-axis labels (select every 1-2 days)
+        const xLabelGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        xLabelGroup.setAttribute('fill', 'rgba(255,255,255,0.6)');
+        xLabelGroup.setAttribute('font-size', '10');
+        xLabelGroup.setAttribute('text-anchor', 'middle');
+        
+        const step = n > 10 ? 2 : 1;
+        for (let i = 0; i < n; i += step) {
           const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
           txt.setAttribute('x', xPos(i));
-          txt.setAttribute('y', SVG_H - 12);
+          txt.setAttribute('y', SVG_H - 16);
           txt.textContent = labels[i];
-          xLabels.appendChild(txt);
-        });
-        svg.appendChild(xLabels);
+          xLabelGroup.appendChild(txt);
+        }
+        // Ensure last label is shown
+        if ((n-1) % step !== 0) {
+          const lastTxt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          lastTxt.setAttribute('x', xPos(n-1));
+          lastTxt.setAttribute('y', SVG_H - 16);
+          lastTxt.textContent = labels[n-1];
+          xLabelGroup.appendChild(lastTxt);
+        }
+        svg.appendChild(xLabelGroup);
 
-        // Draw lines
+        // Draw lines (thick with shadow)
         const lineGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         lineGroup.setAttribute('fill', 'none');
-        lineGroup.setAttribute('stroke-width', '3');
+        lineGroup.setAttribute('stroke-width', '3.5');
         lineGroup.setAttribute('stroke-linecap', 'round');
+        lineGroup.setAttribute('stroke-linejoin', 'round');
+        lineGroup.setAttribute('filter', 'drop-shadow(0 2px 3px rgba(0,0,0,0.3))');
 
         const addLine = (data, range, color) => {
           const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -871,7 +897,46 @@
         addLine(dia, bpRange, '#ff4d6d');
         svg.appendChild(lineGroup);
 
-        // Tooltip handler
+        // Data points
+        const pointsGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        pointsGroup.setAttribute('fill', 'white');
+        
+        const addPoints = (data, range, color) => {
+          for (let i = 0; i < n; i++) {
+            const y = yPos(data[i], range);
+            if (y == null) continue;
+            const x = xPos(i);
+            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            circle.setAttribute('cx', x);
+            circle.setAttribute('cy', y);
+            circle.setAttribute('r', '4.5');
+            circle.setAttribute('fill', color);
+            circle.setAttribute('stroke', 'rgba(255,255,255,0.8)');
+            circle.setAttribute('stroke-width', '1.5');
+            circle.setAttribute('filter', 'drop-shadow(0 2px 2px rgba(0,0,0,0.4))');
+            pointsGroup.appendChild(circle);
+          }
+        };
+
+        addPoints(glucose, gRange, '#4c7dff');
+        addPoints(sys, bpRange, '#3cff97');
+        addPoints(dia, bpRange, '#ff4d6d');
+        svg.appendChild(pointsGroup);
+
+        // Ticks on x-axis
+        const ticksGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        ticksGroup.setAttribute('stroke', 'rgba(255,255,255,0.3)');
+        ticksGroup.setAttribute('stroke-width', '1');
+        for (let i = 0; i < n; i++) {
+          const x = xPos(i);
+          const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          tick.setAttribute('x1', x); tick.setAttribute('y1', SVG_H - PAD.b - 5);
+          tick.setAttribute('x2', x); tick.setAttribute('y2', SVG_H - PAD.b + 5);
+          ticksGroup.appendChild(tick);
+        }
+        svg.appendChild(ticksGroup);
+
+        // Tooltip
         function showTooltip(clientX) {
           const rect = wrap.getBoundingClientRect();
           if (!rect.width) return;
@@ -879,16 +944,18 @@
           const idx = Math.round((relX / rect.width) * (n - 1));
           const safeIdx = Math.min(n - 1, Math.max(0, idx));
 
-          const dateStr = getLastNDays(14)[safeIdx].toLocaleDateString(undefined, { month: '2-digit', day: '2-digit' });
+          const dateStr = getLastNDays(14)[safeIdx].toLocaleDateString(undefined, { month: '2-digit', day: '2-digit', year: 'numeric' });
           const g = glucose[safeIdx] ?? '—';
           const s = sys[safeIdx] ?? '—';
           const d = dia[safeIdx] ?? '—';
 
           tip.innerHTML = `
-            <div style="font-weight:600; margin-bottom:4px;">${dateStr}</div>
-            <div>Glucose: <b>${g}</b> mg/dL</div>
-            <div>SYS: <b>${s}</b> mmHg</div>
-            <div>DIA: <b>${d}</b> mmHg</div>
+            <div style="font-weight:700; margin-bottom:6px; border-bottom:1px solid rgba(255,255,255,0.2); padding-bottom:4px;">${dateStr}</div>
+            <div style="display:flex; gap:12px; flex-wrap:wrap;">
+              <div><span style="color:#4c7dff;">●</span> Glucose: <b>${g}</b> mg/dL</div>
+              <div><span style="color:#3cff97;">●</span> SYS: <b>${s}</b> mmHg</div>
+              <div><span style="color:#ff4d6d;">●</span> DIA: <b>${d}</b> mmHg</div>
+            </div>
           `;
           tip.classList.add('show');
         }

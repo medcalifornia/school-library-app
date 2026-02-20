@@ -366,12 +366,26 @@ input:focus, select:focus{
 .kpi-value{ margin-top: 8px; font-size: 22px; font-weight: 900; letter-spacing: 0.2px; }
 .kpi-sub{ font-size: 12px; color: var(--muted2); margin-top: 4px; }
 
+/* ✅ FIX: Chart area (prevents the blue overlay on iPhone) */
 .chart-wrap{
   margin-top: 14px;
   padding: 12px;
   border-radius: 16px;
   background: rgba(255,255,255,0.05);
   border: 1px solid rgba(255,255,255,0.08);
+
+  position: relative;
+  overflow: hidden;            /* ✅ مهم جداً */
+}
+
+/* ✅ FIX: iPhone-safe canvas sizing */
+.chart-wrap canvas{
+  display: block;
+  width: 100% !important;
+  height: 220px !important;    /* ✅ ثابت */
+  background: transparent !important;
+  -webkit-transform: translateZ(0); /* ✅ يقلل جليتش iOS */
+  transform: translateZ(0);
 }
 
 /* ---------------- Table (History) ---------------- */

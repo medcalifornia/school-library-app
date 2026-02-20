@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <!-- ✅ Better iPhone behavior + safe areas -->
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Health Tracker - Login</title>
   <link rel="stylesheet" href="./style.css">
@@ -10,58 +9,53 @@
 
 <body class="login-page">
 
-  <div class="container">
-    <div class="card">
+  <main class="login-wrap">
+    <section class="card login-card" aria-label="Login">
 
-      <div class="login-head">
+      <header class="login-head">
         <div class="brand-row">
           <img src="./images/logo.png" alt="DahniTech Logo" class="brand-logo">
           <h2 class="login-title">Health Tracker</h2>
         </div>
         <p class="muted">Login to continue</p>
-      </div>
+      </header>
 
-      <input
-        id="email"
-        type="email"
-        placeholder="Email"
-        autocomplete="email"
-        autocapitalize="none"
-        spellcheck="false"
-        inputmode="email"
-      />
-
-      <input
-        id="password"
-        type="password"
-        placeholder="Password"
-        autocomplete="current-password"
-      />
-
-      <button id="loginBtn" class="btn" onclick="login()">Login</button>
-
-      <!-- ✅ iPhone fix: remove underline + keep spacing clean -->
-      <div class="links-pro" style="margin-top:10px;">
-        <a class="link-btn" href="./register.html" style="text-decoration:none;">Create account</a>
-        <a class="link-btn link-ghost" href="./forgot.html" style="text-decoration:none;">Forgot password?</a>
-      </div>
-
-      <div id="msg" class="msg"></div>
-
-      <!-- ✅ iPhone fix: constrain hero image so it doesn't break the layout -->
-      <div class="hero-image" style="margin-top:14px; border-radius:16px; overflow:hidden; max-height:220px;">
-        <img
-          src="./images/health-app.jpg"
-          alt="Health Tracker"
-          style="width:100%; height:220px; object-fit:cover; display:block;"
+      <form class="login-form" onsubmit="event.preventDefault(); login();" novalidate>
+        <input
+          id="email"
+          type="email"
+          placeholder="Email"
+          autocomplete="email"
+          autocapitalize="none"
+          spellcheck="false"
+          inputmode="email"
         />
+
+        <input
+          id="password"
+          type="password"
+          placeholder="Password"
+          autocomplete="current-password"
+        />
+
+        <button id="loginBtn" class="btn primary" type="submit">Login</button>
+      </form>
+
+      <nav class="links-pro" aria-label="Account links">
+        <a class="link-btn" href="./register.html">Create account</a>
+        <a class="link-btn link-ghost" href="./forgot.html">Forgot password?</a>
+      </nav>
+
+      <div id="msg" class="msg" role="status" aria-live="polite"></div>
+
+      <div class="hero-image" aria-hidden="true">
+        <img src="./images/health-app.jpg" alt="Health Tracker">
       </div>
 
-    </div>
-  </div>
+    </section>
+  </main>
 
-  <!-- ================= FOOTER SIGNATURE ================= -->
-  <footer class="app-footer" style="padding-bottom: env(safe-area-inset-bottom);">
+  <footer class="app-footer">
     <div class="footer-inner">
       <p>© 2026 El Mehdi Dahni</p>
       <p>DahniTech Solutions</p>
@@ -71,14 +65,8 @@
       </p>
     </div>
   </footer>
-  <!-- ===================================================== -->
 
 <script>
-  // ✅ Press Enter to login (better UX on iPhone keyboard)
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") login();
-  });
-
   async function login(){
     const emailInput = document.getElementById("email");
     const passInput  = document.getElementById("password");
@@ -96,7 +84,6 @@
       return;
     }
 
-    // small loading state
     btn.disabled = true;
     const oldText = btn.textContent;
     btn.textContent = "Logging in...";
@@ -114,15 +101,12 @@
         return;
       }
 
-      // ✅ REQUIRED localStorage items (matches your server.js response)
       localStorage.setItem("userId", data.userId);
       localStorage.setItem("name", data.name || "");
       localStorage.setItem("phone", data.phone || "");
       localStorage.setItem("email", email);
 
-      // ✅ go to app
       window.location.href = "./app.html";
-
     }catch(e){
       msg.textContent = "Network error. Please try again.";
     }finally{

@@ -1,459 +1,515 @@
-<!-- app.html -->
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Health Tracker</title>
-
-  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
-<body>
+<body class="app-page">
+  <!-- Top App Bar -->
+  <header class="appbar">
+    <div class="appbar-inner">
+      <div class="brand">
+        <img src="./images/logo.png" alt="DahniTech Solutions" class="brand-logo" />
+        <div class="brand-text">
+          <div class="brand-title">Health Tracker</div>
+          <div class="brand-sub" id="subtitle">Your daily readings, simplified</div>
+        </div>
+      </div>
 
-<div class="header">
-  <div class="header-left">
-    <h1 class="app-title">Health Tracker</h1>
-    <div class="header-info">
-      <span id="hello"></span>
-      <span class="sep">•</span>
-      <span id="now"></span>
-    </div>
-  </div>
+      <div class="appbar-actions">
+        <button class="chip" id="whoamiChip" type="button" aria-label="User">
+          <span class="dot"></span>
+          <span id="whoamiText">Loading…</span>
+        </button>
 
-  <button class="btn btn-logout" onclick="logout()">Logout</button>
-</div>
-
-<div class="container container-wide">
-
-  <div class="card">
-    <h3>Add Glucose</h3>
-
-    <div class="grid3">
-      <input id="gVal" placeholder="Glucose mg/dL (e.g. 110)" inputmode="numeric" />
-      <select id="gNote">
-        <option value="">(Choose note)</option>
-        <option>Fasting (morning)</option>
-        <option>Before breakfast</option>
-        <option>After breakfast</option>
-        <option>Before lunch</option>
-        <option>After lunch</option>
-        <option>Before dinner</option>
-        <option>After dinner</option>
-        <option>Before sleep</option>
-      </select>
-
-      <div class="btn-row">
-        <button id="gSaveBtn" class="btn" onclick="saveGlucose()">Save Glucose</button>
-        <button id="gCancelBtn" class="btn btn-ghost" onclick="cancelEdit()" style="display:none;">Cancel</button>
+        <button class="icon-btn" type="button" onclick="logout()" aria-label="Logout">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+            <path d="M10 17l1.41-1.41L8.83 13H21v-2H8.83l2.58-2.59L10 7l-7 7 7 7z"></path>
+            <path d="M3 3h8v2H5v14h6v2H3V3z"></path>
+          </svg>
+          <span class="hide-sm">Logout</span>
+        </button>
       </div>
     </div>
-  </div>
+  </header>
 
-  <div class="card">
-    <h3>Add Blood Pressure</h3>
+  <!-- Main -->
+  <main class="shell">
+    <!-- Tabs -->
+    <nav class="tabs" aria-label="Sections">
+      <button class="tab active" type="button" data-tab="dashboard" onclick="showTab('dashboard')">
+        Dashboard
+      </button>
+      <button class="tab" type="button" data-tab="history" onclick="showTab('history')">
+        History
+      </button>
+      <button class="tab" type="button" data-tab="insights" onclick="showTab('insights')">
+        Insights
+      </button>
+    </nav>
 
-    <div class="grid3">
-      <input id="bpSys" placeholder="Systolic (e.g. 120)" inputmode="numeric" />
-      <input id="bpDia" placeholder="Diastolic (e.g. 80)" inputmode="numeric" />
-      <select id="bpNote">
-        <option value="">(Choose note)</option>
-        <option>Resting</option>
-        <option>After walking</option>
-        <option>After exercise</option>
-        <option>Before sleep</option>
-        <option>After coffee</option>
-        <option>Feeling dizzy</option>
-      </select>
-    </div>
+    <!-- TAB: Dashboard -->
+    <section id="tab-dashboard" class="tab-panel active">
+      <div class="grid">
+        <!-- Left: Add readings -->
+        <section class="card">
+          <div class="card-head">
+            <h2>Add Reading</h2>
+            <p class="muted">Log your glucose and blood pressure in seconds.</p>
+          </div>
 
-    <div class="btn-row">
-      <button id="bpSaveBtn" class="btn" onclick="saveBP()">Save Blood Pressure</button>
-      <button id="bpCancelBtn" class="btn btn-ghost" onclick="cancelEdit()" style="display:none;">Cancel</button>
-    </div>
-  </div>
+          <div class="segmented" role="tablist" aria-label="Reading type">
+            <button class="seg active" type="button" id="seg-glucose" onclick="toggleForm('glucose')">Glucose</button>
+            <button class="seg" type="button" id="seg-bp" onclick="toggleForm('bp')">Blood Pressure</button>
+          </div>
 
-  <!-- ✅ Chart FIRST -->
-  <div class="card">
-    <h3>Chart</h3>
-    <canvas id="chart" height="120"></canvas>
-  </div>
+          <!-- Glucose form -->
+          <div id="form-glucose" class="form-block">
+            <label class="field">
+              <span class="label">Glucose</span>
+              <div class="input-wrap">
+                <input id="glucoseValue" inputmode="numeric" placeholder="e.g. 110" />
+                <span class="suffix">mg/dL</span>
+              </div>
+            </label>
 
-  <!-- ✅ My Readings AFTER Chart -->
-  <div class="card">
-    <div class="row-between">
-      <h3>My Readings</h3>
-      <button class="btn btn-small" onclick="loadAll()">Refresh</button>
-    </div>
+            <label class="field">
+              <span class="label">Note (optional)</span>
+              <select id="glucoseNote">
+                <option value="">Choose note</option>
+                <option>Fasting</option>
+                <option>Before meal</option>
+                <option>After meal</option>
+                <option>Bedtime</option>
+                <option>Workout</option>
+                <option>Feeling low</option>
+                <option>Feeling high</option>
+              </select>
+            </label>
 
-    <table class="readings">
-      <thead>
-        <tr>
-          <th>Date/Time</th>
-          <th>Type</th>
-          <th>Value</th>
-          <th>Note</th>
-          <th class="th-actions">Actions</th>
-        </tr>
-      </thead>
-      <tbody id="rows"></tbody>
-    </table>
+            <button class="btn primary" type="button" onclick="saveGlucose()">
+              <span class="btn-text">Save Glucose</span>
+              <span class="spinner" aria-hidden="true"></span>
+            </button>
+          </div>
 
-    <div class="legend">
-      <div><span class="dot ok"></span> Normal</div>
-      <div><span class="dot warn"></span> Elevated / Prediabetes</div>
-      <div><span class="dot bad"></span> High</div>
-    </div>
+          <!-- Blood pressure form -->
+          <div id="form-bp" class="form-block hidden">
+            <div class="row">
+              <label class="field">
+                <span class="label">Systolic</span>
+                <input id="bpSys" inputmode="numeric" placeholder="e.g. 120" />
+              </label>
 
-    <!-- ✅ Pagination (NO showing text) -->
-    <div id="pagination" class="pager"></div>
-  </div>
+              <label class="field">
+                <span class="label">Diastolic</span>
+                <input id="bpDia" inputmode="numeric" placeholder="e.g. 80" />
+              </label>
+            </div>
 
-</div>
+            <label class="field">
+              <span class="label">Note (optional)</span>
+              <select id="bpNote">
+                <option value="">Choose note</option>
+                <option>Morning</option>
+                <option>Afternoon</option>
+                <option>Evening</option>
+                <option>After coffee</option>
+                <option>After workout</option>
+                <option>Stress</option>
+                <option>Relaxed</option>
+              </select>
+            </label>
 
-<script>
-const userId = localStorage.getItem("userId");
-if (!userId) location.href = "/index.html";
+            <button class="btn primary" type="button" onclick="saveBP()">
+              <span class="btn-text">Save Blood Pressure</span>
+              <span class="spinner" aria-hidden="true"></span>
+            </button>
+          </div>
+        </section>
 
-hello.textContent = "Hello, " + (localStorage.getItem("name") || "");
+        <!-- Right: Quick summary + chart -->
+        <section class="card">
+          <div class="card-head">
+            <h2>Today</h2>
+            <p class="muted" id="todayLine">Loading summary…</p>
+          </div>
 
-// ===== Live Date/Time =====
-function updateNow(){
-  now.textContent = new Date().toLocaleString();
-}
-updateNow();
-setInterval(updateNow, 1000);
+          <div class="kpis">
+            <div class="kpi">
+              <div class="kpi-label">Latest Glucose</div>
+              <div class="kpi-value" id="kpiGlucose">—</div>
+              <div class="kpi-sub" id="kpiGlucoseSub">mg/dL</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">Latest BP</div>
+              <div class="kpi-value" id="kpiBP">—</div>
+              <div class="kpi-sub" id="kpiBPSub">mmHg</div>
+            </div>
+          </div>
 
-// ===== Logout =====
-function logout(){
-  localStorage.removeItem("userId");
-  localStorage.removeItem("name");
-  localStorage.removeItem("email");
-  location.href = "/index.html";
-}
+          <div class="chart-wrap">
+            <canvas id="trendChart" height="130"></canvas>
+          </div>
 
-/* ===== Coloring Functions ===== */
+          <div class="card-foot">
+            <button class="btn ghost" type="button" onclick="refreshAll()">Refresh</button>
+            <span class="muted small" id="lastSync">—</span>
+          </div>
+        </section>
+      </div>
+    </section>
 
-// Glucose: <100 green, 100-125 orange, >=126 red
-function glucoseClass(v){
-  const n = Number(v);
-  if (Number.isNaN(n)) return "";
-  if (n < 100) return "glucose-low";
-  if (n <= 125) return "glucose-mid";
-  return "glucose-high";
-}
-
-// BP: Normal green, Elevated orange, High red (ACC/AHA)
-function bpHtml(v){
-  const parts = String(v).split("/");
-  const s = Number(parts[0]);
-  const d = Number(parts[1]);
-
-  if (Number.isNaN(s) || Number.isNaN(d)) return String(v);
-
-  let cls = "bp-low"; // Normal
-  if (s >= 120 && s <= 129 && d < 80) cls = "bp-mid"; // Elevated
-  if (s >= 130 || d >= 80) cls = "bp-high"; // High
-
-  return `<span class="${cls}">${s}/${d}</span>`;
-}
-
-/* ===== Edit State ===== */
-let editing = null; // { id, type }
-
-/* ===== Save / Update ===== */
-
-async function saveGlucose(){
-  const v = gVal.value.trim();
-  if (!v) return alert("Enter glucose value");
-
-  // update mode
-  if (editing && editing.type === "glucose"){
-    const res = await fetch(`/api/readings/${editing.id}`,{
-      method:"PUT",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ userId, value: v, note: gNote.value })
-    });
-    const data = await res.json().catch(()=>({}));
-    if (!res.ok) return alert(data.error || "Update failed");
-    cancelEdit();
-    await loadAll();
-    return;
-  }
-
-  // create mode
-  await fetch("/api/readings", {
-    method:"POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({ userId, type:"glucose", value:v, note:gNote.value })
-  });
-
-  gVal.value = "";
-  gNote.value = "";
-  loadAll();
-}
-
-async function saveBP(){
-  const s = bpSys.value.trim();
-  const d = bpDia.value.trim();
-  if (!s || !d) return alert("Enter systolic and diastolic");
-
-  const value = `${s}/${d}`;
-
-  // update mode
-  if (editing && editing.type === "bp"){
-    const res = await fetch(`/api/readings/${editing.id}`,{
-      method:"PUT",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ userId, value, note: bpNote.value })
-    });
-    const data = await res.json().catch(()=>({}));
-    if (!res.ok) return alert(data.error || "Update failed");
-    cancelEdit();
-    await loadAll();
-    return;
-  }
-
-  // create mode
-  await fetch("/api/readings", {
-    method:"POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({ userId, type:"bp", value, note: bpNote.value })
-  });
-
-  bpSys.value = "";
-  bpDia.value = "";
-  bpNote.value = "";
-  loadAll();
-}
-
-function cancelEdit(){
-  editing = null;
-
-  // reset buttons / cancel visibility
-  gSaveBtn.textContent = "Save Glucose";
-  bpSaveBtn.textContent = "Save Blood Pressure";
-  gCancelBtn.style.display = "none";
-  bpCancelBtn.style.display = "none";
-
-  // clear inputs
-  gVal.value = "";
-  gNote.value = "";
-  bpSys.value = "";
-  bpDia.value = "";
-  bpNote.value = "";
-}
-
-/* ===== Table Helpers ===== */
-
-function fmtType(t){
-  return t === "bp" ? "Blood Pressure" : "Glucose";
-}
-
-function fmtValue(r){
-  if (r.type === "glucose"){
-    const cls = glucoseClass(r.value);
-    return `<span class="${cls}">${r.value}</span>`;
-  }
-  return bpHtml(r.value);
-}
-
-/* ===== Pagination State ===== */
-const pageSize = 10;
-let currentPage = 1;
-let allReadings = []; // newest first
-let byId = {};        // id -> reading
-
-function renderPage(){
-  rows.innerHTML = "";
-
-  const total = allReadings.length;
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  currentPage = Math.min(Math.max(1, currentPage), totalPages);
-
-  const start = (currentPage - 1) * pageSize;
-  const pageItems = allReadings.slice(start, start + pageSize);
-
-  for (const r of pageItems) {
-    const dt = new Date(r.ts).toLocaleString();
-    const tr = document.createElement("tr");
-
-    if (r.type === "glucose") tr.classList.add("row-glucose");
-    if (r.type === "bp") tr.classList.add("row-bp");
-
-    tr.innerHTML = `
-      <td data-label="Date/Time">${dt}</td>
-      <td data-label="Type">${fmtType(r.type)}</td>
-      <td data-label="Value">${fmtValue(r)}</td>
-      <td data-label="Note">${r.note || ""}</td>
-      <td data-label="Actions">
-        <div class="actions">
-          <button class="icon-btn edit" data-id="${r.id}" type="button">Edit</button>
-          <button class="icon-btn del" data-id="${r.id}" type="button">Delete</button>
+    <!-- TAB: History -->
+    <section id="tab-history" class="tab-panel">
+      <section class="card">
+        <div class="card-head">
+          <h2>My Readings</h2>
+          <p class="muted">Browse and manage your saved readings.</p>
         </div>
-      </td>
-    `;
-    rows.appendChild(tr);
-  }
 
-  // bind actions
-  rows.querySelectorAll(".icon-btn.edit").forEach(btn=>{
-    btn.addEventListener("click", ()=> startEdit(btn.dataset.id));
-  });
-  rows.querySelectorAll(".icon-btn.del").forEach(btn=>{
-    btn.addEventListener("click", ()=> deleteReading(btn.dataset.id));
-  });
+        <!-- You can connect this to your existing table/pagination CRUD -->
+        <div class="table-wrap">
+          <table class="table" aria-label="Readings table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Value</th>
+                <th>Note</th>
+                <th class="th-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="readingsBody">
+              <tr><td colspan="5" class="muted">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
 
-  renderPagination(totalPages);
-}
+        <div class="pager">
+          <button class="btn small ghost" type="button" onclick="prevPage()" aria-label="Previous page">
+            ‹
+          </button>
+          <div class="muted small" id="pageLabel">1</div>
+          <button class="btn small ghost" type="button" onclick="nextPage()" aria-label="Next page">
+            ›
+          </button>
+        </div>
+      </section>
+    </section>
 
-function renderPagination(totalPages){
-  const paginationDiv = document.getElementById("pagination");
-  paginationDiv.innerHTML = "";
-  if (totalPages <= 1) return;
+    <!-- TAB: Insights -->
+    <section id="tab-insights" class="tab-panel">
+      <section class="card">
+        <div class="card-head">
+          <h2>Insights</h2>
+          <p class="muted">Trends and patterns will appear here as you log more readings.</p>
+        </div>
 
-  const prev = document.createElement("button");
-  prev.className = "pager-btn";
-  prev.textContent = "Prev";
-  prev.disabled = currentPage === 1;
-  prev.onclick = () => { currentPage--; renderPage(); };
-  paginationDiv.appendChild(prev);
+        <div class="insights-grid">
+          <div class="mini-card">
+            <div class="mini-title">7-Day Average (Glucose)</div>
+            <div class="mini-value" id="avg7g">—</div>
+            <div class="mini-sub">mg/dL</div>
+          </div>
+          <div class="mini-card">
+            <div class="mini-title">7-Day Average (BP)</div>
+            <div class="mini-value" id="avg7bp">—</div>
+            <div class="mini-sub">mmHg</div>
+          </div>
+          <div class="mini-card">
+            <div class="mini-title">Most Common Note</div>
+            <div class="mini-value" id="commonNote">—</div>
+            <div class="mini-sub">based on history</div>
+          </div>
+        </div>
 
-  const pages = [];
-  if (totalPages <= 7){
-    for (let i = 1; i <= totalPages; i++) pages.push(i);
-  } else {
-    pages.push(1);
-    let s = Math.max(2, currentPage - 2);
-    let e = Math.min(totalPages - 1, currentPage + 2);
+        <div class="muted small">
+          Tip: If you want, we can add color-coded ranges (normal / high / low) like real health apps.
+        </div>
+      </section>
+    </section>
+  </main>
 
-    if (s > 2) pages.push("...");
-    for (let i = s; i <= e; i++) pages.push(i);
-    if (e < totalPages - 1) pages.push("...");
-    pages.push(totalPages);
-  }
+  <!-- Toast -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  for (const p of pages){
-    if (p === "..."){
-      const span = document.createElement("span");
-      span.className = "pager-dots";
-      span.textContent = "…";
-      paginationDiv.appendChild(span);
-      continue;
+  <script>
+    // ------------------------
+    // Silicon Valley UI helpers
+    // ------------------------
+    function toast(msg, type = "ok") {
+      const t = document.getElementById("toast");
+      t.className = "toast show " + (type === "err" ? "err" : "ok");
+      t.textContent = msg;
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => t.className = "toast", 2400);
     }
-    const btn = document.createElement("button");
-    btn.className = "pager-num" + (p === currentPage ? " active" : "");
-    btn.textContent = String(p);
-    btn.onclick = () => { currentPage = p; renderPage(); };
-    paginationDiv.appendChild(btn);
-  }
 
-  const next = document.createElement("button");
-  next.className = "pager-btn";
-  next.textContent = "Next";
-  next.disabled = currentPage === totalPages;
-  next.onclick = () => { currentPage++; renderPage(); };
-  paginationDiv.appendChild(next);
-}
-
-/* ===== Edit/Delete Actions ===== */
-
-function startEdit(id){
-  const r = byId[id];
-  if (!r) return;
-
-  editing = { id: r.id, type: r.type };
-
-  if (r.type === "glucose"){
-    gVal.value = r.value;
-    gNote.value = r.note || "";
-    gSaveBtn.textContent = "Update Glucose";
-    gCancelBtn.style.display = "inline-flex";
-
-    // make sure BP cancel visible too (so user can cancel easily)
-    bpCancelBtn.style.display = "none";
-  } else {
-    const parts = String(r.value).split("/");
-    bpSys.value = parts[0] || "";
-    bpDia.value = parts[1] || "";
-    bpNote.value = r.note || "";
-    bpSaveBtn.textContent = "Update Blood Pressure";
-    bpCancelBtn.style.display = "inline-flex";
-
-    gCancelBtn.style.display = "none";
-  }
-
-  // scroll to top nicely
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
-
-async function deleteReading(id){
-  const r = byId[id];
-  if (!r) return;
-
-  const label = r.type === "bp" ? `Blood Pressure (${r.value})` : `Glucose (${r.value})`;
-  if (!confirm(`Delete this reading?\n${label}`)) return;
-
-  const res = await fetch(`/api/readings/${id}`,{
-    method:"DELETE",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({ userId })
-  });
-  const data = await res.json().catch(()=>({}));
-  if (!res.ok) return alert(data.error || "Delete failed");
-
-  // if you deleted item being edited
-  if (editing && editing.id === id) cancelEdit();
-
-  await loadAll();
-}
-
-/* ===== Load All Readings ===== */
-
-async function loadAll(){
-  const res = await fetch(`/api/readings/${userId}`);
-  const data = await res.json();
-
-  allReadings = (Array.isArray(data) ? data : []).slice().reverse(); // newest first
-
-  byId = {};
-  for (const r of allReadings) byId[r.id] = r;
-
-  const totalPages = Math.max(1, Math.ceil(allReadings.length / pageSize));
-  if (currentPage > totalPages) currentPage = totalPages;
-  if (currentPage < 1) currentPage = 1;
-
-  renderPage();
-  await loadChart();
-}
-
-/* ===== Chart ===== */
-
-let chartObj = null;
-
-async function loadChart(){
-  const res = await fetch(`/api/chart/${userId}`);
-  const data = await res.json();
-
-  const ctx = document.getElementById("chart");
-  if (chartObj) chartObj.destroy();
-
-  chartObj = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: data.labels,
-      datasets: [
-        { label: "Glucose Avg", data: data.glucoseAvg },
-        { label: "BP Systolic Avg", data: data.sysAvg },
-        { label: "BP Diastolic Avg", data: data.diaAvg }
-      ]
+    function setLoading(btn, isLoading) {
+      btn.classList.toggle("loading", !!isLoading);
+      btn.disabled = !!isLoading;
     }
-  });
-}
 
-loadAll();
-</script>
+    function showTab(name) {
+      document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
 
+      document.querySelector(`.tab[data-tab="${name}"]`).classList.add("active");
+      document.getElementById("tab-" + name).classList.add("active");
+    }
+
+    function toggleForm(which) {
+      const g = document.getElementById("form-glucose");
+      const bp = document.getElementById("form-bp");
+      const sg = document.getElementById("seg-glucose");
+      const sbp = document.getElementById("seg-bp");
+
+      if (which === "glucose") {
+        g.classList.remove("hidden");
+        bp.classList.add("hidden");
+        sg.classList.add("active");
+        sbp.classList.remove("active");
+      } else {
+        bp.classList.remove("hidden");
+        g.classList.add("hidden");
+        sbp.classList.add("active");
+        sg.classList.remove("active");
+      }
+    }
+
+    // ------------------------
+    // Existing app logic hooks
+    // IMPORTANT: adjust endpoints to match your server.js
+    // ------------------------
+    async function whoami() {
+      try {
+        const r = await fetch("/api/me", { credentials: "include" });
+        if (!r.ok) throw new Error("not logged");
+        const data = await r.json();
+        document.getElementById("whoamiText").textContent = data.name || data.email || "Signed in";
+        document.getElementById("subtitle").textContent =
+          (data.email ? data.email : "Welcome back") + " • " + new Date().toLocaleString();
+      } catch (e) {
+        document.getElementById("whoamiText").textContent = "Guest";
+        document.getElementById("subtitle").textContent = "Please login again";
+      }
+    }
+
+    function logout() {
+      // keep simple; match your server route if different
+      fetch("/api/logout", { method: "POST", credentials: "include" })
+        .catch(() => {})
+        .finally(() => window.location.href = "./index.html");
+    }
+
+    async function saveGlucose() {
+      const btn = document.querySelector("#form-glucose .btn.primary");
+      const value = document.getElementById("glucoseValue").value.trim();
+      const note = document.getElementById("glucoseNote").value;
+
+      if (!value || isNaN(Number(value))) return toast("Enter a valid glucose number", "err");
+
+      try {
+        setLoading(btn, true);
+        const r = await fetch("/api/glucose", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ value: Number(value), note })
+        });
+        if (!r.ok) throw new Error("save failed");
+        document.getElementById("glucoseValue").value = "";
+        document.getElementById("glucoseNote").value = "";
+        toast("Glucose saved");
+        refreshAll();
+      } catch (e) {
+        toast("Could not save glucose", "err");
+      } finally {
+        setLoading(btn, false);
+      }
+    }
+
+    async function saveBP() {
+      const btn = document.querySelector("#form-bp .btn.primary");
+      const sys = document.getElementById("bpSys").value.trim();
+      const dia = document.getElementById("bpDia").value.trim();
+      const note = document.getElementById("bpNote").value;
+
+      if (!sys || !dia || isNaN(Number(sys)) || isNaN(Number(dia))) return toast("Enter valid BP numbers", "err");
+
+      try {
+        setLoading(btn, true);
+        const r = await fetch("/api/bp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ systolic: Number(sys), diastolic: Number(dia), note })
+        });
+        if (!r.ok) throw new Error("save failed");
+        document.getElementById("bpSys").value = "";
+        document.getElementById("bpDia").value = "";
+        document.getElementById("bpNote").value = "";
+        toast("Blood pressure saved");
+        refreshAll();
+      } catch (e) {
+        toast("Could not save blood pressure", "err");
+      } finally {
+        setLoading(btn, false);
+      }
+    }
+
+    // ------------------------
+    // Dashboard + History data
+    // ------------------------
+    let chart;
+    let page = 1;
+    const pageSize = 10;
+
+    async function refreshAll() {
+      await Promise.all([loadSummary(), loadChart(), loadHistory()]);
+      document.getElementById("lastSync").textContent = "Updated " + new Date().toLocaleTimeString();
+    }
+
+    async function loadSummary() {
+      try {
+        const r = await fetch("/api/summary", { credentials: "include" });
+        if (!r.ok) throw new Error();
+        const s = await r.json();
+        document.getElementById("kpiGlucose").textContent = s.latestGlucose ?? "—";
+        document.getElementById("kpiBP").textContent = s.latestBP ?? "—";
+        document.getElementById("todayLine").textContent =
+          (s.todayCount ? `${s.todayCount} readings logged today` : "No readings yet today");
+      } catch {
+        document.getElementById("todayLine").textContent = "Could not load summary (check API routes)";
+      }
+    }
+
+    async function loadChart() {
+      // expects: [{label:"Mon", glucose:110, bpSys:120, bpDia:80}, ...]
+      try {
+        const r = await fetch("/api/trends?days=7", { credentials: "include" });
+        if (!r.ok) throw new Error();
+        const rows = await r.json();
+
+        const labels = rows.map(x => x.label);
+        const glucose = rows.map(x => x.glucose ?? null);
+
+        const ctx = document.getElementById("trendChart").getContext("2d");
+        if (chart) chart.destroy();
+
+        chart = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels,
+            datasets: [
+              { label: "Glucose", data: glucose, tension: 0.35 }
+            ]
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { display: true } },
+            scales: { y: { beginAtZero: false } }
+          }
+        });
+      } catch {
+        // safe fallback: empty chart
+        const ctx = document.getElementById("trendChart").getContext("2d");
+        if (chart) chart.destroy();
+        chart = new Chart(ctx, {
+          type: "line",
+          data: { labels: [], datasets: [{ label: "Glucose", data: [] }] },
+          options: { responsive: true, plugins: { legend: { display: false } } }
+        });
+      }
+    }
+
+    async function loadHistory() {
+      const body = document.getElementById("readingsBody");
+      body.innerHTML = `<tr><td colspan="5" class="muted">Loading…</td></tr>`;
+
+      try {
+        const r = await fetch(`/api/readings?page=${page}&limit=${pageSize}`, { credentials: "include" });
+        if (!r.ok) throw new Error();
+        const data = await r.json();
+        // expects: {items:[...], page:1, totalPages:...}
+        const items = data.items || [];
+
+        if (!items.length) {
+          body.innerHTML = `<tr><td colspan="5" class="muted">No readings yet.</td></tr>`;
+        } else {
+          body.innerHTML = items.map(row => {
+            const date = row.date ? new Date(row.date).toLocaleString() : "—";
+            const type = row.type || "—";
+            const value = row.valueText || row.value || "—";
+            const note = row.note || "";
+            const id = row.id || row._id || "";
+            return `
+              <tr>
+                <td>${escapeHtml(date)}</td>
+                <td><span class="pill">${escapeHtml(type)}</span></td>
+                <td>${escapeHtml(String(value))}</td>
+                <td class="muted">${escapeHtml(note)}</td>
+                <td class="td-actions">
+                  <button class="mini-btn" type="button" onclick="editReading('${id}')">Edit</button>
+                  <button class="mini-btn danger" type="button" onclick="deleteReading('${id}')">Delete</button>
+                </td>
+              </tr>
+            `;
+          }).join("");
+        }
+
+        document.getElementById("pageLabel").textContent = String(data.page || page);
+      } catch (e) {
+        body.innerHTML = `<tr><td colspan="5" class="muted">Could not load history (check /api/readings).</td></tr>`;
+      }
+    }
+
+    function prevPage() {
+      if (page > 1) { page--; loadHistory(); }
+    }
+    function nextPage() {
+      page++; loadHistory();
+    }
+
+    function editReading(id) {
+      toast("Edit UI can open a modal (we can add next)");
+      // You already wanted Edit per row — we can connect this to your CRUD endpoint.
+    }
+
+    async function deleteReading(id) {
+      if (!id) return;
+      const ok = confirm("Delete this reading?");
+      if (!ok) return;
+
+      try {
+        const r = await fetch(`/api/readings/${encodeURIComponent(id)}`, {
+          method: "DELETE",
+          credentials: "include"
+        });
+        if (!r.ok) throw new Error();
+        toast("Deleted");
+        loadHistory();
+        loadSummary();
+        loadChart();
+      } catch {
+        toast("Delete failed", "err");
+      }
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, (c) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+      }[c]));
+    }
+
+    // Init
+    whoami();
+    refreshAll();
+  </script>
 </body>
 </html>

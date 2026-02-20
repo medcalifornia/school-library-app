@@ -6,7 +6,7 @@
   <title>Health Tracker · Dashboard</title>
   <link rel="stylesheet" href="./style.css" />
   <style>
-    /* تحسينات بسيطة للـ SVG */
+    /* تحسينات بسيطة */
     .sv-chart-wrap { touch-action: pan-y; user-select: none; }
     .chart-tooltip { transition: opacity 0.15s ease; }
   </style>
@@ -148,7 +148,7 @@
             </div>
           </div>
 
-          <!-- ✅ Chart Section -->
+          <!-- Chart Section -->
           <div class="chart-card" id="trendCard">
             <div class="chart-head">
               <div>
@@ -340,6 +340,97 @@
         return d1.toDateString() === d2.toDateString();
       }
 
+      // ========== Glucose Color Coding ==========
+      function getGlucoseStatus(value, note = '') {
+        const num = Number(value);
+        if (isNaN(num)) return { category: 'unknown', colorClass: '', text: value };
+
+        const noteLower = String(note).toLowerCase();
+        const isFasting = noteLower.includes('fasting');
+        const isPostprandial = noteLower.includes('after meal') || noteLower.includes('aftermeal');
+
+        let category = '';
+        let colorClass = '';
+
+        if (isFasting) {
+          if (num < 100) { category = 'normal'; colorClass = 'glucose-normal'; }
+          else if (num >= 100 && num <= 125) { category = 'prediabetes'; colorClass = 'glucose-prediabetes'; }
+          else if (num >= 126) { category = 'diabetes'; colorClass = 'glucose-diabetes'; }
+        } else if (isPostprandial) {
+          if (num < 140) { category = 'normal'; colorClass = 'glucose-normal'; }
+          else if (num >= 140 && num <= 199) { category = 'prediabetes'; colorClass = 'glucose-prediabetes'; }
+          else if (num >= 200) { category = 'diabetes'; colorClass = 'glucose-diabetes'; }
+        } else {
+          if (num < 100) { category = 'normal'; colorClass = 'glucose-normal'; }
+          else if (num >= 100 && num <= 125) { category = 'prediabetes'; colorClass = 'glucose-prediabetes'; }
+          else if (num >= 126) { category = 'diabetes'; colorClass = 'glucose-diabetes'; }
+        }
+
+        return { category, colorClass, value: num };
+      }
+
+      // ========== NEW: BP Color Coding (5 categories) ==========
+      function getBPStatus(bpString) {
+        // bpString format: "s/d" like "135/85"
+        if (!bpString || typeof bpString !== 'string') {
+          return { category: 'unknown', colorClass: '', explanation: '', sys: null, dia: null };
+        }
+        const parts = bpString.split('/').map(Number);
+        if (parts.length !== 2 || isNaN(parts[0]) || isNaN(parts[1])) {
+          return { category: 'unknown', colorClass: '', explanation: '', sys: null, dia: null };
+        }
+        const sys = parts[0];
+        const dia = parts[1];
+
+        let category = '';
+        let colorClass = '';
+        let explanation = '';
+
+        // Determine category based on higher stage
+        if (sys >= 180 || dia >= 120) {
+          category = 'Crisis';
+          colorClass = 'bp-crisis';
+          explanation = 'أزمة ارتفاع ضغط (Hypertensive Crisis) - توجه للطوارئ فوراً';
+        } else if (sys >= 140 || dia >= 90) {
+          category = 'Stage 2';
+          colorClass = 'bp-stage2';
+          explanation = 'ارتفاع المرحلة الثانية - يحتاج علاج دوائي';
+        } else if (sys >= 130 || dia >= 80) {
+          category = 'Stage 1';
+          colorClass = 'bp-stage1';
+          explanation = 'ارتفاع المرحلة الأولى - متابعة وتعديل نمط حياة';
+        } else if (sys >= 120 && sys <= 129 && dia < 80) {
+          category = 'Elevated';
+          colorClass = 'bp-elevated';
+          explanation = 'مرتفع بسيط (إنذار مبكر)';
+        } else if (sys < 120 && dia < 80) {
+          category = 'Normal';
+          colorClass = 'bp-normal';
+          explanation = 'ضغط طبيعي ممتاز';
+        } else {
+          // Mixed cases not covered above (e.g., sys 125, dia 85) -> take higher stage
+          if (sys >= 140 || dia >= 90) {
+            category = 'Stage 2';
+            colorClass = 'bp-stage2';
+            explanation = 'ارتفاع المرحلة الثانية - يحتاج علاج دوائي';
+          } else if (sys >= 130 || dia >= 80) {
+            category = 'Stage 1';
+            colorClass = 'bp-stage1';
+            explanation = 'ارتفاع المرحلة الأولى - متابعة وتعديل نمط حياة';
+          } else if (sys >= 120 && dia < 80) {
+            category = 'Elevated';
+            colorClass = 'bp-elevated';
+            explanation = 'مرتفع بسيط (إنذار مبكر)';
+          } else {
+            category = 'Normal';
+            colorClass = 'bp-normal';
+            explanation = 'ضغط طبيعي ممتاز';
+          }
+        }
+
+        return { category, colorClass, explanation, sys, dia, display: bpString };
+      }
+
       // --- API calls ---
       window.saveGlucose = async () => {
         if (!requireAuth()) return;
@@ -435,8 +526,22 @@
         const latestGlucose = allReadings.find(r => r.type === 'glucose');
         const latestBP = allReadings.find(r => r.type === 'bp');
 
-        $('kpiGlucose').textContent = latestGlucose?.value || '—';
-        $('kpiBP').textContent = latestBP?.value || '—';
+        // Glucose
+        if (latestGlucose) {
+          const { colorClass, value } = getGlucoseStatus(latestGlucose.value, latestGlucose.note);
+          $('kpiGlucose').innerHTML = `<span class="${colorClass}">${value}</span>`;
+        } else {
+          $('kpiGlucose').textContent = '—';
+        }
+
+        // BP with color and tooltip explanation (using title attribute)
+        if (latestBP) {
+          const bpStatus = getBPStatus(latestBP.value);
+          $('kpiBP').innerHTML = `<span class="${bpStatus.colorClass}" title="${bpStatus.explanation}">${bpStatus.display}</span>`;
+        } else {
+          $('kpiBP').textContent = '—';
+        }
+
         $('todayLine').textContent = todayCount ? `${todayCount} reading(s) logged today` : 'No readings yet today';
       }
 
@@ -456,11 +561,22 @@
 
         tbody.innerHTML = pageItems.map(r => {
           const date = parseDate(r.ts)?.toLocaleString() || '—';
+          let valueHtml = escapeHtml(r.value);
+          let titleAttr = '';
+
+          if (r.type === 'glucose') {
+            const { colorClass, value } = getGlucoseStatus(r.value, r.note);
+            valueHtml = `<span class="${colorClass}">${value}</span>`;
+          } else if (r.type === 'bp') {
+            const bpStatus = getBPStatus(r.value);
+            valueHtml = `<span class="${bpStatus.colorClass}" title="${bpStatus.explanation}">${bpStatus.display}</span>`;
+          }
+
           return `
             <tr>
               <td>${escapeHtml(date)}</td>
               <td><span class="pill">${escapeHtml(r.type)}</span></td>
-              <td>${escapeHtml(r.value)}</td>
+              <td>${valueHtml}</td>
               <td class="muted">${escapeHtml(r.note || '')}</td>
               <td class="td-actions">
                 <button class="mini-btn" onclick="editReading('${r.id}', '${escapeHtml(r.value)}', '${escapeHtml(r.note || '')}')">Edit</button>
@@ -526,17 +642,41 @@
           return d && d >= sevenDaysAgo;
         });
 
+        // Glucose average
         const glucoseVals = weekReadings.filter(r => r.type === 'glucose').map(r => Number(r.value)).filter(n => !isNaN(n));
-        const bpVals = weekReadings.filter(r => r.type === 'bp').map(r => {
-          const [s, d] = r.value.split('/').map(Number);
-          return { s, d };
-        }).filter(bp => !isNaN(bp.s) && !isNaN(bp.d));
-
         const avg = arr => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
-        $('avg7g').textContent = avg(glucoseVals) ?? '—';
-        const sAvg = avg(bpVals.map(bp => bp.s));
-        const dAvg = avg(bpVals.map(bp => bp.d));
-        $('avg7bp').textContent = (sAvg && dAvg) ? `${sAvg}/${dAvg}` : '—';
+        const gAvg = avg(glucoseVals);
+        if (gAvg !== null) {
+          const { colorClass } = getGlucoseStatus(gAvg, '');
+          $('avg7g').innerHTML = `<span class="${colorClass}">${gAvg}</span>`;
+        } else {
+          $('avg7g').textContent = '—';
+        }
+
+        // BP average
+        const bpReadings = weekReadings.filter(r => r.type === 'bp');
+        if (bpReadings.length > 0) {
+          let totalSys = 0, totalDia = 0, count = 0;
+          bpReadings.forEach(r => {
+            const parts = r.value.split('/').map(Number);
+            if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+              totalSys += parts[0];
+              totalDia += parts[1];
+              count++;
+            }
+          });
+          if (count > 0) {
+            const avgSys = Math.round(totalSys / count);
+            const avgDia = Math.round(totalDia / count);
+            const avgString = `${avgSys}/${avgDia}`;
+            const bpStatus = getBPStatus(avgString);
+            $('avg7bp').innerHTML = `<span class="${bpStatus.colorClass}" title="${bpStatus.explanation}">${avgString}</span>`;
+          } else {
+            $('avg7bp').textContent = '—';
+          }
+        } else {
+          $('avg7bp').textContent = '—';
+        }
 
         const notes = allReadings.map(r => r.note).filter(Boolean);
         if (notes.length) {
@@ -547,11 +687,10 @@
         }
       }
 
-      // ========== ✅ CHART RENDERING (FIXED) ==========
+      // ========== CHART RENDERING ==========
       const SVG_W = 1000, SVG_H = 240;
       const PAD = { l: 50, r: 30, t: 15, b: 35 };
 
-      // Generate last 14 days as Date objects
       function getLastNDays(n = 14) {
         const days = [];
         const today = new Date();
@@ -564,7 +703,6 @@
         return days;
       }
 
-      // Format date to YYYY-MM-DD
       function toYYYYMMDD(date) {
         const y = date.getFullYear();
         const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -572,21 +710,18 @@
         return `${y}-${m}-${d}`;
       }
 
-      // Build dataset for chart
       function buildChartData() {
         const days = getLastNDays(14);
         const labels = days.map(d => d.toLocaleDateString(undefined, { month: '2-digit', day: '2-digit' }));
 
-        // Initialize buckets
         const buckets = {};
         days.forEach(d => { buckets[toYYYYMMDD(d)] = { glucose: [], sys: [], dia: [] }; });
 
-        // Fill buckets with readings
         allReadings.forEach(r => {
           const date = parseDate(r.ts);
           if (!date) return;
           const key = toYYYYMMDD(date);
-          if (!buckets[key]) return; // older than 14 days
+          if (!buckets[key]) return;
 
           if (r.type === 'glucose') {
             const val = Number(r.value);
@@ -598,7 +733,6 @@
           }
         });
 
-        // Calculate daily averages
         const avg = arr => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
         const glucose = days.map(d => avg(buckets[toYYYYMMDD(d)].glucose));
         const sys = days.map(d => avg(buckets[toYYYYMMDD(d)].sys));
@@ -607,7 +741,6 @@
         return { labels, glucose, sys, dia };
       }
 
-      // Get min/max with padding
       function getRange(values) {
         const valid = values.filter(v => v != null && isFinite(v));
         if (valid.length === 0) return { min: 70, max: 150 };
@@ -617,7 +750,6 @@
         return { min: Math.max(0, Math.floor(min - pad)), max: Math.ceil(max + pad) };
       }
 
-      // Render SVG chart
       function renderChart() {
         const svg = $('svChart');
         const wrap = $('svWrap');
@@ -640,7 +772,6 @@
           return PAD.t + chartH - ((val - range.min) / (range.max - range.min)) * chartH;
         };
 
-        // Build path string
         function buildPath(data, range) {
           let d = '';
           let started = false;
@@ -661,7 +792,6 @@
           return d;
         }
 
-        // Clear SVG
         while (svg.firstChild) svg.removeChild(svg.firstChild);
 
         // Background
@@ -672,7 +802,7 @@
         bg.setAttribute('rx', '12'); bg.setAttribute('ry', '12');
         svg.appendChild(bg);
 
-        // Grid lines (4 horizontal)
+        // Grid lines
         const grid = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         grid.setAttribute('opacity', '0.2');
         for (let i = 0; i <= 4; i++) {
@@ -686,7 +816,7 @@
         }
         svg.appendChild(grid);
 
-        // Axis labels (left: glucose, right: bp)
+        // Axis labels
         const labelsGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         labelsGroup.setAttribute('fill', 'rgba(255,255,255,0.5)');
         labelsGroup.setAttribute('font-size', '10');
@@ -709,7 +839,7 @@
         }
         svg.appendChild(labelsGroup);
 
-        // X-axis labels (first, middle, last)
+        // X-axis labels
         const xLabels = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         xLabels.setAttribute('fill', 'rgba(255,255,255,0.5)');
         xLabels.setAttribute('font-size', '10');
@@ -767,7 +897,6 @@
           tip.classList.remove('show');
         }
 
-        // Attach events
         wrap.onpointermove = e => showTooltip(e.clientX);
         wrap.onpointerleave = hideTooltip;
         wrap.onclick = e => showTooltip(e.clientX);

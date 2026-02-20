@@ -1,3 +1,4 @@
+<!-- app.html -->
 <!doctype html>
 <html>
 <head>
@@ -5,103 +6,105 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Health Tracker</title>
 
-  <link rel="stylesheet" href="/style.css">
+  <!-- IMPORTANT: use ./style.css to avoid path issues -->
+  <link rel="stylesheet" href="./style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
-  <div class="header">
-    <div class="header-left">
-      <h1 class="app-title">Health Tracker</h1>
-      <div class="header-info">
-        <span id="hello"></span>
-        <span class="sep">•</span>
-        <span id="now"></span>
-      </div>
-    </div>
 
-    <button class="btn btn-logout" onclick="logout()">Logout</button>
+<div class="header">
+  <div class="header-left">
+    <h1 class="app-title">Health Tracker</h1>
+    <div class="header-info">
+      <span id="hello"></span>
+      <span class="sep">•</span>
+      <span id="now"></span>
+    </div>
   </div>
 
-  <div class="container container-wide">
+  <button class="btn btn-logout" onclick="logout()">Logout</button>
+</div>
 
-    <div class="card">
-      <h3>Add Glucose</h3>
+<div class="container container-wide">
 
-      <div class="grid3">
-        <input id="gVal" placeholder="Glucose mg/dL (e.g. 110)" inputmode="numeric" />
-        <select id="gNote">
-          <option value="">(Choose note)</option>
-          <option>Fasting (morning)</option>
-          <option>Before breakfast</option>
-          <option>After breakfast</option>
-          <option>Before lunch</option>
-          <option>After lunch</option>
-          <option>Before dinner</option>
-          <option>After dinner</option>
-          <option>Before sleep</option>
-        </select>
+  <div class="card">
+    <h3>Add Glucose</h3>
 
-        <button class="btn" onclick="saveGlucose()">Save Glucose</button>
-      </div>
+    <div class="grid3">
+      <input id="gVal" placeholder="Glucose mg/dL (e.g. 110)" inputmode="numeric" />
+      <select id="gNote">
+        <option value="">(Choose note)</option>
+        <option>Fasting (morning)</option>
+        <option>Before breakfast</option>
+        <option>After breakfast</option>
+        <option>Before lunch</option>
+        <option>After lunch</option>
+        <option>Before dinner</option>
+        <option>After dinner</option>
+        <option>Before sleep</option>
+      </select>
+
+      <button class="btn" onclick="saveGlucose()">Save Glucose</button>
     </div>
-
-    <div class="card">
-      <h3>Add Blood Pressure</h3>
-
-      <div class="grid3">
-        <input id="bpSys" placeholder="Systolic (e.g. 120)" inputmode="numeric" />
-        <input id="bpDia" placeholder="Diastolic (e.g. 80)" inputmode="numeric" />
-        <select id="bpNote">
-          <option value="">(Choose note)</option>
-          <option>Resting</option>
-          <option>After walking</option>
-          <option>After exercise</option>
-          <option>Before sleep</option>
-          <option>After coffee</option>
-          <option>Feeling dizzy</option>
-        </select>
-      </div>
-
-      <button class="btn" onclick="saveBP()">Save Blood Pressure</button>
-    </div>
-
-    <!-- ✅ Chart FIRST -->
-    <div class="card">
-      <h3>Chart</h3>
-      <canvas id="chart" height="120"></canvas>
-    </div>
-
-    <!-- ✅ My Readings AFTER Chart -->
-    <div class="card">
-      <div class="row-between">
-        <h3>My Readings</h3>
-        <button class="btn btn-small" onclick="loadAll()">Load My Readings</button>
-      </div>
-
-      <table class="readings">
-        <thead>
-          <tr>
-            <th>Date/Time</th>
-            <th>Type</th>
-            <th>Value</th>
-            <th>Note</th>
-          </tr>
-        </thead>
-        <tbody id="rows"></tbody>
-      </table>
-
-      <div class="legend">
-        <div><span class="dot ok"></span> Normal</div>
-        <div><span class="dot warn"></span> Elevated / Prediabetes</div>
-        <div><span class="dot bad"></span> High</div>
-      </div>
-
-      <!-- ✅ Pagination (NO "Showing..." text) -->
-      <div id="pagination" class="pager"></div>
-    </div>
-
   </div>
+
+  <div class="card">
+    <h3>Add Blood Pressure</h3>
+
+    <div class="grid3">
+      <input id="bpSys" placeholder="Systolic (e.g. 120)" inputmode="numeric" />
+      <input id="bpDia" placeholder="Diastolic (e.g. 80)" inputmode="numeric" />
+      <select id="bpNote">
+        <option value="">(Choose note)</option>
+        <option>Resting</option>
+        <option>After walking</option>
+        <option>After exercise</option>
+        <option>Before sleep</option>
+        <option>After coffee</option>
+        <option>Feeling dizzy</option>
+      </select>
+    </div>
+
+    <button class="btn" onclick="saveBP()">Save Blood Pressure</button>
+  </div>
+
+  <!-- ✅ Chart FIRST -->
+  <div class="card">
+    <h3>Chart</h3>
+    <canvas id="chart" height="120"></canvas>
+  </div>
+
+  <!-- ✅ My Readings AFTER Chart -->
+  <div class="card">
+    <div class="row-between">
+      <h3>My Readings</h3>
+      <button class="btn btn-small" onclick="loadAll()">Load My Readings</button>
+    </div>
+
+    <table class="readings">
+      <thead>
+        <tr>
+          <th>Date/Time</th>
+          <th>Type</th>
+          <th>Value</th>
+          <th>Note</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+
+    <div class="legend">
+      <div><span class="dot ok"></span> Normal</div>
+      <div><span class="dot warn"></span> Elevated / Prediabetes</div>
+      <div><span class="dot bad"></span> High</div>
+    </div>
+
+    <!-- ✅ Pagination (NO showing text) -->
+    <div id="pagination" class="pager"></div>
+  </div>
+
+</div>
 
 <script>
 const userId = localStorage.getItem("userId");
@@ -250,30 +253,23 @@ function renderPagination(totalPages){
   // Prev
   const prev = document.createElement("button");
   prev.className = "pager-btn";
-  prev.textContent = "‹";
+  prev.textContent = "Prev";
   prev.disabled = currentPage === 1;
   prev.onclick = () => { currentPage--; renderPage(); };
   paginationDiv.appendChild(prev);
 
-  // Page numbers (smart)
-  const maxButtons = 5;
+  // Numbers
   const pages = [];
-
-  if (totalPages <= 7) {
+  if (totalPages <= 7){
     for (let i = 1; i <= totalPages; i++) pages.push(i);
   } else {
     pages.push(1);
-
-    let start = Math.max(2, currentPage - Math.floor(maxButtons / 2));
-    let end = Math.min(totalPages - 1, start + maxButtons - 1);
-    start = Math.max(2, end - maxButtons + 1);
+    let start = Math.max(2, currentPage - 2);
+    let end = Math.min(totalPages - 1, currentPage + 2);
 
     if (start > 2) pages.push("...");
-
     for (let i = start; i <= end; i++) pages.push(i);
-
     if (end < totalPages - 1) pages.push("...");
-
     pages.push(totalPages);
   }
 
@@ -285,9 +281,8 @@ function renderPagination(totalPages){
       paginationDiv.appendChild(span);
       continue;
     }
-
     const btn = document.createElement("button");
-    btn.className = "pager-btn" + (p === currentPage ? " active" : "");
+    btn.className = "pager-num" + (p === currentPage ? " active" : "");
     btn.textContent = String(p);
     btn.onclick = () => { currentPage = p; renderPage(); };
     paginationDiv.appendChild(btn);
@@ -296,7 +291,7 @@ function renderPagination(totalPages){
   // Next
   const next = document.createElement("button");
   next.className = "pager-btn";
-  next.textContent = "›";
+  next.textContent = "Next";
   next.disabled = currentPage === totalPages;
   next.onclick = () => { currentPage++; renderPage(); };
   paginationDiv.appendChild(next);
@@ -308,7 +303,7 @@ async function loadAll(){
   const res = await fetch(`/api/readings/${userId}`);
   const data = await res.json();
 
-  allReadings = (Array.isArray(data) ? data : []).slice().reverse();
+  allReadings = (Array.isArray(data) ? data : []).slice().reverse(); // newest first
   currentPage = 1;
 
   renderPage();

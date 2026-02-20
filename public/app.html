@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="en">
 <head>
@@ -146,24 +147,25 @@
             </div>
           </div>
 
-        <div class="chart-card">
-  <div class="chart-head">
-    <div>
-      <div class="chart-title">Trends</div>
-      <div class="muted small">Last 14 days • Glucose & Blood Pressure</div>
-    </div>
+          <!-- ✅ NEW PROFESSIONAL CHART -->
+          <div class="chart-card">
+            <div class="chart-head">
+              <div>
+                <div class="chart-title">Trends</div>
+                <div class="muted small">Last 14 days • Glucose & Blood Pressure</div>
+              </div>
 
-    <div class="legend-inline" aria-label="Legend">
-      <span class="lg lg-g">Glucose</span>
-      <span class="lg lg-s">SYS</span>
-      <span class="lg lg-d">DIA</span>
-    </div>
-  </div>
+              <div class="legend-inline" aria-label="Legend">
+                <span class="lg lg-g">Glucose</span>
+                <span class="lg lg-s">SYS</span>
+                <span class="lg lg-d">DIA</span>
+              </div>
+            </div>
 
-  <div class="chart-canvas">
-    <canvas id="healthChart"></canvas>
-  </div>
-</div>
+            <div class="chart-canvas">
+              <canvas id="healthChart"></canvas>
+            </div>
+          </div>
 
           <div class="card-foot">
             <button class="btn ghost" type="button" onclick="refreshAll()">Refresh</button>
@@ -385,156 +387,6 @@
         document.getElementById("bpDia").value = "";
         document.getElementById("bpNote").value = "";
         toast("Blood pressure saved");
-        let healthChart; // Chart.js instance
-
-function dayKey(d){
-  const x = new Date(d);
-  const y = x.getFullYear();
-  const m = String(x.getMonth()+1).padStart(2,"0");
-  const da = String(x.getDate()).padStart(2,"0");
-  return `${y}-${m}-${da}`;
-}
-
-function lastNDaysLabels(n=14){
-  const out = [];
-  const now = new Date();
-  for(let i=n-1; i>=0; i--){
-    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-    out.push(d);
-  }
-  return out;
-}
-
-function buildTrendFromReadings(days=14){
-  const buckets = {}; // key -> {g:[], sys:[], dia:[]}
-
-  for(const r of allReadings){
-    const d = parseTs(r.ts);
-    if(!d) continue;
-
-    const k = dayKey(d);
-    if(!buckets[k]) buckets[k] = { g:[], sys:[], dia:[] };
-
-    const t = String(r.type || "").toLowerCase();
-
-    if(t === "glucose"){
-      const v = Number(r.value);
-      if(!Number.isNaN(v)) buckets[k].g.push(v);
-    }
-
-    if(t === "bp"){
-      const parts = String(r.value || "").split("/");
-      if(parts.length === 2){
-        const s = Number(parts[0]);
-        const di = Number(parts[1]);
-        if(!Number.isNaN(s)) buckets[k].sys.push(s);
-        if(!Number.isNaN(di)) buckets[k].dia.push(di);
-      }
-    }
-  }
-
-  const daysArr = lastNDaysLabels(days);
-  const labels = daysArr.map(d => d.toLocaleDateString(undefined, { month:"2-digit", day:"2-digit" }));
-
-  const avg = (arr) => arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) : null;
-
-  const glucose = [];
-  const sys = [];
-  const dia = [];
-
-  for(const d of daysArr){
-    const k = dayKey(d);
-    const b = buckets[k] || { g:[], sys:[], dia:[] };
-    glucose.push(avg(b.g));
-    sys.push(avg(b.sys));
-    dia.push(avg(b.dia));
-  }
-
-  return { labels, glucose, sys, dia };
-}
-
-function renderHealthChart(){
-  const el = document.getElementById("healthChart");
-  if(!el) return;
-
-  const { labels, glucose, sys, dia } = buildTrendFromReadings(14);
-
-  // Destroy previous chart to avoid iOS glitches
-  if(healthChart) healthChart.destroy();
-
-  const ctx = el.getContext("2d");
-
-  healthChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels,
-      datasets: [
-        {
-          label: "Glucose",
-          data: glucose,
-          yAxisID: "yG",
-          tension: 0.35,
-          pointRadius: 2,
-          pointHoverRadius: 4,
-          fill: false
-        },
-        {
-          label: "SYS",
-          data: sys,
-          yAxisID: "yBP",
-          tension: 0.35,
-          pointRadius: 2,
-          pointHoverRadius: 4,
-          fill: false
-        },
-        {
-          label: "DIA",
-          data: dia,
-          yAxisID: "yBP",
-          tension: 0.35,
-          pointRadius: 2,
-          pointHoverRadius: 4,
-          fill: false
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false, // ✅ important for iPhone
-      animation: false,
-      interaction: { mode: "index", intersect: false },
-      plugins: {
-        legend: { display: false }, // ✅ we use our own legend
-        tooltip: {
-          callbacks: {
-            label: (ctx) => {
-              const v = ctx.parsed.y;
-              if(v === null || v === undefined) return `${ctx.dataset.label}: —`;
-              if(ctx.dataset.label === "Glucose") return `Glucose: ${v} mg/dL`;
-              return `${ctx.dataset.label}: ${v} mmHg`;
-            }
-          }
-        }
-      },
-      scales: {
-        x: {
-          grid: { display: false }
-        },
-        yG: {
-          position: "left",
-          title: { display: true, text: "mg/dL" },
-          ticks: { maxTicksLimit: 5 }
-        },
-        yBP: {
-          position: "right",
-          title: { display: true, text: "mmHg" },
-          grid: { drawOnChartArea: false },
-          ticks: { maxTicksLimit: 5 }
-        }
-      }
-    }
-  });
-}
         refreshAll();
       } catch (e) {
         toast("Could not save blood pressure", "err");
@@ -547,7 +399,6 @@ function renderHealthChart(){
     // Data + UI rendering
     // =========================
     let allReadings = [];
-    let chart;
     let page = 1;
     const pageSize = 10;
 
@@ -565,7 +416,7 @@ function renderHealthChart(){
     function latestOfType(type) {
       const list = allReadings.filter(r => String(r.type).toLowerCase() === type);
       if (!list.length) return null;
-      return list[list.length - 1];
+      return list[0]; // because we sort DESC
     }
 
     function computeSummary() {
@@ -592,14 +443,295 @@ function renderHealthChart(){
       const data = await r.json();
       if (!r.ok) throw new Error(data?.error || "Load failed");
 
-      allReadings = Array.isArray(data) ? data.slice().sort((a,b) => {
+      // Sort DESC newest first
+      allReadings = Array.isArray(data) ? data.slice().sort((a, b) => {
         const da = parseTs(a.ts)?.getTime() || 0;
         const db = parseTs(b.ts)?.getTime() || 0;
         return db - da;
       }) : [];
     }
 
-    
+    function renderHistoryPage() {
+      const body = document.getElementById("readingsBody");
+      const total = allReadings.length;
+      const totalPages = Math.max(1, Math.ceil(total / pageSize));
+      if (page > totalPages) page = totalPages;
+
+      const start = (page - 1) * pageSize;
+      const items = allReadings.slice(start, start + pageSize);
+
+      document.getElementById("pageLabel").textContent = `${page} / ${totalPages}`;
+
+      if (!items.length) {
+        body.innerHTML = `<tr><td colspan="5" class="muted">No readings yet.</td></tr>`;
+        return;
+      }
+
+      body.innerHTML = items.map(row => {
+        const d = parseTs(row.ts);
+        const date = d ? d.toLocaleString() : "—";
+        const type = row.type || "—";
+        const value = row.value || "—";
+        const note = row.note || "";
+        const id = row.id || "";
+        return `
+          <tr>
+            <td>${escapeHtml(date)}</td>
+            <td><span class="pill">${escapeHtml(type)}</span></td>
+            <td>${escapeHtml(String(value))}</td>
+            <td class="muted">${escapeHtml(note)}</td>
+            <td class="td-actions">
+              <button class="mini-btn" type="button" onclick="editReadingPrompt('${id}', '${escapeHtml(String(value))}', '${escapeHtml(String(note))}')">Edit</button>
+              <button class="mini-btn danger" type="button" onclick="deleteReading('${id}')">Delete</button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function prevPage() { if (page > 1) { page--; renderHistoryPage(); } }
+    function nextPage() {
+      const totalPages = Math.max(1, Math.ceil(allReadings.length / pageSize));
+      if (page < totalPages) { page++; renderHistoryPage(); }
+    }
+
+    async function editReadingPrompt(id, currentValue, currentNote) {
+      if (!requireAuth()) return;
+      const { userId } = getAuth();
+
+      const newValue = prompt("Edit value:", currentValue || "");
+      if (newValue === null) return;
+
+      const newNote = prompt("Edit note (optional):", currentNote || "");
+      if (newNote === null) return;
+
+      try {
+        const r = await fetch(`/api/readings/${encodeURIComponent(id)}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, value: String(newValue).trim(), note: String(newNote || "").trim() })
+        });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(data.error || "Update failed");
+
+        toast("Updated");
+        await refreshAll();
+        showTab("history");
+      } catch {
+        toast("Update failed", "err");
+      }
+    }
+
+    async function deleteReading(id) {
+      if (!requireAuth()) return;
+      const { userId } = getAuth();
+
+      const ok = confirm("Delete this reading?");
+      if (!ok) return;
+
+      try {
+        const r = await fetch(`/api/readings/${encodeURIComponent(id)}`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId })
+        });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(data.error || "Delete failed");
+
+        toast("Deleted");
+        await refreshAll();
+      } catch {
+        toast("Delete failed", "err");
+      }
+    }
+
+    function computeInsights() {
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+      const week = allReadings.filter(r => {
+        const d = parseTs(r.ts);
+        return d && d >= sevenDaysAgo && d <= now;
+      });
+
+      const gVals = week
+        .filter(r => String(r.type).toLowerCase() === "glucose")
+        .map(r => Number(r.value))
+        .filter(n => !Number.isNaN(n));
+
+      const bpVals = week
+        .filter(r => String(r.type).toLowerCase() === "bp")
+        .map(r => String(r.value).split("/").map(x => Number(x)))
+        .filter(([s, d]) => !Number.isNaN(s) && !Number.isNaN(d));
+
+      const avg = (arr) => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
+
+      const gAvg = avg(gVals);
+      const sAvg = avg(bpVals.map(x => x[0]));
+      const dAvg = avg(bpVals.map(x => x[1]));
+
+      document.getElementById("avg7g").textContent = gAvg ?? "—";
+      document.getElementById("avg7bp").textContent = (sAvg && dAvg) ? `${sAvg}/${dAvg}` : "—";
+
+      const notes = allReadings.map(r => (r.note || "").trim()).filter(Boolean);
+      if (!notes.length) {
+        document.getElementById("commonNote").textContent = "—";
+      } else {
+        const freq = {};
+        for (const n of notes) freq[n] = (freq[n] || 0) + 1;
+        const top = Object.entries(freq).sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
+        document.getElementById("commonNote").textContent = top;
+      }
+    }
+
+    // =========================
+    // ✅ NEW Chart (No /api/chart)
+    // =========================
+    let healthChart;
+
+    function dayKey(d) {
+      const x = new Date(d);
+      const y = x.getFullYear();
+      const m = String(x.getMonth() + 1).padStart(2, "0");
+      const da = String(x.getDate()).padStart(2, "0");
+      return `${y}-${m}-${da}`;
+    }
+
+    function lastNDays(n = 14) {
+      const out = [];
+      const now = new Date();
+      for (let i = n - 1; i >= 0; i--) {
+        out.push(new Date(now.getFullYear(), now.getMonth(), now.getDate() - i));
+      }
+      return out;
+    }
+
+    function avg(arr) {
+      return arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
+    }
+
+    function buildTrend(days = 14) {
+      const buckets = {}; // k -> {g:[], sys:[], dia:[]}
+
+      for (const r of allReadings) {
+        const d = parseTs(r.ts);
+        if (!d) continue;
+
+        const k = dayKey(d);
+        if (!buckets[k]) buckets[k] = { g: [], sys: [], dia: [] };
+
+        const t = String(r.type || "").toLowerCase();
+
+        if (t === "glucose") {
+          const v = Number(r.value);
+          if (!Number.isNaN(v)) buckets[k].g.push(v);
+        }
+
+        if (t === "bp") {
+          const parts = String(r.value || "").split("/");
+          if (parts.length === 2) {
+            const s = Number(parts[0]);
+            const di = Number(parts[1]);
+            if (!Number.isNaN(s)) buckets[k].sys.push(s);
+            if (!Number.isNaN(di)) buckets[k].dia.push(di);
+          }
+        }
+      }
+
+      const daysArr = lastNDays(days);
+      const labels = daysArr.map(d => d.toLocaleDateString(undefined, { month: "2-digit", day: "2-digit" }));
+
+      const glucose = [];
+      const sys = [];
+      const dia = [];
+
+      for (const d of daysArr) {
+        const k = dayKey(d);
+        const b = buckets[k] || { g: [], sys: [], dia: [] };
+        glucose.push(avg(b.g));
+        sys.push(avg(b.sys));
+        dia.push(avg(b.dia));
+      }
+
+      return { labels, glucose, sys, dia };
+    }
+
+    function renderHealthChart() {
+      const el = document.getElementById("healthChart");
+      if (!el) return;
+
+      const { labels, glucose, sys, dia } = buildTrend(14);
+
+      if (healthChart) healthChart.destroy();
+
+      const ctx = el.getContext("2d");
+      healthChart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [
+            { label: "Glucose", data: glucose, yAxisID: "yG", tension: 0.35, pointRadius: 2, pointHoverRadius: 4, fill: false },
+            { label: "SYS",     data: sys,     yAxisID: "yBP", tension: 0.35, pointRadius: 2, pointHoverRadius: 4, fill: false },
+            { label: "DIA",     data: dia,     yAxisID: "yBP", tension: 0.35, pointRadius: 2, pointHoverRadius: 4, fill: false }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,  // ✅ fixes iPhone weird overlay/resize
+          animation: false,
+          interaction: { mode: "index", intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (c) => {
+                  const v = c.parsed.y;
+                  if (v === null || v === undefined) return `${c.dataset.label}: —`;
+                  if (c.dataset.label === "Glucose") return `Glucose: ${v} mg/dL`;
+                  return `${c.dataset.label}: ${v} mmHg`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: { grid: { display: false } },
+            yG: {
+              position: "left",
+              title: { display: true, text: "mg/dL" },
+              ticks: { maxTicksLimit: 5 }
+            },
+            yBP: {
+              position: "right",
+              title: { display: true, text: "mmHg" },
+              grid: { drawOnChartArea: false },
+              ticks: { maxTicksLimit: 5 }
+            }
+          }
+        }
+      });
+    }
+
+    // =========================
+    // Refresh
+    // =========================
+    async function refreshAll() {
+      try {
+        await loadAllReadings();
+        computeSummary();
+        computeInsights();
+        renderHistoryPage();
+        renderHealthChart();
+        document.getElementById("lastSync").textContent = "Updated " + new Date().toLocaleTimeString();
+      } catch {
+        document.getElementById("todayLine").textContent = "Could not load readings (check DB/API).";
+        document.getElementById("readingsBody").innerHTML =
+          `<tr><td colspan="5" class="muted">Could not load history.</td></tr>`;
+      }
+    }
+
+    // Init
+    loadUserHeader();
+    if (requireAuth()) refreshAll();
   </script>
 </body>
 </html>

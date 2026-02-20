@@ -645,3 +645,29 @@ input:focus, select:focus{
   opacity: 1;
   transform: translateY(0);
 }
+/* =========================================================
+   iOS FIX: Stop blue selection overlay on charts (Safari/Chrome)
+   ========================================================= */
+
+/* Prevent text-selection highlight / callout inside chart area */
+.chart-card,
+.chart-card *{
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* Prevent long-press selection + weird overlays while scrolling */
+.sv-chart-wrap{
+  touch-action: pan-y;
+}
+
+/* Optional: also apply to canvas if you still use Chart.js somewhere */
+.chart-canvas,
+.chart-canvas *{
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}

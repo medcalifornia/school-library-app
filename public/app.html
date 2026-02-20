@@ -41,15 +41,9 @@
   <main class="shell">
     <!-- Tabs -->
     <nav class="tabs" aria-label="Sections">
-      <button class="tab active" type="button" data-tab="dashboard" onclick="showTab('dashboard')">
-        Dashboard
-      </button>
-      <button class="tab" type="button" data-tab="history" onclick="showTab('history')">
-        History
-      </button>
-      <button class="tab" type="button" data-tab="insights" onclick="showTab('insights')">
-        Insights
-      </button>
+      <button class="tab active" type="button" data-tab="dashboard" onclick="showTab('dashboard')">Dashboard</button>
+      <button class="tab" type="button" data-tab="history" onclick="showTab('history')">History</button>
+      <button class="tab" type="button" data-tab="insights" onclick="showTab('insights')">Insights</button>
     </nav>
 
     <!-- TAB: Dashboard -->
@@ -172,7 +166,6 @@
           <p class="muted">Browse and manage your saved readings.</p>
         </div>
 
-        <!-- You can connect this to your existing table/pagination CRUD -->
         <div class="table-wrap">
           <table class="table" aria-label="Readings table">
             <thead>
@@ -191,13 +184,9 @@
         </div>
 
         <div class="pager">
-          <button class="btn small ghost" type="button" onclick="prevPage()" aria-label="Previous page">
-            ‹
-          </button>
+          <button class="btn small ghost" type="button" onclick="prevPage()" aria-label="Previous page">‹</button>
           <div class="muted small" id="pageLabel">1</div>
-          <button class="btn small ghost" type="button" onclick="nextPage()" aria-label="Next page">
-            ›
-          </button>
+          <button class="btn small ghost" type="button" onclick="nextPage()" aria-label="Next page">›</button>
         </div>
       </section>
     </section>
@@ -229,7 +218,7 @@
         </div>
 
         <div class="muted small">
-          Tip: If you want, we can add color-coded ranges (normal / high / low) like real health apps.
+          Tip: Next we can add “Normal/High/Low” labels like real health apps.
         </div>
       </section>
     </section>
@@ -239,9 +228,37 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script>
-    // ------------------------
+    // =========================
+    // Storage helpers (matches your /api/login response)
+    // =========================
+    function getAuth() {
+      return {
+        userId: localStorage.getItem("userId") || "",
+        name: localStorage.getItem("name") || "",
+        email: localStorage.getItem("email") || ""
+      };
+    }
+
+    function requireAuth() {
+      const { userId } = getAuth();
+      if (!userId) {
+        window.location.href = "./index.html";
+        return false;
+      }
+      return true;
+    }
+
+    function logout() {
+      localStorage.removeItem("userId");
+      localStorage.removeItem("name");
+      localStorage.removeItem("phone");
+      localStorage.removeItem("email");
+      window.location.href = "./index.html";
+    }
+
+    // =========================
     // Silicon Valley UI helpers
-    // ------------------------
+    // =========================
     function toast(msg, type = "ok") {
       const t = document.getElementById("toast");
       t.className = "toast show " + (type === "err" ? "err" : "ok");
@@ -258,7 +275,6 @@
     function showTab(name) {
       document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
       document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
-
       document.querySelector(`.tab[data-tab="${name}"]`).classList.add("active");
       document.getElementById("tab-" + name).classList.add("active");
     }
@@ -270,44 +286,37 @@
       const sbp = document.getElementById("seg-bp");
 
       if (which === "glucose") {
-        g.classList.remove("hidden");
-        bp.classList.add("hidden");
-        sg.classList.add("active");
-        sbp.classList.remove("active");
+        g.classList.remove("hidden"); bp.classList.add("hidden");
+        sg.classList.add("active"); sbp.classList.remove("active");
       } else {
-        bp.classList.remove("hidden");
-        g.classList.add("hidden");
-        sbp.classList.add("active");
-        sg.classList.remove("active");
+        bp.classList.remove("hidden"); g.classList.add("hidden");
+        sbp.classList.add("active"); sg.classList.remove("active");
       }
     }
 
-    // ------------------------
-    // Existing app logic hooks
-    // IMPORTANT: adjust endpoints to match your server.js
-    // ------------------------
-    async function whoami() {
-      try {
-        const r = await fetch("/api/me", { credentials: "include" });
-        if (!r.ok) throw new Error("not logged");
-        const data = await r.json();
-        document.getElementById("whoamiText").textContent = data.name || data.email || "Signed in";
-        document.getElementById("subtitle").textContent =
-          (data.email ? data.email : "Welcome back") + " • " + new Date().toLocaleString();
-      } catch (e) {
-        document.getElementById("whoamiText").textContent = "Guest";
-        document.getElementById("subtitle").textContent = "Please login again";
-      }
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, (c) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+      }[c]));
     }
 
-    function logout() {
-      // keep simple; match your server route if different
-      fetch("/api/logout", { method: "POST", credentials: "include" })
-        .catch(() => {})
-        .finally(() => window.location.href = "./index.html");
+    // =========================
+    // API that matches your server.js
+    // =========================
+    async function loadUserHeader() {
+      if (!requireAuth()) return;
+      const { name, email } = getAuth();
+
+      document.getElementById("whoamiText").textContent = name || email || "Signed in";
+      document.getElementById("subtitle").textContent =
+        (email ? email : "Welcome back") + " • " + new Date().toLocaleString();
     }
 
+    // Save glucose using POST /api/readings
     async function saveGlucose() {
+      if (!requireAuth()) return;
+      const { userId } = getAuth();
+
       const btn = document.querySelector("#form-glucose .btn.primary");
       const value = document.getElementById("glucoseValue").value.trim();
       const note = document.getElementById("glucoseNote").value;
@@ -316,13 +325,14 @@
 
       try {
         setLoading(btn, true);
-        const r = await fetch("/api/glucose", {
+        const r = await fetch("/api/readings", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ value: Number(value), note })
+          body: JSON.stringify({ userId, type: "glucose", value: String(Number(value)), note })
         });
-        if (!r.ok) throw new Error("save failed");
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(data.error || "save failed");
+
         document.getElementById("glucoseValue").value = "";
         document.getElementById("glucoseNote").value = "";
         toast("Glucose saved");
@@ -334,23 +344,30 @@
       }
     }
 
+    // Save BP using POST /api/readings (Value = "SYS/DIA")
     async function saveBP() {
+      if (!requireAuth()) return;
+      const { userId } = getAuth();
+
       const btn = document.querySelector("#form-bp .btn.primary");
       const sys = document.getElementById("bpSys").value.trim();
       const dia = document.getElementById("bpDia").value.trim();
       const note = document.getElementById("bpNote").value;
 
-      if (!sys || !dia || isNaN(Number(sys)) || isNaN(Number(dia))) return toast("Enter valid BP numbers", "err");
+      if (!sys || !dia || isNaN(Number(sys)) || isNaN(Number(dia)))
+        return toast("Enter valid BP numbers", "err");
 
       try {
         setLoading(btn, true);
-        const r = await fetch("/api/bp", {
+        const value = `${Number(sys)}/${Number(dia)}`;
+        const r = await fetch("/api/readings", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ systolic: Number(sys), diastolic: Number(dia), note })
+          body: JSON.stringify({ userId, type: "bp", value, note })
         });
-        if (!r.ok) throw new Error("save failed");
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(data.error || "save failed");
+
         document.getElementById("bpSys").value = "";
         document.getElementById("bpDia").value = "";
         document.getElementById("bpNote").value = "";
@@ -363,41 +380,75 @@
       }
     }
 
-    // ------------------------
-    // Dashboard + History data
-    // ------------------------
-    let chart;
+    // =========================
+    // Data + UI rendering (client pagination because server returns all rows)
+    // =========================
+    let allReadings = [];      // full list from GET /api/readings/:userId
+    let chart;                 // chart.js instance
     let page = 1;
     const pageSize = 10;
 
-    async function refreshAll() {
-      await Promise.all([loadSummary(), loadChart(), loadHistory()]);
-      document.getElementById("lastSync").textContent = "Updated " + new Date().toLocaleTimeString();
+    function parseTs(ts) {
+      const d = new Date(ts);
+      return isNaN(d.getTime()) ? null : d;
     }
 
-    async function loadSummary() {
-      try {
-        const r = await fetch("/api/summary", { credentials: "include" });
-        if (!r.ok) throw new Error();
-        const s = await r.json();
-        document.getElementById("kpiGlucose").textContent = s.latestGlucose ?? "—";
-        document.getElementById("kpiBP").textContent = s.latestBP ?? "—";
-        document.getElementById("todayLine").textContent =
-          (s.todayCount ? `${s.todayCount} readings logged today` : "No readings yet today");
-      } catch {
-        document.getElementById("todayLine").textContent = "Could not load summary (check API routes)";
-      }
+    function isSameDay(a, b) {
+      return a.getFullYear() === b.getFullYear()
+        && a.getMonth() === b.getMonth()
+        && a.getDate() === b.getDate();
+    }
+
+    function latestOfType(type) {
+      const list = allReadings.filter(r => String(r.type).toLowerCase() === type);
+      if (!list.length) return null;
+      // server returns ASC; latest is last
+      return list[list.length - 1];
+    }
+
+    function computeSummary() {
+      const now = new Date();
+      const todayCount = allReadings.filter(r => {
+        const d = parseTs(r.ts);
+        return d && isSameDay(d, now);
+      }).length;
+
+      const g = latestOfType("glucose");
+      const bp = latestOfType("bp");
+
+      document.getElementById("kpiGlucose").textContent = g ? g.value : "—";
+      document.getElementById("kpiBP").textContent = bp ? bp.value : "—";
+      document.getElementById("todayLine").textContent =
+        todayCount ? `${todayCount} readings logged today` : "No readings yet today";
+    }
+
+    async function loadAllReadings() {
+      if (!requireAuth()) return;
+      const { userId } = getAuth();
+
+      const r = await fetch(`/api/readings/${encodeURIComponent(userId)}`);
+      const data = await r.json();
+      if (!r.ok) throw new Error(data?.error || "Load failed");
+
+      // Sort DESC in UI (newest first)
+      allReadings = Array.isArray(data) ? data.slice().sort((a,b) => {
+        const da = parseTs(a.ts)?.getTime() || 0;
+        const db = parseTs(b.ts)?.getTime() || 0;
+        return db - da;
+      }) : [];
     }
 
     async function loadChart() {
-      // expects: [{label:"Mon", glucose:110, bpSys:120, bpDia:80}, ...]
-      try {
-        const r = await fetch("/api/trends?days=7", { credentials: "include" });
-        if (!r.ok) throw new Error();
-        const rows = await r.json();
+      if (!requireAuth()) return;
+      const { userId } = getAuth();
 
-        const labels = rows.map(x => x.label);
-        const glucose = rows.map(x => x.glucose ?? null);
+      try {
+        const r = await fetch(`/api/chart/${encodeURIComponent(userId)}`);
+        const data = await r.json();
+        if (!r.ok) throw new Error(data?.error || "Chart failed");
+
+        const labels = data.labels || [];
+        const glucoseAvg = data.glucoseAvg || [];
 
         const ctx = document.getElementById("trendChart").getContext("2d");
         if (chart) chart.destroy();
@@ -407,7 +458,7 @@
           data: {
             labels,
             datasets: [
-              { label: "Glucose", data: glucose, tension: 0.35 }
+              { label: "Glucose Avg", data: glucoseAvg, tension: 0.35 }
             ]
           },
           options: {
@@ -417,99 +468,170 @@
           }
         });
       } catch {
-        // safe fallback: empty chart
         const ctx = document.getElementById("trendChart").getContext("2d");
         if (chart) chart.destroy();
         chart = new Chart(ctx, {
           type: "line",
-          data: { labels: [], datasets: [{ label: "Glucose", data: [] }] },
+          data: { labels: [], datasets: [{ label: "Glucose Avg", data: [] }] },
           options: { responsive: true, plugins: { legend: { display: false } } }
         });
       }
     }
 
-    async function loadHistory() {
+    function renderHistoryPage() {
       const body = document.getElementById("readingsBody");
-      body.innerHTML = `<tr><td colspan="5" class="muted">Loading…</td></tr>`;
+      const total = allReadings.length;
+      const totalPages = Math.max(1, Math.ceil(total / pageSize));
+      if (page > totalPages) page = totalPages;
+
+      const start = (page - 1) * pageSize;
+      const items = allReadings.slice(start, start + pageSize);
+
+      document.getElementById("pageLabel").textContent = `${page} / ${totalPages}`;
+
+      if (!items.length) {
+        body.innerHTML = `<tr><td colspan="5" class="muted">No readings yet.</td></tr>`;
+        return;
+      }
+
+      body.innerHTML = items.map(row => {
+        const d = parseTs(row.ts);
+        const date = d ? d.toLocaleString() : "—";
+        const type = row.type || "—";
+        const value = row.value || "—";
+        const note = row.note || "";
+        const id = row.id || "";
+        return `
+          <tr>
+            <td>${escapeHtml(date)}</td>
+            <td><span class="pill">${escapeHtml(type)}</span></td>
+            <td>${escapeHtml(String(value))}</td>
+            <td class="muted">${escapeHtml(note)}</td>
+            <td class="td-actions">
+              <button class="mini-btn" type="button" onclick="editReadingPrompt('${id}', '${escapeHtml(String(value))}', '${escapeHtml(String(note))}')">Edit</button>
+              <button class="mini-btn danger" type="button" onclick="deleteReading('${id}')">Delete</button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function prevPage() { if (page > 1) { page--; renderHistoryPage(); } }
+    function nextPage() {
+      const totalPages = Math.max(1, Math.ceil(allReadings.length / pageSize));
+      if (page < totalPages) { page++; renderHistoryPage(); }
+    }
+
+    // Simple edit (prompt). Next step: replace with a nice modal.
+    async function editReadingPrompt(id, currentValue, currentNote) {
+      if (!requireAuth()) return;
+      const { userId } = getAuth();
+
+      const newValue = prompt("Edit value:", currentValue || "");
+      if (newValue === null) return;
+
+      const newNote = prompt("Edit note (optional):", currentNote || "");
+      if (newNote === null) return;
 
       try {
-        const r = await fetch(`/api/readings?page=${page}&limit=${pageSize}`, { credentials: "include" });
-        if (!r.ok) throw new Error();
-        const data = await r.json();
-        // expects: {items:[...], page:1, totalPages:...}
-        const items = data.items || [];
+        const r = await fetch(`/api/readings/${encodeURIComponent(id)}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, value: String(newValue).trim(), note: String(newNote || "").trim() })
+        });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(data.error || "Update failed");
 
-        if (!items.length) {
-          body.innerHTML = `<tr><td colspan="5" class="muted">No readings yet.</td></tr>`;
-        } else {
-          body.innerHTML = items.map(row => {
-            const date = row.date ? new Date(row.date).toLocaleString() : "—";
-            const type = row.type || "—";
-            const value = row.valueText || row.value || "—";
-            const note = row.note || "";
-            const id = row.id || row._id || "";
-            return `
-              <tr>
-                <td>${escapeHtml(date)}</td>
-                <td><span class="pill">${escapeHtml(type)}</span></td>
-                <td>${escapeHtml(String(value))}</td>
-                <td class="muted">${escapeHtml(note)}</td>
-                <td class="td-actions">
-                  <button class="mini-btn" type="button" onclick="editReading('${id}')">Edit</button>
-                  <button class="mini-btn danger" type="button" onclick="deleteReading('${id}')">Delete</button>
-                </td>
-              </tr>
-            `;
-          }).join("");
-        }
-
-        document.getElementById("pageLabel").textContent = String(data.page || page);
-      } catch (e) {
-        body.innerHTML = `<tr><td colspan="5" class="muted">Could not load history (check /api/readings).</td></tr>`;
+        toast("Updated");
+        await refreshAll();
+        showTab("history");
+      } catch {
+        toast("Update failed", "err");
       }
     }
 
-    function prevPage() {
-      if (page > 1) { page--; loadHistory(); }
-    }
-    function nextPage() {
-      page++; loadHistory();
-    }
-
-    function editReading(id) {
-      toast("Edit UI can open a modal (we can add next)");
-      // You already wanted Edit per row — we can connect this to your CRUD endpoint.
-    }
-
     async function deleteReading(id) {
-      if (!id) return;
+      if (!requireAuth()) return;
+      const { userId } = getAuth();
+
       const ok = confirm("Delete this reading?");
       if (!ok) return;
 
       try {
         const r = await fetch(`/api/readings/${encodeURIComponent(id)}`, {
           method: "DELETE",
-          credentials: "include"
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId })
         });
-        if (!r.ok) throw new Error();
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(data.error || "Delete failed");
+
         toast("Deleted");
-        loadHistory();
-        loadSummary();
-        loadChart();
+        await refreshAll();
       } catch {
         toast("Delete failed", "err");
       }
     }
 
-    function escapeHtml(s) {
-      return String(s).replace(/[&<>"']/g, (c) => ({
-        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
-      }[c]));
+    function computeInsights() {
+      // 7-day window (by Ts)
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime() - 7*24*60*60*1000);
+
+      const week = allReadings.filter(r => {
+        const d = parseTs(r.ts);
+        return d && d >= sevenDaysAgo && d <= now;
+      });
+
+      const gVals = week
+        .filter(r => String(r.type).toLowerCase() === "glucose")
+        .map(r => Number(r.value))
+        .filter(n => !Number.isNaN(n));
+
+      const bpVals = week
+        .filter(r => String(r.type).toLowerCase() === "bp")
+        .map(r => String(r.value).split("/").map(x => Number(x)))
+        .filter(([s,d]) => !Number.isNaN(s) && !Number.isNaN(d));
+
+      const avg = (arr) => arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) : null;
+
+      const gAvg = avg(gVals);
+      const sAvg = avg(bpVals.map(x => x[0]));
+      const dAvg = avg(bpVals.map(x => x[1]));
+
+      document.getElementById("avg7g").textContent = gAvg ?? "—";
+      document.getElementById("avg7bp").textContent = (sAvg && dAvg) ? `${sAvg}/${dAvg}` : "—";
+
+      // Most common note
+      const notes = allReadings.map(r => (r.note || "").trim()).filter(Boolean);
+      if (!notes.length) {
+        document.getElementById("commonNote").textContent = "—";
+      } else {
+        const freq = {};
+        for (const n of notes) freq[n] = (freq[n] || 0) + 1;
+        const top = Object.entries(freq).sort((a,b)=>b[1]-a[1])[0]?.[0] || "—";
+        document.getElementById("commonNote").textContent = top;
+      }
+    }
+
+    async function refreshAll() {
+      try {
+        await loadAllReadings();
+        computeSummary();
+        computeInsights();
+        renderHistoryPage();
+        await loadChart();
+        document.getElementById("lastSync").textContent = "Updated " + new Date().toLocaleTimeString();
+      } catch {
+        document.getElementById("todayLine").textContent = "Could not load readings (check DB/API).";
+        document.getElementById("readingsBody").innerHTML =
+          `<tr><td colspan="5" class="muted">Could not load history.</td></tr>`;
+      }
     }
 
     // Init
-    whoami();
-    refreshAll();
+    loadUserHeader();
+    if (requireAuth()) refreshAll();
   </script>
 </body>
 </html>

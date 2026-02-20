@@ -472,3 +472,21 @@ button:disabled{ opacity: .6; }
   height: 44px;
   object-fit: contain;
 }
+/* Footer */
+.app-footer{
+  margin-top: 40px;
+  padding: 20px 10px;
+  text-align: center;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.footer-inner{
+  max-width: 700px;
+  margin: auto;
+}
+
+.footer-small{
+  font-size: 12px;
+  opacity: 0.8;
+}

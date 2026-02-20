@@ -21,24 +21,35 @@
       </header>
 
       <form class="login-form" onsubmit="event.preventDefault(); login();" novalidate>
-        <input
-          id="email"
-          type="email"
-          placeholder="Email"
-          autocomplete="email"
-          autocapitalize="none"
-          spellcheck="false"
-          inputmode="email"
-        />
+        <label class="field">
+          <span class="label">Email</span>
+          <input
+            id="email"
+            type="email"
+            placeholder="name@example.com"
+            autocomplete="email"
+            autocapitalize="none"
+            spellcheck="false"
+            inputmode="email"
+            required
+          />
+        </label>
 
-        <input
-          id="password"
-          type="password"
-          placeholder="Password"
-          autocomplete="current-password"
-        />
+        <label class="field">
+          <span class="label">Password</span>
+          <input
+            id="password"
+            type="password"
+            placeholder="Your password"
+            autocomplete="current-password"
+            required
+          />
+        </label>
 
-        <button id="loginBtn" class="btn primary" type="submit">Login</button>
+        <button id="loginBtn" class="btn primary" type="submit">
+          <span class="btn-text">Login</span>
+          <span class="spinner" aria-hidden="true"></span>
+        </button>
       </form>
 
       <nav class="links-pro" aria-label="Account links">
@@ -67,6 +78,11 @@
   </footer>
 
 <script>
+  function setLoading(btn, isLoading){
+    btn.classList.toggle("loading", !!isLoading);
+    btn.disabled = !!isLoading;
+  }
+
   async function login(){
     const emailInput = document.getElementById("email");
     const passInput  = document.getElementById("password");
@@ -84,11 +100,9 @@
       return;
     }
 
-    btn.disabled = true;
-    const oldText = btn.textContent;
-    btn.textContent = "Logging in...";
-
     try{
+      setLoading(btn, true);
+
       const res = await fetch("/api/login",{
         method:"POST",
         headers:{ "Content-Type":"application/json" },
@@ -101,6 +115,7 @@
         return;
       }
 
+      // ✅ store for app.html
       localStorage.setItem("userId", data.userId);
       localStorage.setItem("name", data.name || "");
       localStorage.setItem("phone", data.phone || "");
@@ -110,8 +125,7 @@
     }catch(e){
       msg.textContent = "Network error. Please try again.";
     }finally{
-      btn.disabled = false;
-      btn.textContent = oldText;
+      setLoading(btn, false);
     }
   }
 </script>

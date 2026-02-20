@@ -4,8 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Health Tracker</title>
-  <link rel="stylesheet" href="./style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- ✅ Cache-bust to force latest CSS -->
+  <link rel="stylesheet" href="./style.css?v=20260220-final" />
 </head>
 
 <body class="app-page">
@@ -146,7 +147,7 @@
             </div>
           </div>
 
-          <!-- ✅ FINAL PROFESSIONAL CHART (iPhone-safe) -->
+          <!-- ✅ NEW SVG CHART (iPhone-safe) -->
           <div class="chart-card">
             <div class="chart-head">
               <div>
@@ -161,10 +162,9 @@
               </div>
             </div>
 
-            <div class="chart-canvas">
-              <div class="chart-plot">
-                <canvas id="healthChart"></canvas>
-              </div>
+            <div class="sv-chart-wrap" id="svWrap">
+              <div id="chartTip" class="chart-tooltip"></div>
+              <svg id="healthSvg" class="sv-chart" viewBox="0 0 1000 260" preserveAspectRatio="none" aria-label="Health Trends Chart"></svg>
             </div>
           </div>
 
@@ -293,7 +293,7 @@
     function showTab(name) {
       document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
       document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
-      document.querySelector(`.tab[data-tab="${name}"]`).classList.add("active");
+      document.querySelector(\`.tab[data-tab="\${name}"]\`).classList.add("active");
       document.getElementById("tab-" + name).classList.add("active");
     }
 
@@ -324,6 +324,7 @@
     async function loadUserHeader() {
       if (!requireAuth()) return;
       const { name, email } = getAuth();
+
       document.getElementById("whoamiText").textContent = name || email || "Signed in";
       document.getElementById("subtitle").textContent =
         (email ? email : "Welcome back") + " • " + new Date().toLocaleString();
@@ -472,11 +473,7 @@
         const type = row.type || "—";
         const value = row.value || "—";
         const note = row.note || "";
-        const id = String(row.id || "").replace(/'/g, "\\'"); // safe for onclick
-
-        const vJS = JSON.stringify(String(value));
-        const nJS = JSON.stringify(String(note));
-
+        const id = row.id || "";
         return `
           <tr>
             <td>${escapeHtml(date)}</td>
@@ -484,7 +481,7 @@
             <td>${escapeHtml(String(value))}</td>
             <td class="muted">${escapeHtml(note)}</td>
             <td class="td-actions">
-              <button class="mini-btn" type="button" onclick="editReadingPrompt('${id}', ${vJS}, ${nJS})">Edit</button>
+              <button class="mini-btn" type="button" onclick="editReadingPrompt('${id}', '${escapeHtml(String(value))}', '${escapeHtml(String(note))}')">Edit</button>
               <button class="mini-btn danger" type="button" onclick="deleteReading('${id}')">Delete</button>
             </td>
           </tr>
@@ -588,10 +585,8 @@
     }
 
     // =========================
-    // FINAL Chart (iPhone stable)
+    // SVG Chart (FINAL)
     // =========================
-    let healthChart;
-
     function dayKey(d) {
       const x = new Date(d);
       const y = x.getFullYear();
@@ -614,22 +609,18 @@
     }
 
     function buildTrend(days = 14) {
-      const buckets = {}; // k -> {g:[], sys:[], dia:[]}
-
+      const buckets = {};
       for (const r of allReadings) {
         const d = parseTs(r.ts);
         if (!d) continue;
-
         const k = dayKey(d);
         if (!buckets[k]) buckets[k] = { g: [], sys: [], dia: [] };
 
         const t = String(r.type || "").toLowerCase();
-
         if (t === "glucose") {
           const v = Number(r.value);
           if (!Number.isNaN(v)) buckets[k].g.push(v);
         }
-
         if (t === "bp") {
           const parts = String(r.value || "").split("/");
           if (parts.length === 2) {
@@ -655,110 +646,184 @@
         sys.push(avg(b.sys));
         dia.push(avg(b.dia));
       }
-
       return { labels, glucose, sys, dia };
     }
 
-    function renderHealthChart() {
-      const el = document.getElementById("healthChart");
-      if (!el) return;
+    function niceRange(values, fallbackMin, fallbackMax) {
+      const v = values.filter(x => typeof x === "number" && !Number.isNaN(x));
+      if (!v.length) return { min: fallbackMin, max: fallbackMax };
+      let mn = Math.min(...v);
+      let mx = Math.max(...v);
+      if (mn === mx) { mn -= 10; mx += 10; }
+      const pad = (mx - mn) * 0.12;
+      mn = Math.max(0, mn - pad);
+      mx = mx + pad;
+      return { min: mn, max: mx };
+    }
+
+    function svgEl(name, attrs = {}) {
+      const el = document.createElementNS("http://www.w3.org/2000/svg", name);
+      for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, String(v));
+      return el;
+    }
+
+    function pathFromSeries(xs, ys, mapY) {
+      let d = "";
+      let started = false;
+      for (let i = 0; i < xs.length; i++) {
+        const v = ys[i];
+        if (v === null || v === undefined || Number.isNaN(v)) {
+          started = false;
+          continue;
+        }
+        const x = xs[i];
+        const y = mapY(v);
+        d += (started ? " L " : " M ") + x.toFixed(2) + " " + y.toFixed(2);
+        started = true;
+      }
+      return d;
+    }
+
+    let __chartData = null;
+
+    function renderHealthSvg() {
+      const svg = document.getElementById("healthSvg");
+      if (!svg) return;
 
       const { labels, glucose, sys, dia } = buildTrend(14);
+      __chartData = { labels, glucose, sys, dia };
 
-      if (healthChart) {
-        healthChart.destroy();
-        healthChart = null;
+      while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+      const W = 1000, H = 260;
+      const padL = 72, padR = 72, padT = 18, padB = 46;
+      const plotW = W - padL - padR;
+      const plotH = H - padT - padB;
+
+      const xs = labels.map((_, i) => padL + (plotW * (labels.length === 1 ? 0 : i / (labels.length - 1))));
+
+      const gRange = niceRange(glucose, 70, 200);
+      const bpRange = niceRange([...sys, ...dia], 60, 170);
+
+      const yG = (v) => padT + (plotH * (1 - (v - gRange.min) / (gRange.max - gRange.min)));
+      const yBP = (v) => padT + (plotH * (1 - (v - bpRange.min) / (bpRange.max - bpRange.min)));
+
+      // Background
+      svg.appendChild(svgEl("rect", { x: 0, y: 0, width: W, height: H, fill: "transparent" }));
+
+      // Grid lines
+      for (let i = 0; i <= 4; i++) {
+        const yy = padT + (plotH * (i / 4));
+        svg.appendChild(svgEl("line", {
+          x1: padL, y1: yy, x2: W - padR, y2: yy,
+          stroke: "rgba(255,255,255,0.08)", "stroke-width": 2
+        }));
       }
 
-      const ctx = el.getContext("2d");
+      // X axis labels (every 2)
+      for (let i = 0; i < labels.length; i += 2) {
+        const tx = xs[i];
+        svg.appendChild(svgEl("text", {
+          x: tx, y: H - 18,
+          "text-anchor": "middle",
+          "font-size": 20,
+          fill: "rgba(255,255,255,0.55)"
+        })).textContent = labels[i];
+      }
 
-      // small safe defaults to avoid iOS weird paints
-      Chart.defaults.animation = false;
+      // Y axis labels (left mg/dL)
+      svg.appendChild(svgEl("text", {
+        x: 22, y: 34,
+        "text-anchor": "start",
+        "font-size": 18,
+        fill: "rgba(255,255,255,0.55)"
+      })).textContent = "mg/dL";
 
-      healthChart = new Chart(ctx, {
-        type: "line",
-        data: {
-          labels,
-          datasets: [
-            {
-              label: "Glucose",
-              data: glucose,
-              yAxisID: "yG",
-              tension: 0.35,
-              pointRadius: 2,
-              pointHoverRadius: 4,
-              spanGaps: true
-            },
-            {
-              label: "SYS",
-              data: sys,
-              yAxisID: "yBP",
-              tension: 0.35,
-              pointRadius: 2,
-              pointHoverRadius: 4,
-              spanGaps: true
-            },
-            {
-              label: "DIA",
-              data: dia,
-              yAxisID: "yBP",
-              tension: 0.35,
-              pointRadius: 2,
-              pointHoverRadius: 4,
-              spanGaps: true
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
+      // Y axis labels (right mmHg)
+      svg.appendChild(svgEl("text", {
+        x: W - 22, y: 34,
+        "text-anchor": "end",
+        "font-size": 18,
+        fill: "rgba(255,255,255,0.55)"
+      })).textContent = "mmHg";
 
-          // ✅ iPhone stability
-          devicePixelRatio: 1,
-          animation: false,
+      // Paths
+      const pG  = pathFromSeries(xs, glucose, yG);
+      const pS  = pathFromSeries(xs, sys, yBP);
+      const pD  = pathFromSeries(xs, dia, yBP);
 
-          // better touch experience
-          interaction: { mode: "index", intersect: false },
+      // Glow (subtle)
+      function addPath(d, stroke, width) {
+        if (!d) return;
+        svg.appendChild(svgEl("path", {
+          d,
+          fill: "none",
+          stroke,
+          "stroke-width": width,
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round"
+        }));
+      }
 
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              displayColors: true,
-              callbacks: {
-                label: (c) => {
-                  const v = c.parsed.y;
-                  if (v === null || v === undefined) return `${c.dataset.label}: —`;
-                  if (c.dataset.label === "Glucose") return `Glucose: ${v} mg/dL`;
-                  return `${c.dataset.label}: ${v} mmHg`;
-                }
-              }
-            }
-          },
+      // Main lines
+      addPath(pG,  "rgba(76,125,255,0.95)", 6);
+      addPath(pS,  "rgba(60,255,151,0.90)", 6);
+      addPath(pD,  "rgba(255,77,109,0.90)", 6);
 
-          elements: {
-            line: { borderWidth: 3 },
-            point: { hitRadius: 16 }
-          },
-
-          scales: {
-            x: {
-              grid: { display: false },
-              ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 7 }
-            },
-            yG: {
-              position: "left",
-              title: { display: true, text: "mg/dL" },
-              ticks: { maxTicksLimit: 5 }
-            },
-            yBP: {
-              position: "right",
-              title: { display: true, text: "mmHg" },
-              grid: { drawOnChartArea: false },
-              ticks: { maxTicksLimit: 5 }
-            }
-          }
+      // Dots on last points (nice touch)
+      function lastPoint(ys) {
+        for (let i = ys.length - 1; i >= 0; i--) {
+          const v = ys[i];
+          if (v !== null && v !== undefined && !Number.isNaN(v)) return { i, v };
         }
-      });
+        return null;
+      }
+
+      const lg = lastPoint(glucose);
+      if (lg) svg.appendChild(svgEl("circle", { cx: xs[lg.i], cy: yG(lg.v), r: 7, fill: "rgba(76,125,255,0.95)" }));
+
+      const ls = lastPoint(sys);
+      if (ls) svg.appendChild(svgEl("circle", { cx: xs[ls.i], cy: yBP(ls.v), r: 7, fill: "rgba(60,255,151,0.90)" }));
+
+      const ld = lastPoint(dia);
+      if (ld) svg.appendChild(svgEl("circle", { cx: xs[ld.i], cy: yBP(ld.v), r: 7, fill: "rgba(255,77,109,0.90)" }));
+
+      // Interaction layer (transparent)
+      const hit = svgEl("rect", { x: padL, y: padT, width: plotW, height: plotH, fill: "transparent" });
+      svg.appendChild(hit);
+
+      const tip = document.getElementById("chartTip");
+      const wrap = document.getElementById("svWrap");
+
+      function showTipAt(clientX) {
+        const rect = wrap.getBoundingClientRect();
+        const x = Math.min(Math.max(clientX - rect.left, 0), rect.width);
+        const t = x / rect.width;
+        const idx = Math.round(t * (labels.length - 1));
+
+        const g = glucose[idx];
+        const s = sys[idx];
+        const di = dia[idx];
+
+        const lines = [];
+        lines.push(`<b>${labels[idx]}</b>`);
+        lines.push(`Glucose: ${g ?? "—"} mg/dL`);
+        lines.push(`SYS: ${s ?? "—"} mmHg`);
+        lines.push(`DIA: ${di ?? "—"} mmHg`);
+
+        tip.innerHTML = lines.join("<br>");
+        tip.classList.add("show");
+        clearTimeout(window.__tipTimer);
+        window.__tipTimer = setTimeout(() => tip.classList.remove("show"), 2200);
+      }
+
+      hit.addEventListener("mousemove", (e) => showTipAt(e.clientX));
+      hit.addEventListener("touchstart", (e) => {
+        if (e.touches && e.touches[0]) showTipAt(e.touches[0].clientX);
+      }, { passive: true });
+      hit.addEventListener("touchmove", (e) => {
+        if (e.touches && e.touches[0]) showTipAt(e.touches[0].clientX);
+      }, { passive: true });
     }
 
     // =========================
@@ -770,12 +835,8 @@
         computeSummary();
         computeInsights();
         renderHistoryPage();
-
-        // wait one frame so layout is final before chart paint (helps Safari)
-        requestAnimationFrame(() => renderHealthChart());
-
-        document.getElementById("lastSync").textContent =
-          "Updated " + new Date().toLocaleTimeString();
+        renderHealthSvg();
+        document.getElementById("lastSync").textContent = "Updated " + new Date().toLocaleTimeString();
       } catch {
         document.getElementById("todayLine").textContent = "Could not load readings (check DB/API).";
         document.getElementById("readingsBody").innerHTML =

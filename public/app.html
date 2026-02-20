@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Health Tracker</title>
 
-  <!-- IMPORTANT: use ./style.css to avoid path issues -->
   <link rel="stylesheet" href="./style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -45,7 +44,10 @@
         <option>Before sleep</option>
       </select>
 
-      <button class="btn" onclick="saveGlucose()">Save Glucose</button>
+      <div class="btn-row">
+        <button id="gSaveBtn" class="btn" onclick="saveGlucose()">Save Glucose</button>
+        <button id="gCancelBtn" class="btn btn-ghost" onclick="cancelEdit()" style="display:none;">Cancel</button>
+      </div>
     </div>
   </div>
 
@@ -66,7 +68,10 @@
       </select>
     </div>
 
-    <button class="btn" onclick="saveBP()">Save Blood Pressure</button>
+    <div class="btn-row">
+      <button id="bpSaveBtn" class="btn" onclick="saveBP()">Save Blood Pressure</button>
+      <button id="bpCancelBtn" class="btn btn-ghost" onclick="cancelEdit()" style="display:none;">Cancel</button>
+    </div>
   </div>
 
   <!-- ✅ Chart FIRST -->
@@ -79,7 +84,7 @@
   <div class="card">
     <div class="row-between">
       <h3>My Readings</h3>
-      <button class="btn btn-small" onclick="loadAll()">Load My Readings</button>
+      <button class="btn btn-small" onclick="loadAll()">Refresh</button>
     </div>
 
     <table class="readings">
@@ -89,6 +94,7 @@
           <th>Type</th>
           <th>Value</th>
           <th>Note</th>
+          <th class="th-actions">Actions</th>
         </tr>
       </thead>
       <tbody id="rows"></tbody>
@@ -153,21 +159,34 @@ function bpHtml(v){
   return `<span class="${cls}">${s}/${d}</span>`;
 }
 
-/* ===== Save ===== */
+/* ===== Edit State ===== */
+let editing = null; // { id, type }
+
+/* ===== Save / Update ===== */
 
 async function saveGlucose(){
   const v = gVal.value.trim();
   if (!v) return alert("Enter glucose value");
 
+  // update mode
+  if (editing && editing.type === "glucose"){
+    const res = await fetch(`/api/readings/${editing.id}`,{
+      method:"PUT",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ userId, value: v, note: gNote.value })
+    });
+    const data = await res.json().catch(()=>({}));
+    if (!res.ok) return alert(data.error || "Update failed");
+    cancelEdit();
+    await loadAll();
+    return;
+  }
+
+  // create mode
   await fetch("/api/readings", {
     method:"POST",
     headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({
-      userId,
-      type: "glucose",
-      value: v,
-      note: gNote.value
-    })
+    body: JSON.stringify({ userId, type:"glucose", value:v, note:gNote.value })
   });
 
   gVal.value = "";
@@ -180,21 +199,50 @@ async function saveBP(){
   const d = bpDia.value.trim();
   if (!s || !d) return alert("Enter systolic and diastolic");
 
+  const value = `${s}/${d}`;
+
+  // update mode
+  if (editing && editing.type === "bp"){
+    const res = await fetch(`/api/readings/${editing.id}`,{
+      method:"PUT",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ userId, value, note: bpNote.value })
+    });
+    const data = await res.json().catch(()=>({}));
+    if (!res.ok) return alert(data.error || "Update failed");
+    cancelEdit();
+    await loadAll();
+    return;
+  }
+
+  // create mode
   await fetch("/api/readings", {
     method:"POST",
     headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({
-      userId,
-      type: "bp",
-      value: `${s}/${d}`,
-      note: bpNote.value
-    })
+    body: JSON.stringify({ userId, type:"bp", value, note: bpNote.value })
   });
 
   bpSys.value = "";
   bpDia.value = "";
   bpNote.value = "";
   loadAll();
+}
+
+function cancelEdit(){
+  editing = null;
+
+  // reset buttons / cancel visibility
+  gSaveBtn.textContent = "Save Glucose";
+  bpSaveBtn.textContent = "Save Blood Pressure";
+  gCancelBtn.style.display = "none";
+  bpCancelBtn.style.display = "none";
+
+  // clear inputs
+  gVal.value = "";
+  gNote.value = "";
+  bpSys.value = "";
+  bpDia.value = "";
+  bpNote.value = "";
 }
 
 /* ===== Table Helpers ===== */
@@ -215,6 +263,7 @@ function fmtValue(r){
 const pageSize = 10;
 let currentPage = 1;
 let allReadings = []; // newest first
+let byId = {};        // id -> reading
 
 function renderPage(){
   rows.innerHTML = "";
@@ -238,9 +287,23 @@ function renderPage(){
       <td data-label="Type">${fmtType(r.type)}</td>
       <td data-label="Value">${fmtValue(r)}</td>
       <td data-label="Note">${r.note || ""}</td>
+      <td data-label="Actions">
+        <div class="actions">
+          <button class="icon-btn edit" data-id="${r.id}" type="button">Edit</button>
+          <button class="icon-btn del" data-id="${r.id}" type="button">Delete</button>
+        </div>
+      </td>
     `;
     rows.appendChild(tr);
   }
+
+  // bind actions
+  rows.querySelectorAll(".icon-btn.edit").forEach(btn=>{
+    btn.addEventListener("click", ()=> startEdit(btn.dataset.id));
+  });
+  rows.querySelectorAll(".icon-btn.del").forEach(btn=>{
+    btn.addEventListener("click", ()=> deleteReading(btn.dataset.id));
+  });
 
   renderPagination(totalPages);
 }
@@ -250,7 +313,6 @@ function renderPagination(totalPages){
   paginationDiv.innerHTML = "";
   if (totalPages <= 1) return;
 
-  // Prev
   const prev = document.createElement("button");
   prev.className = "pager-btn";
   prev.textContent = "Prev";
@@ -258,18 +320,17 @@ function renderPagination(totalPages){
   prev.onclick = () => { currentPage--; renderPage(); };
   paginationDiv.appendChild(prev);
 
-  // Numbers
   const pages = [];
   if (totalPages <= 7){
     for (let i = 1; i <= totalPages; i++) pages.push(i);
   } else {
     pages.push(1);
-    let start = Math.max(2, currentPage - 2);
-    let end = Math.min(totalPages - 1, currentPage + 2);
+    let s = Math.max(2, currentPage - 2);
+    let e = Math.min(totalPages - 1, currentPage + 2);
 
-    if (start > 2) pages.push("...");
-    for (let i = start; i <= end; i++) pages.push(i);
-    if (end < totalPages - 1) pages.push("...");
+    if (s > 2) pages.push("...");
+    for (let i = s; i <= e; i++) pages.push(i);
+    if (e < totalPages - 1) pages.push("...");
     pages.push(totalPages);
   }
 
@@ -288,13 +349,64 @@ function renderPagination(totalPages){
     paginationDiv.appendChild(btn);
   }
 
-  // Next
   const next = document.createElement("button");
   next.className = "pager-btn";
   next.textContent = "Next";
   next.disabled = currentPage === totalPages;
   next.onclick = () => { currentPage++; renderPage(); };
   paginationDiv.appendChild(next);
+}
+
+/* ===== Edit/Delete Actions ===== */
+
+function startEdit(id){
+  const r = byId[id];
+  if (!r) return;
+
+  editing = { id: r.id, type: r.type };
+
+  if (r.type === "glucose"){
+    gVal.value = r.value;
+    gNote.value = r.note || "";
+    gSaveBtn.textContent = "Update Glucose";
+    gCancelBtn.style.display = "inline-flex";
+
+    // make sure BP cancel visible too (so user can cancel easily)
+    bpCancelBtn.style.display = "none";
+  } else {
+    const parts = String(r.value).split("/");
+    bpSys.value = parts[0] || "";
+    bpDia.value = parts[1] || "";
+    bpNote.value = r.note || "";
+    bpSaveBtn.textContent = "Update Blood Pressure";
+    bpCancelBtn.style.display = "inline-flex";
+
+    gCancelBtn.style.display = "none";
+  }
+
+  // scroll to top nicely
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+async function deleteReading(id){
+  const r = byId[id];
+  if (!r) return;
+
+  const label = r.type === "bp" ? `Blood Pressure (${r.value})` : `Glucose (${r.value})`;
+  if (!confirm(`Delete this reading?\n${label}`)) return;
+
+  const res = await fetch(`/api/readings/${id}`,{
+    method:"DELETE",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ userId })
+  });
+  const data = await res.json().catch(()=>({}));
+  if (!res.ok) return alert(data.error || "Delete failed");
+
+  // if you deleted item being edited
+  if (editing && editing.id === id) cancelEdit();
+
+  await loadAll();
 }
 
 /* ===== Load All Readings ===== */
@@ -304,7 +416,13 @@ async function loadAll(){
   const data = await res.json();
 
   allReadings = (Array.isArray(data) ? data : []).slice().reverse(); // newest first
-  currentPage = 1;
+
+  byId = {};
+  for (const r of allReadings) byId[r.id] = r;
+
+  const totalPages = Math.max(1, Math.ceil(allReadings.length / pageSize));
+  if (currentPage > totalPages) currentPage = totalPages;
+  if (currentPage < 1) currentPage = 1;
 
   renderPage();
   await loadChart();

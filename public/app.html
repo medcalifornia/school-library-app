@@ -143,7 +143,7 @@
             </div>
           </div>
 
-          <!-- Chart Section (محسّن) -->
+          <!-- Chart Section -->
           <div class="chart-card" id="trendCard">
             <div class="chart-head">
               <div>
@@ -240,10 +240,10 @@
     (function() {
       "use strict";
 
-      // --- DOM shortcuts ---
+      // DOM shortcuts
       const $ = id => document.getElementById(id);
 
-      // --- Toast ---
+      // Toast
       function toast(msg, type = 'ok') {
         const t = $('toast');
         t.textContent = msg;
@@ -252,7 +252,7 @@
         window.toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
       }
 
-      // --- Loading state ---
+      // Loading state
       function setLoading(btn, state) {
         if (btn) {
           btn.classList.toggle('loading', state);
@@ -260,7 +260,7 @@
         }
       }
 
-      // --- Escape HTML ---
+      // Escape HTML
       function escapeHtml(unsafe) {
         if (unsafe == null) return '';
         return String(unsafe)
@@ -271,7 +271,7 @@
           .replace(/'/g, '&#039;');
       }
 
-      // --- Auth ---
+      // Auth
       function getAuth() {
         return {
           userId: localStorage.getItem('userId') || '',
@@ -293,7 +293,7 @@
         window.location.href = './index.html';
       };
 
-      // --- Tab navigation ---
+      // Tab navigation
       window.showTab = name => {
         document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
@@ -320,12 +320,12 @@
         }
       };
 
-      // --- Global state ---
+      // Global state
       let allReadings = [];
       let currentPage = 1;
       const PAGE_SIZE = 10;
 
-      // --- Date helpers ---
+      // Date helpers (use UTC to avoid timezone issues)
       function parseDate(ts) {
         const d = new Date(ts);
         return isNaN(d.getTime()) ? null : d;
@@ -335,7 +335,7 @@
         return d1.toDateString() === d2.toDateString();
       }
 
-      // ========== Glucose Color Coding ==========
+      // ===== Glucose Color Coding =====
       function getGlucoseStatus(value, note = '') {
         const num = Number(value);
         if (isNaN(num)) return { category: 'unknown', colorClass: '', text: value };
@@ -364,7 +364,7 @@
         return { category, colorClass, value: num };
       }
 
-      // ========== BP Color Coding (5 categories) ==========
+      // ===== BP Color Coding (5 categories) =====
       function getBPStatus(bpString) {
         if (!bpString || typeof bpString !== 'string') {
           return { category: 'unknown', colorClass: '', explanation: '', sys: null, dia: null };
@@ -380,7 +380,6 @@
         let colorClass = '';
         let explanation = '';
 
-        // Determine category based on higher stage
         if (sys >= 180 || dia >= 120) {
           category = 'Crisis';
           colorClass = 'bp-crisis';
@@ -402,7 +401,7 @@
           colorClass = 'bp-normal';
           explanation = 'ضغط طبيعي ممتاز';
         } else {
-          // Mixed cases: take higher stage
+          // Mixed cases
           if (sys >= 140 || dia >= 90) {
             category = 'Stage 2';
             colorClass = 'bp-stage2';
@@ -425,7 +424,7 @@
         return { category, colorClass, explanation, sys, dia, display: bpString };
       }
 
-      // --- API calls ---
+      // ===== API calls =====
       window.saveGlucose = async () => {
         if (!requireAuth()) return;
         const { userId } = getAuth();
@@ -503,7 +502,7 @@
         return allReadings;
       }
 
-      // --- Render functions ---
+      // ===== Render functions =====
       function updateHeader() {
         const { name, email } = getAuth();
         $('whoamiText').textContent = name || email || 'Signed in';
@@ -520,7 +519,6 @@
         const latestGlucose = allReadings.find(r => r.type === 'glucose');
         const latestBP = allReadings.find(r => r.type === 'bp');
 
-        // Glucose
         if (latestGlucose) {
           const { colorClass, value } = getGlucoseStatus(latestGlucose.value, latestGlucose.note);
           $('kpiGlucose').innerHTML = `<span class="${colorClass}">${value}</span>`;
@@ -528,7 +526,6 @@
           $('kpiGlucose').textContent = '—';
         }
 
-        // BP with color and tooltip
         if (latestBP) {
           const bpStatus = getBPStatus(latestBP.value);
           $('kpiBP').innerHTML = `<span class="${bpStatus.colorClass}" title="${bpStatus.explanation}">${bpStatus.display}</span>`;
@@ -556,8 +553,6 @@
         tbody.innerHTML = pageItems.map(r => {
           const date = parseDate(r.ts)?.toLocaleString() || '—';
           let valueHtml = escapeHtml(r.value);
-          let titleAttr = '';
-
           if (r.type === 'glucose') {
             const { colorClass, value } = getGlucoseStatus(r.value, r.note);
             valueHtml = `<span class="${colorClass}">${value}</span>`;
@@ -636,7 +631,6 @@
           return d && d >= sevenDaysAgo;
         });
 
-        // Glucose average
         const glucoseVals = weekReadings.filter(r => r.type === 'glucose').map(r => Number(r.value)).filter(n => !isNaN(n));
         const avg = arr => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
         const gAvg = avg(glucoseVals);
@@ -647,7 +641,6 @@
           $('avg7g').textContent = '—';
         }
 
-        // BP average
         const bpReadings = weekReadings.filter(r => r.type === 'bp');
         if (bpReadings.length > 0) {
           let totalSys = 0, totalDia = 0, count = 0;
@@ -681,14 +674,15 @@
         }
       }
 
-      // ========== CHART RENDERING (محسّن بشكل احترافي) ==========
+      // ========== CHART RENDERING (مُعاد كتابتها لحل مشكلة عرض البيانات) ==========
       const SVG_W = 1000, SVG_H = 240;
       const PAD = { l: 60, r: 40, t: 20, b: 40 };
 
+      // إنشاء قائمة بآخر 14 يوم (بدون وقت)
       function getLastNDays(n = 14) {
         const days = [];
         const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        today.setHours(0, 0, 0, 0); // ضبط الوقت إلى منتصف الليل
         for (let i = n - 1; i >= 0; i--) {
           const d = new Date(today);
           d.setDate(today.getDate() - i);
@@ -697,6 +691,7 @@
         return days;
       }
 
+      // تحويل التاريخ إلى نص YYYY-MM-DD (باستخدام UTC)
       function toYYYYMMDD(date) {
         const y = date.getFullYear();
         const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -704,29 +699,34 @@
         return `${y}-${m}-${d}`;
       }
 
+      // بناء بيانات الشارت
       function buildChartData() {
         const days = getLastNDays(14);
         const labels = days.map(d => d.toLocaleDateString(undefined, { month: '2-digit', day: '2-digit' }));
 
+        // تهيئة buckets لكل يوم
         const buckets = {};
         days.forEach(d => { buckets[toYYYYMMDD(d)] = { glucose: [], sys: [], dia: [] }; });
 
+        // تجميع القراءات في buckets
         allReadings.forEach(r => {
           const date = parseDate(r.ts);
           if (!date) return;
-          const key = toYYYYMMDD(date);
-          if (!buckets[key]) return;
+          // ضبط التاريخ إلى منتصف الليل للمقارنة
+          const dayKey = toYYYYMMDD(date);
+          if (!buckets[dayKey]) return; // أقدم من 14 يوم
 
           if (r.type === 'glucose') {
             const val = Number(r.value);
-            if (!isNaN(val)) buckets[key].glucose.push(val);
+            if (!isNaN(val)) buckets[dayKey].glucose.push(val);
           } else if (r.type === 'bp') {
             const [s, d] = r.value.split('/').map(Number);
-            if (!isNaN(s)) buckets[key].sys.push(s);
-            if (!isNaN(d)) buckets[key].dia.push(d);
+            if (!isNaN(s)) buckets[dayKey].sys.push(s);
+            if (!isNaN(d)) buckets[dayKey].dia.push(d);
           }
         });
 
+        // حساب المتوسط لكل يوم
         const avg = arr => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
         const glucose = days.map(d => avg(buckets[toYYYYMMDD(d)].glucose));
         const sys = days.map(d => avg(buckets[toYYYYMMDD(d)].sys));
@@ -735,6 +735,7 @@
         return { labels, glucose, sys, dia };
       }
 
+      // حساب النطاق (min, max) مع هامش
       function getRange(values) {
         const valid = values.filter(v => v != null && isFinite(v));
         if (valid.length === 0) return { min: 70, max: 150 };
@@ -786,9 +787,10 @@
           return d;
         }
 
+        // مسح المحتوى السابق
         while (svg.firstChild) svg.removeChild(svg.firstChild);
 
-        // Background
+        // خلفية
         const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         bg.setAttribute('x', '0'); bg.setAttribute('y', '0');
         bg.setAttribute('width', SVG_W); bg.setAttribute('height', SVG_H);
@@ -796,7 +798,7 @@
         bg.setAttribute('rx', '12'); bg.setAttribute('ry', '12');
         svg.appendChild(bg);
 
-        // Horizontal grid (dashed)
+        // شبكة أفقية منقطة
         const gridGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         gridGroup.setAttribute('opacity', '0.15');
         for (let i = 0; i <= 4; i++) {
@@ -811,7 +813,7 @@
         }
         svg.appendChild(gridGroup);
 
-        // Vertical grid (every 2 days)
+        // شبكة رأسية خفيفة كل يومين
         const vGridGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         vGridGroup.setAttribute('opacity', '0.1');
         for (let i = 0; i < n; i += 2) {
@@ -826,7 +828,7 @@
         }
         svg.appendChild(vGridGroup);
 
-        // Axis labels (left & right)
+        // تسميات المحور Y (يسار ويمين)
         const axisGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         axisGroup.setAttribute('fill', 'rgba(255,255,255,0.7)');
         axisGroup.setAttribute('font-size', '11');
@@ -853,7 +855,7 @@
         }
         svg.appendChild(axisGroup);
 
-        // X-axis labels (select every 1-2 days)
+        // تسميات المحور X (كل يومين مع ضمان عرض الأول والأخير)
         const xLabelGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         xLabelGroup.setAttribute('fill', 'rgba(255,255,255,0.6)');
         xLabelGroup.setAttribute('font-size', '10');
@@ -867,7 +869,6 @@
           txt.textContent = labels[i];
           xLabelGroup.appendChild(txt);
         }
-        // Ensure last label is shown
         if ((n-1) % step !== 0) {
           const lastTxt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
           lastTxt.setAttribute('x', xPos(n-1));
@@ -877,7 +878,7 @@
         }
         svg.appendChild(xLabelGroup);
 
-        // Draw lines (thick with shadow)
+        // رسم الخطوط
         const lineGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         lineGroup.setAttribute('fill', 'none');
         lineGroup.setAttribute('stroke-width', '3.5');
@@ -897,7 +898,7 @@
         addLine(dia, bpRange, '#ff4d6d');
         svg.appendChild(lineGroup);
 
-        // Data points
+        // نقاط البيانات
         const pointsGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         pointsGroup.setAttribute('fill', 'white');
         
@@ -923,7 +924,7 @@
         addPoints(dia, bpRange, '#ff4d6d');
         svg.appendChild(pointsGroup);
 
-        // Ticks on x-axis
+        // علامات صغيرة على المحور السيني (ticks)
         const ticksGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         ticksGroup.setAttribute('stroke', 'rgba(255,255,255,0.3)');
         ticksGroup.setAttribute('stroke-width', '1');
@@ -969,7 +970,7 @@
         wrap.onclick = e => showTooltip(e.clientX);
       }
 
-      // --- Refresh all ---
+      // ===== Refresh All (معرّفة في النطاق العام) =====
       window.refreshAll = async () => {
         await loadReadings();
         updateSummary();
@@ -979,7 +980,7 @@
         $('lastSync').textContent = `Updated ${new Date().toLocaleTimeString()}`;
       };
 
-      // --- Initialization ---
+      // ===== Initialization =====
       async function init() {
         if (!requireAuth()) return;
         updateHeader();

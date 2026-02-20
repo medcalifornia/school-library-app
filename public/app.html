@@ -7,6 +7,44 @@
 
   <link rel="stylesheet" href="/style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Pagination styles (so it works even if style.css doesn't have it) -->
+  <style>
+    .pager{
+      margin-top: 14px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-start;
+    }
+    .pager .btn{ width:auto; padding: 10px 12px; border-radius: 12px; }
+    .pager-num{
+      border: 1px solid #d9d9e3;
+      background: #fff;
+      color: #111;
+      font-weight: 700;
+      padding: 10px 12px;
+      border-radius: 12px;
+      cursor: pointer;
+      min-width: 44px;
+    }
+    .pager-num.active{
+      background: #4a6cf7;
+      color: #fff;
+      border-color: #4a6cf7;
+    }
+    .pager-dots{
+      padding: 0 6px;
+      color: #666;
+      font-weight: 700;
+    }
+    .pager-info{
+      margin-top: 10px;
+      font-size: 14px;
+      color: #555;
+    }
+  </style>
 </head>
 
 <body>
@@ -22,6 +60,8 @@
 
   <button class="btn btn-logout" onclick="logout()">Logout</button>
 </div>
+
+<div class="container container-wide">
 
   <div class="card">
     <h3>Add Glucose</h3>
@@ -94,6 +134,10 @@
       <div><span class="dot warn"></span> Elevated / Prediabetes</div>
       <div><span class="dot bad"></span> High</div>
     </div>
+
+    <!-- ✅ Pagination -->
+    <div id="pagerInfo" class="pager-info"></div>
+    <div id="pagination" class="pager"></div>
   </div>
 
 </div>
@@ -189,7 +233,7 @@ async function saveBP(){
   loadAll();
 }
 
-/* ===== Load Table (Mobile-first Cards) ===== */
+/* ===== Table Helpers ===== */
 
 function fmtType(t){
   return t === "bp" ? "Blood Pressure" : "Glucose";
@@ -203,13 +247,22 @@ function fmtValue(r){
   return bpHtml(r.value);
 }
 
-async function loadAll(){
-  const res = await fetch(`/api/readings/${userId}`);
-  const data = await res.json();
+/* ===== Pagination State ===== */
+const pageSize = 10;
+let currentPage = 1;
+let allReadings = []; // newest first
 
+function renderPage(){
   rows.innerHTML = "";
 
-  for (const r of data.slice().reverse()) {
+  const total = allReadings.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  currentPage = Math.min(Math.max(1, currentPage), totalPages);
+
+  const start = (currentPage - 1) * pageSize;
+  const pageItems = allReadings.slice(start, start + pageSize);
+
+  for (const r of pageItems) {
     const dt = new Date(r.ts).toLocaleString();
     const tr = document.createElement("tr");
 
@@ -226,7 +279,86 @@ async function loadAll(){
     rows.appendChild(tr);
   }
 
-  await loadChart();
+  // page info
+  const shownFrom = total ? (start + 1) : 0;
+  const shownTo = Math.min(start + pageItems.length, total);
+  pagerInfo.textContent = `Showing ${shownFrom}-${shownTo} of ${total} (Page ${currentPage} of ${totalPages})`;
+
+  renderPagination(totalPages);
+}
+
+function renderPagination(totalPages){
+  const paginationDiv = document.getElementById("pagination");
+  paginationDiv.innerHTML = "";
+  if (totalPages <= 1) return;
+
+  // Prev
+  const prev = document.createElement("button");
+  prev.className = "btn btn-small";
+  prev.textContent = "Prev";
+  prev.disabled = currentPage === 1;
+  prev.onclick = () => { currentPage--; renderPage(); };
+  paginationDiv.appendChild(prev);
+
+  // Page numbers with dots
+  const maxButtons = 5;
+  const pages = [];
+
+  if (totalPages <= 7) {
+    for (let i = 1; i <= totalPages; i++) pages.push(i);
+  } else {
+    pages.push(1);
+
+    let start = Math.max(2, currentPage - Math.floor(maxButtons / 2));
+    let end = Math.min(totalPages - 1, start + maxButtons - 1);
+    start = Math.max(2, end - maxButtons + 1);
+
+    if (start > 2) pages.push("...");
+
+    for (let i = start; i <= end; i++) pages.push(i);
+
+    if (end < totalPages - 1) pages.push("...");
+
+    pages.push(totalPages);
+  }
+
+  for (const p of pages){
+    if (p === "..."){
+      const span = document.createElement("span");
+      span.className = "pager-dots";
+      span.textContent = "…";
+      paginationDiv.appendChild(span);
+      continue;
+    }
+
+    const btn = document.createElement("button");
+    btn.className = "pager-num" + (p === currentPage ? " active" : "");
+    btn.textContent = String(p);
+    btn.onclick = () => { currentPage = p; renderPage(); };
+    paginationDiv.appendChild(btn);
+  }
+
+  // Next
+  const next = document.createElement("button");
+  next.className = "btn btn-small";
+  next.textContent = "Next";
+  next.disabled = currentPage === totalPages;
+  next.onclick = () => { currentPage++; renderPage(); };
+  paginationDiv.appendChild(next);
+}
+
+/* ===== Load All Readings ===== */
+
+async function loadAll(){
+  const res = await fetch(`/api/readings/${userId}`);
+  const data = await res.json();
+
+  // newest first
+  allReadings = (Array.isArray(data) ? data : []).slice().reverse();
+  currentPage = 1;
+
+  renderPage();
+  await loadChart(); // chart loads once after fetch
 }
 
 /* ===== Chart ===== */

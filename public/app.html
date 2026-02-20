@@ -1,136 +1,779 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<title>Health Tracker</title>
-<link rel="stylesheet" href="./style.css"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Health Tracker · Dashboard</title>
+  <link rel="stylesheet" href="./style.css" />
+  <style>
+    /* تحسينات إضافية خاصة بالـ Chart */
+    .chart-tooltip.show { opacity: 1; transform: translateY(0); }
+    .sv-chart { display: block; width: 100%; height: 100%; }
+    .sv-chart-wrap { touch-action: pan-y; user-select: none; -webkit-tap-highlight-color: transparent; }
+  </style>
 </head>
 
-<body class="app-body">
+<body class="app-page">
+  <!-- Top App Bar -->
+  <header class="appbar">
+    <div class="appbar-inner">
+      <div class="brand">
+        <img src="./images/logo.png" alt="DahniTech Solutions" class="brand-logo" />
+        <div class="brand-text">
+          <div class="brand-title">Health Tracker</div>
+          <div class="brand-sub" id="subtitle">Your daily readings, simplified</div>
+        </div>
+      </div>
 
-<header class="topbar">
-  <div class="top-left">
-    <img src="./images/logo.png" class="logo">
-    <div>
-      <div class="app-title">Health Tracker</div>
-      <div class="app-sub" id="subtitle"></div>
+      <div class="appbar-actions">
+        <button class="chip" id="whoamiChip" type="button" aria-label="User">
+          <span class="dot"></span>
+          <span id="whoamiText">Loading…</span>
+        </button>
+
+        <button class="icon-btn" type="button" onclick="logout()" aria-label="Logout">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+            <path d="M10 17l1.41-1.41L8.83 13H21v-2H8.83l2.58-2.59L10 7l-7 7 7 7z"></path>
+            <path d="M3 3h8v2H5v14h6v2H3V3z"></path>
+          </svg>
+          <span class="hide-sm">Logout</span>
+        </button>
+      </div>
     </div>
-  </div>
-  <button class="btn-logout" onclick="logout()">Logout</button>
-</header>
+  </header>
 
-<main class="container">
+  <main class="shell">
+    <!-- Tabs -->
+    <nav class="tabs" aria-label="Sections">
+      <button class="tab active" type="button" data-tab="dashboard" onclick="showTab('dashboard')">Dashboard</button>
+      <button class="tab" type="button" data-tab="history" onclick="showTab('history')">History</button>
+      <button class="tab" type="button" data-tab="insights" onclick="showTab('insights')">Insights</button>
+    </nav>
 
-<section class="card">
-  <div class="card-title">Add Reading</div>
+    <!-- TAB: Dashboard -->
+    <section id="tab-dashboard" class="tab-panel active">
+      <div class="grid">
+        <!-- Left: Add readings -->
+        <section class="card">
+          <div class="card-head">
+            <h2>Add Reading</h2>
+            <p class="muted">Log your glucose and blood pressure.</p>
+          </div>
 
-  <div class="form-grid">
-    <input id="glucoseValue" placeholder="Glucose (mg/dL)">
-    <input id="bpSys" placeholder="SYS">
-    <input id="bpDia" placeholder="DIA">
-  </div>
+          <div class="segmented" role="tablist" aria-label="Reading type">
+            <button class="seg active" type="button" id="seg-glucose" onclick="toggleForm('glucose')">Glucose</button>
+            <button class="seg" type="button" id="seg-bp" onclick="toggleForm('bp')">Blood Pressure</button>
+          </div>
 
-  <button class="btn-primary" onclick="saveReading()">Save Reading</button>
-</section>
+          <!-- Glucose form -->
+          <div id="form-glucose" class="form-block">
+            <label class="field">
+              <span class="label">Glucose</span>
+              <div class="input-wrap">
+                <input id="glucoseValue" inputmode="numeric" placeholder="e.g. 110" />
+                <span class="suffix">mg/dL</span>
+              </div>
+            </label>
 
-<section class="card">
-  <div class="card-title">Today's Summary</div>
+            <label class="field">
+              <span class="label">Note (optional)</span>
+              <select id="glucoseNote">
+                <option value="">Choose note</option>
+                <option>Fasting</option>
+                <option>Before meal</option>
+                <option>After meal</option>
+                <option>Bedtime</option>
+                <option>Workout</option>
+                <option>Feeling low</option>
+                <option>Feeling high</option>
+              </select>
+            </label>
 
-  <div class="kpi-grid">
-    <div class="kpi-box">
-      <div class="kpi-label">Glucose</div>
-      <div class="kpi-value" id="kpiGlucose">—</div>
-    </div>
+            <button class="btn primary" type="button" onclick="saveGlucose()">
+              <span class="btn-text">Save Glucose</span>
+              <span class="spinner" aria-hidden="true"></span>
+            </button>
+          </div>
 
-    <div class="kpi-box">
-      <div class="kpi-label">Blood Pressure</div>
-      <div class="kpi-value" id="kpiBP">—</div>
-    </div>
-  </div>
-</section>
+          <!-- Blood pressure form -->
+          <div id="form-bp" class="form-block hidden">
+            <div class="row">
+              <label class="field">
+                <span class="label">Systolic</span>
+                <input id="bpSys" inputmode="numeric" placeholder="120" />
+              </label>
+              <label class="field">
+                <span class="label">Diastolic</span>
+                <input id="bpDia" inputmode="numeric" placeholder="80" />
+              </label>
+            </div>
 
-<section class="card">
-  <div class="card-title">14 Day Trend</div>
-  <div class="chart-box">
-    <svg id="chart" viewBox="0 0 1000 300" preserveAspectRatio="none"></svg>
-  </div>
-</section>
+            <label class="field">
+              <span class="label">Note (optional)</span>
+              <select id="bpNote">
+                <option value="">Choose note</option>
+                <option>Morning</option>
+                <option>Afternoon</option>
+                <option>Evening</option>
+                <option>After coffee</option>
+                <option>After workout</option>
+                <option>Stress</option>
+                <option>Relaxed</option>
+              </select>
+            </label>
 
-</main>
+            <button class="btn primary" type="button" onclick="saveBP()">
+              <span class="btn-text">Save Blood Pressure</span>
+              <span class="spinner" aria-hidden="true"></span>
+            </button>
+          </div>
+        </section>
 
-<script>
-function logout(){
-  localStorage.clear();
-  window.location.href="./index.html";
-}
+        <!-- Right: Quick summary + chart -->
+        <section class="card">
+          <div class="card-head">
+            <h2>Today</h2>
+            <p class="muted" id="todayLine">Loading summary…</p>
+          </div>
 
-function getAuth(){
-  return localStorage.getItem("userId");
-}
+          <div class="kpis">
+            <div class="kpi">
+              <div class="kpi-label">Latest Glucose</div>
+              <div class="kpi-value" id="kpiGlucose">—</div>
+              <div class="kpi-sub" id="kpiGlucoseSub">mg/dL</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">Latest BP</div>
+              <div class="kpi-value" id="kpiBP">—</div>
+              <div class="kpi-sub" id="kpiBPSub">mmHg</div>
+            </div>
+          </div>
 
-async function saveReading(){
-  const userId = getAuth();
-  const g = document.getElementById("glucoseValue").value.trim();
-  const sys = document.getElementById("bpSys").value.trim();
-  const dia = document.getElementById("bpDia").value.trim();
+          <!-- ✅ Chart Section -->
+          <div class="chart-card" id="trendCard">
+            <div class="chart-head">
+              <div>
+                <div class="chart-title">Trends</div>
+                <div class="muted small">Last 14 days • Glucose & Blood Pressure</div>
+              </div>
+              <div class="legend-inline" aria-label="Legend">
+                <span class="lg lg-g">Glucose</span>
+                <span class="lg lg-s">SYS</span>
+                <span class="lg lg-d">DIA</span>
+              </div>
+            </div>
 
-  if(g){
-    await fetch("/api/readings",{
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body:JSON.stringify({ userId, type:"glucose", value:g })
-    });
-  }
+            <div class="sv-chart-wrap" id="svWrap">
+              <div class="chart-tooltip" id="svTip"></div>
+              <svg class="sv-chart" id="svChart" viewBox="0 0 1000 240" preserveAspectRatio="none" aria-label="Trend chart"></svg>
+            </div>
+          </div>
 
-  if(sys && dia){
-    await fetch("/api/readings",{
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body:JSON.stringify({ userId, type:"bp", value:sys+"/"+dia })
-    });
-  }
+          <div class="card-foot">
+            <button class="btn ghost" type="button" onclick="refreshAll()">Refresh</button>
+            <span class="muted small" id="lastSync">—</span>
+          </div>
+        </section>
+      </div>
+    </section>
 
-  refresh();
-}
+    <!-- TAB: History -->
+    <section id="tab-history" class="tab-panel">
+      <section class="card">
+        <div class="card-head">
+          <h2>My Readings</h2>
+          <p class="muted">Browse and manage your saved readings.</p>
+        </div>
 
-async function refresh(){
-  const userId = getAuth();
-  const res = await fetch("/api/readings/"+userId);
-  const data = await res.json();
+        <div class="table-wrap">
+          <table class="table" aria-label="Readings table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Value</th>
+                <th>Note</th>
+                <th class="th-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="readingsBody">
+              <tr><td colspan="5" class="muted">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
 
-  if(!data.length) return;
+        <div class="pager">
+          <button class="btn small ghost" type="button" onclick="prevPage()" aria-label="Previous page">‹</button>
+          <div class="muted small" id="pageLabel">1</div>
+          <button class="btn small ghost" type="button" onclick="nextPage()" aria-label="Next page">›</button>
+        </div>
+      </section>
+    </section>
 
-  const g = data.find(r=>r.type==="glucose");
-  const bp = data.find(r=>r.type==="bp");
+    <!-- TAB: Insights -->
+    <section id="tab-insights" class="tab-panel">
+      <section class="card">
+        <div class="card-head">
+          <h2>Insights</h2>
+          <p class="muted">Trends and patterns from your readings.</p>
+        </div>
 
-  if(g) document.getElementById("kpiGlucose").textContent=g.value;
-  if(bp) document.getElementById("kpiBP").textContent=bp.value;
+        <div class="insights-grid">
+          <div class="mini-card">
+            <div class="mini-title">7-Day Avg (Glucose)</div>
+            <div class="mini-value" id="avg7g">—</div>
+            <div class="mini-sub">mg/dL</div>
+          </div>
+          <div class="mini-card">
+            <div class="mini-title">7-Day Avg (BP)</div>
+            <div class="mini-value" id="avg7bp">—</div>
+            <div class="mini-sub">mmHg</div>
+          </div>
+          <div class="mini-card">
+            <div class="mini-title">Most Common Note</div>
+            <div class="mini-value" id="commonNote">—</div>
+            <div class="mini-sub">based on history</div>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
 
-  renderChart(data);
-}
+  <!-- Toast -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-function renderChart(data){
-  const svg=document.getElementById("chart");
-  svg.innerHTML="";
+  <script>
+    (function(){
+      // =========================
+      // Strict Mode & Helpers
+      // =========================
+      "use strict";
 
-  const glucose=data.filter(r=>r.type==="glucose").slice(0,14).reverse();
-  const w=1000, h=300;
+      // --- UI Helpers ---
+      const $ = id => document.getElementById(id);
+      const toast = (msg, type = "ok") => {
+        const t = $("toast");
+        t.className = "toast show " + (type === "err" ? "err" : "ok");
+        t.textContent = msg;
+        clearTimeout(window.__toastTimer);
+        window.__toastTimer = setTimeout(() => t.className = "toast", 2000);
+      };
 
-  glucose.forEach((r,i)=>{
-    const x=(i*(w/14))+50;
-    const y=h-(Number(r.value)*1.2);
-    const circle=document.createElementNS("http://www.w3.org/2000/svg","circle");
-    circle.setAttribute("cx",x);
-    circle.setAttribute("cy",y);
-    circle.setAttribute("r",6);
-    circle.setAttribute("fill","#2b6cb0");
-    svg.appendChild(circle);
-  });
-}
+      const setLoading = (btn, isLoading) => {
+        if (btn) {
+          btn.classList.toggle("loading", !!isLoading);
+          btn.disabled = !!isLoading;
+        }
+      };
 
-refresh();
-</script>
+      const escapeHtml = (s) => {
+        if (s == null) return '';
+        return String(s).replace(/[&<>"']/g, (c) => ({
+          "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+        }[c]));
+      };
 
+      // --- Auth Helpers ---
+      const getAuth = () => ({
+        userId: localStorage.getItem("userId") || "",
+        name: localStorage.getItem("name") || "",
+        email: localStorage.getItem("email") || ""
+      });
+
+      const requireAuth = () => {
+        const { userId } = getAuth();
+        if (!userId) {
+          window.location.href = "./index.html";
+          return false;
+        }
+        return true;
+      };
+
+      window.logout = () => {
+        ["userId", "name", "phone", "email"].forEach(key => localStorage.removeItem(key));
+        window.location.href = "./index.html";
+      };
+
+      // --- Tab Navigation ---
+      window.showTab = (name) => {
+        document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
+        document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+        document.querySelector(`.tab[data-tab="${name}"]`).classList.add("active");
+        $(`tab-${name}`).classList.add("active");
+      };
+
+      window.toggleForm = (which) => {
+        const gForm = $("form-glucose");
+        const bpForm = $("form-bp");
+        const gSeg = $("seg-glucose");
+        const bpSeg = $("seg-bp");
+
+        if (which === "glucose") {
+          gForm.classList.remove("hidden"); bpForm.classList.add("hidden");
+          gSeg.classList.add("active"); bpSeg.classList.remove("active");
+        } else {
+          bpForm.classList.remove("hidden"); gForm.classList.add("hidden");
+          bpSeg.classList.add("active"); gSeg.classList.remove("active");
+        }
+      };
+
+      // =========================
+      // Data & State
+      // =========================
+      let allReadings = [];
+      let currentPage = 1;
+      const PAGE_SIZE = 10;
+
+      const parseDate = (ts) => {
+        const d = new Date(ts);
+        return isNaN(d.getTime()) ? null : d;
+      };
+
+      const isSameDay = (d1, d2) => d1.toDateString() === d2.toDateString();
+
+      // =========================
+      // API Calls
+      // =========================
+      window.saveGlucose = async () => {
+        if (!requireAuth()) return;
+        const { userId } = getAuth();
+        const btn = document.querySelector("#form-glucose .btn.primary");
+        const value = $("glucoseValue").value.trim();
+        const note = $("glucoseNote").value;
+
+        const num = Number(value);
+        if (!value || isNaN(num) || num <= 0) return toast("Enter a valid glucose number", "err");
+
+        try {
+          setLoading(btn, true);
+          const res = await fetch("/api/readings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId, type: "glucose", value: String(num), note })
+          });
+          if (!res.ok) throw new Error("Save failed");
+          $("glucoseValue").value = "";
+          $("glucoseNote").value = "";
+          toast("Glucose saved");
+          await refreshAll();
+        } catch {
+          toast("Could not save glucose", "err");
+        } finally {
+          setLoading(btn, false);
+        }
+      };
+
+      window.saveBP = async () => {
+        if (!requireAuth()) return;
+        const { userId } = getAuth();
+        const btn = document.querySelector("#form-bp .btn.primary");
+        const sys = $("bpSys").value.trim();
+        const dia = $("bpDia").value.trim();
+        const note = $("bpNote").value;
+
+        const sNum = Number(sys), dNum = Number(dia);
+        if (!sys || !dia || isNaN(sNum) || isNaN(dNum) || sNum <= 0 || dNum <= 0) {
+          return toast("Enter valid BP numbers", "err");
+        }
+
+        try {
+          setLoading(btn, true);
+          const value = `${sNum}/${dNum}`;
+          const res = await fetch("/api/readings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId, type: "bp", value, note })
+          });
+          if (!res.ok) throw new Error("Save failed");
+          $("bpSys").value = "";
+          $("bpDia").value = "";
+          $("bpNote").value = "";
+          toast("Blood pressure saved");
+          await refreshAll();
+        } catch {
+          toast("Could not save blood pressure", "err");
+        } finally {
+          setLoading(btn, false);
+        }
+      };
+
+      const loadAllReadings = async () => {
+        if (!requireAuth()) return [];
+        const { userId } = getAuth();
+        try {
+          const res = await fetch(`/api/readings/${encodeURIComponent(userId)}`);
+          if (!res.ok) throw new Error("Load failed");
+          const data = await res.json();
+          allReadings = Array.isArray(data) ? data.sort((a, b) => new Date(b.ts) - new Date(a.ts)) : [];
+        } catch (err) {
+          toast("Could not load readings", "err");
+          allReadings = [];
+        }
+        return allReadings;
+      };
+
+      // =========================
+      // Render Functions
+      // =========================
+      const loadUserHeader = () => {
+        if (!requireAuth()) return;
+        const { name, email } = getAuth();
+        $("whoamiText").textContent = name || email || "Signed in";
+        $("subtitle").textContent = email ? `${email} • Just now` : "Welcome back";
+      };
+
+      const computeSummary = () => {
+        const now = new Date();
+        const todayReadings = allReadings.filter(r => {
+          const d = parseDate(r.ts);
+          return d && isSameDay(d, now);
+        });
+
+        const latestGlucose = allReadings.find(r => r.type === "glucose");
+        const latestBP = allReadings.find(r => r.type === "bp");
+
+        $("kpiGlucose").textContent = latestGlucose?.value || "—";
+        $("kpiBP").textContent = latestBP?.value || "—";
+        $("todayLine").textContent = todayReadings.length
+          ? `${todayReadings.length} reading(s) logged today`
+          : "No readings yet today";
+      };
+
+      const renderHistoryPage = () => {
+        const tbody = $("readingsBody");
+        if (!tbody) return;
+
+        const totalPages = Math.max(1, Math.ceil(allReadings.length / PAGE_SIZE));
+        if (currentPage > totalPages) currentPage = totalPages;
+
+        const start = (currentPage - 1) * PAGE_SIZE;
+        const pageItems = allReadings.slice(start, start + PAGE_SIZE);
+        $("pageLabel").textContent = `${currentPage} / ${totalPages}`;
+
+        if (!pageItems.length) {
+          tbody.innerHTML = `<tr><td colspan="5" class="muted">No readings yet.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = pageItems.map(r => {
+          const date = parseDate(r.ts)?.toLocaleString() || "—";
+          return `
+            <tr>
+              <td>${escapeHtml(date)}</td>
+              <td><span class="pill">${escapeHtml(r.type)}</span></td>
+              <td>${escapeHtml(r.value)}</td>
+              <td class="muted">${escapeHtml(r.note || '')}</td>
+              <td class="td-actions">
+                <button class="mini-btn" onclick="editReading('${r.id}', '${escapeHtml(r.value)}', '${escapeHtml(r.note || '')}')">Edit</button>
+                <button class="mini-btn danger" onclick="deleteReading('${r.id}')">Delete</button>
+              </td>
+            </tr>
+          `;
+        }).join("");
+      };
+
+      window.prevPage = () => { if (currentPage > 1) { currentPage--; renderHistoryPage(); } };
+      window.nextPage = () => {
+        const totalPages = Math.max(1, Math.ceil(allReadings.length / PAGE_SIZE));
+        if (currentPage < totalPages) { currentPage++; renderHistoryPage(); }
+      };
+
+      window.editReading = async (id, currentVal, currentNote) => {
+        if (!requireAuth()) return;
+        const { userId } = getAuth();
+        const newVal = prompt("Edit value:", currentVal);
+        if (newVal === null) return;
+        const newNote = prompt("Edit note (optional):", currentNote);
+        if (newNote === null) return;
+
+        try {
+          const res = await fetch(`/api/readings/${encodeURIComponent(id)}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId, value: newVal.trim(), note: (newNote || "").trim() })
+          });
+          if (!res.ok) throw new Error("Update failed");
+          toast("Updated");
+          await refreshAll();
+          showTab('history');
+        } catch {
+          toast("Update failed", "err");
+        }
+      };
+
+      window.deleteReading = async (id) => {
+        if (!requireAuth()) return;
+        const { userId } = getAuth();
+        if (!confirm("Delete this reading?")) return;
+
+        try {
+          const res = await fetch(`/api/readings/${encodeURIComponent(id)}`, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId })
+          });
+          if (!res.ok) throw new Error("Delete failed");
+          toast("Deleted");
+          await refreshAll();
+        } catch {
+          toast("Delete failed", "err");
+        }
+      };
+
+      const computeInsights = () => {
+        const sevenDaysAgo = new Date(Date.now() - 7 * 86400000);
+        const weekReadings = allReadings.filter(r => {
+          const d = parseDate(r.ts);
+          return d && d >= sevenDaysAgo;
+        });
+
+        const glucoseVals = weekReadings.filter(r => r.type === "glucose").map(r => Number(r.value)).filter(n => !isNaN(n));
+        const bpVals = weekReadings.filter(r => r.type === "bp").map(r => {
+          const [s, d] = r.value.split('/').map(Number);
+          return { s, d };
+        }).filter(bp => !isNaN(bp.s) && !isNaN(bp.d));
+
+        const avg = arr => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
+        const gAvg = avg(glucoseVals);
+        const sAvg = avg(bpVals.map(bp => bp.s));
+        const dAvg = avg(bpVals.map(bp => bp.d));
+
+        $("avg7g").textContent = gAvg ?? "—";
+        $("avg7bp").textContent = (sAvg && dAvg) ? `${sAvg}/${dAvg}` : "—";
+
+        const notes = allReadings.map(r => r.note).filter(Boolean);
+        if (notes.length) {
+          const freq = notes.reduce((acc, n) => (acc[n] = (acc[n] || 0) + 1, acc), {});
+          $("commonNote").textContent = Object.entries(freq).sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
+        } else {
+          $("commonNote").textContent = "—";
+        }
+      };
+
+      // =========================
+      // ✅ SVG Chart (محسّن)
+      // =========================
+      const SVG_W = 1000, SVG_H = 240;
+      const PAD = { l: 50, r: 30, t: 15, b: 35 };
+
+      const formatDateKey = d => d.toISOString().split('T')[0];
+      const lastNDays = (n = 14) => Array.from({ length: n }, (_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - (n - 1 - i));
+        return d;
+      });
+
+      const buildTrendData = () => {
+        const days = lastNDays(14);
+        const labels = days.map(d => d.toLocaleDateString(undefined, { month: '2-digit', day: '2-digit' }));
+        const dataMap = {};
+
+        allReadings.forEach(r => {
+          const d = parseDate(r.ts);
+          if (!d) return;
+          const key = formatDateKey(d);
+          if (!dataMap[key]) dataMap[key] = { g: [], sys: [], dia: [] };
+          
+          if (r.type === "glucose") {
+            const v = Number(r.value);
+            if (!isNaN(v)) dataMap[key].g.push(v);
+          } else if (r.type === "bp") {
+            const [s, dVal] = r.value.split('/').map(Number);
+            if (!isNaN(s)) dataMap[key].sys.push(s);
+            if (!isNaN(dVal)) dataMap[key].dia.push(dVal);
+          }
+        });
+
+        const avg = arr => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
+
+        const glucose = [], sys = [], dia = [];
+        days.forEach(day => {
+          const key = formatDateKey(day);
+          const dayData = dataMap[key] || {};
+          glucose.push(avg(dayData.g));
+          sys.push(avg(dayData.sys));
+          dia.push(avg(dayData.dia));
+        });
+
+        return { labels, glucose, sys, dia };
+      };
+
+      const getRange = (values) => {
+        const valid = values.filter(v => v != null && isFinite(v));
+        if (!valid.length) return { min: 70, max: 150 };
+        const min = Math.min(...valid);
+        const max = Math.max(...valid);
+        const pad = (max - min) * 0.1 || 10;
+        return { min: Math.max(0, Math.floor(min - pad)), max: Math.ceil(max + pad) };
+      };
+
+      const renderChart = () => {
+        const svg = $("svChart");
+        const wrap = $("svWrap");
+        const tip = $("svTip");
+        if (!svg || !wrap || !tip) return;
+
+        const { labels, glucose, sys, dia } = buildTrendData();
+        const n = labels.length;
+        if (n === 0) return;
+
+        const gRange = getRange(glucose);
+        const bpRange = getRange([...sys, ...dia]);
+
+        const chartW = SVG_W - PAD.l - PAD.r;
+        const chartH = SVG_H - PAD.t - PAD.b;
+
+        const xPos = i => PAD.l + (i * (chartW / (n - 1 || 1)));
+        const yPos = (val, range) => val == null ? null : PAD.t + chartH - ((val - range.min) / (range.max - range.min)) * chartH;
+
+        const buildPath = (data, range) => {
+          let d = "", started = false;
+          for (let i = 0; i < n; i++) {
+            const y = yPos(data[i], range);
+            if (y == null) { started = false; continue; }
+            const x = xPos(i);
+            if (!started) { d += `M ${x} ${y}`; started = true; }
+            else d += ` L ${x} ${y}`;
+          }
+          return d;
+        };
+
+        // Clear SVG
+        while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+        // Draw background
+        const bgRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        bgRect.setAttribute("x", "0"); bgRect.setAttribute("y", "0");
+        bgRect.setAttribute("width", SVG_W); bgRect.setAttribute("height", SVG_H);
+        bgRect.setAttribute("fill", "rgba(255,255,255,0.02)");
+        bgRect.setAttribute("rx", "12"); bgRect.setAttribute("ry", "12");
+        svg.appendChild(bgRect);
+
+        // Grid (4 lines)
+        const gridGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        gridGroup.setAttribute("opacity", "0.25");
+        for (let i = 0; i <= 4; i++) {
+          const y = PAD.t + (i * (chartH / 4));
+          const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+          line.setAttribute("x1", PAD.l); line.setAttribute("y1", y);
+          line.setAttribute("x2", SVG_W - PAD.r); line.setAttribute("y2", y);
+          line.setAttribute("stroke", "rgba(255,255,255,0.15)");
+          line.setAttribute("stroke-width", "1");
+          gridGroup.appendChild(line);
+        }
+        svg.appendChild(gridGroup);
+
+        // Axes labels
+        const labelGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        labelGroup.setAttribute("fill", "rgba(255,255,255,0.55)");
+        labelGroup.setAttribute("font-size", "10");
+
+        for (let i = 0; i <= 4; i++) {
+          const y = PAD.t + (i * (chartH / 4));
+          const gVal = Math.round(gRange.max - i * (gRange.max - gRange.min) / 4);
+          const bpVal = Math.round(bpRange.max - i * (bpRange.max - bpRange.min) / 4);
+
+          // Left (glucose)
+          const leftText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          leftText.setAttribute("x", PAD.l - 8); leftText.setAttribute("y", y + 3);
+          leftText.setAttribute("text-anchor", "end");
+          leftText.textContent = gVal;
+          labelGroup.appendChild(leftText);
+
+          // Right (BP)
+          const rightText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          rightText.setAttribute("x", SVG_W - PAD.r + 8); rightText.setAttribute("y", y + 3);
+          rightText.setAttribute("text-anchor", "start");
+          rightText.textContent = bpVal;
+          labelGroup.appendChild(rightText);
+        }
+        svg.appendChild(labelGroup);
+
+        // X-axis labels (first, middle, last)
+        const xLabelGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        xLabelGroup.setAttribute("fill", "rgba(255,255,255,0.55)");
+        xLabelGroup.setAttribute("font-size", "10");
+        xLabelGroup.setAttribute("text-anchor", "middle");
+        [0, Math.floor((n-1)/2), n-1].forEach(i => {
+          const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          text.setAttribute("x", xPos(i));
+          text.setAttribute("y", SVG_H - 12);
+          text.textContent = labels[i];
+          xLabelGroup.appendChild(text);
+        });
+        svg.appendChild(xLabelGroup);
+
+        // Draw lines
+        const lineGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        lineGroup.setAttribute("fill", "none");
+        lineGroup.setAttribute("stroke-width", "3");
+        lineGroup.setAttribute("stroke-linecap", "round");
+
+        const addPath = (data, range, color) => {
+          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          path.setAttribute("d", buildPath(data, range));
+          path.setAttribute("stroke", color);
+          lineGroup.appendChild(path);
+        };
+
+        addPath(glucose, gRange, "rgba(76,125,255,0.95)");
+        addPath(sys, bpRange, "rgba(60,255,151,0.95)");
+        addPath(dia, bpRange, "rgba(255,77,109,0.95)");
+        svg.appendChild(lineGroup);
+
+        // Tooltip handler
+        const showTooltip = (clientX) => {
+          const rect = wrap.getBoundingClientRect();
+          if (!rect.width) return;
+          const relX = Math.min(Math.max(clientX - rect.left, 0), rect.width);
+          const idx = Math.round((relX / rect.width) * (n - 1));
+          const idxClamped = Math.min(n-1, Math.max(0, idx));
+          
+          const dateStr = lastNDays(14)[idxClamped].toLocaleDateString(undefined, { month: '2-digit', day: '2-digit' });
+          const g = glucose[idxClamped] ?? '—';
+          const s = sys[idxClamped] ?? '—';
+          const dVal = dia[idxClamped] ?? '—';
+
+          tip.innerHTML = `
+            <div style="font-weight:600; margin-bottom:4px;">${dateStr}</div>
+            <div>Glucose: <b>${g}</b> mg/dL</div>
+            <div>SYS: <b>${s}</b> mmHg</div>
+            <div>DIA: <b>${dVal}</b> mmHg</div>
+          `;
+          tip.classList.add("show");
+        };
+
+        const hideTooltip = () => tip.classList.remove("show");
+
+        // Attach events
+        wrap.onpointermove = (e) => showTooltip(e.clientX);
+        wrap.onpointerleave = hideTooltip;
+        wrap.onclick = (e) => showTooltip(e.clientX);
+      };
+
+      // =========================
+      // Refresh All
+      // =========================
+      window.refreshAll = async () => {
+        await loadAllReadings();
+        computeSummary();
+        renderHistoryPage();
+        computeInsights();
+        renderChart();
+        $("lastSync").textContent = `Updated ${new Date().toLocaleTimeString()}`;
+      };
+
+      // =========================
+      // Initialization
+      // =========================
+      const init = async () => {
+        if (!requireAuth()) return;
+        loadUserHeader();
+        await refreshAll();
+      };
+
+      init();
+    })();
+  </script>
 </body>
 </html>

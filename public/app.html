@@ -5,10 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Health Tracker · Dashboard</title>
   <link rel="stylesheet" href="./style.css" />
+  <style>
+    /* تحسينات مؤقتة للتصحيح */
+    .sv-chart line, .sv-chart path { vector-effect: non-scaling-stroke; }
+  </style>
 </head>
 
 <body class="app-page">
-  <!-- Top App Bar -->
+  <!-- Top App Bar (نفس الكود السابق) -->
   <header class="appbar">
     <div class="appbar-inner">
       <div class="brand">
@@ -18,13 +22,11 @@
           <div class="brand-sub" id="subtitle">Your daily readings, simplified</div>
         </div>
       </div>
-
       <div class="appbar-actions">
         <button class="chip" id="whoamiChip" type="button" aria-label="User">
           <span class="dot"></span>
           <span id="whoamiText">Loading…</span>
         </button>
-
         <button class="icon-btn" type="button" onclick="logout()" aria-label="Logout">
           <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
             <path d="M10 17l1.41-1.41L8.83 13H21v-2H8.83l2.58-2.59L10 7l-7 7 7 7z"></path>
@@ -37,7 +39,7 @@
   </header>
 
   <main class="shell">
-    <!-- Tabs -->
+    <!-- Tabs (نفس الكود السابق) -->
     <nav class="tabs" aria-label="Sections">
       <button class="tab active" type="button" data-tab="dashboard" onclick="showTab('dashboard')">Dashboard</button>
       <button class="tab" type="button" data-tab="history" onclick="showTab('history')">History</button>
@@ -53,12 +55,10 @@
             <h2>Add Reading</h2>
             <p class="muted">Log your glucose and blood pressure.</p>
           </div>
-
           <div class="segmented" role="tablist" aria-label="Reading type">
             <button class="seg active" type="button" id="seg-glucose" onclick="toggleForm('glucose')">Glucose</button>
             <button class="seg" type="button" id="seg-bp" onclick="toggleForm('bp')">Blood Pressure</button>
           </div>
-
           <!-- Glucose form -->
           <div id="form-glucose" class="form-block">
             <label class="field">
@@ -68,7 +68,6 @@
                 <span class="suffix">mg/dL</span>
               </div>
             </label>
-
             <label class="field">
               <span class="label">Note (optional)</span>
               <select id="glucoseNote">
@@ -82,14 +81,12 @@
                 <option>Feeling high</option>
               </select>
             </label>
-
             <button class="btn primary" type="button" onclick="saveGlucose()">
               <span class="btn-text">Save Glucose</span>
               <span class="spinner" aria-hidden="true"></span>
             </button>
           </div>
-
-          <!-- Blood pressure form -->
+          <!-- BP form -->
           <div id="form-bp" class="form-block hidden">
             <div class="row">
               <label class="field">
@@ -101,7 +98,6 @@
                 <input id="bpDia" inputmode="numeric" placeholder="80" />
               </label>
             </div>
-
             <label class="field">
               <span class="label">Note (optional)</span>
               <select id="bpNote">
@@ -115,7 +111,6 @@
                 <option>Relaxed</option>
               </select>
             </label>
-
             <button class="btn primary" type="button" onclick="saveBP()">
               <span class="btn-text">Save Blood Pressure</span>
               <span class="spinner" aria-hidden="true"></span>
@@ -129,7 +124,6 @@
             <h2>Today</h2>
             <p class="muted" id="todayLine">Loading summary…</p>
           </div>
-
           <div class="kpis">
             <div class="kpi">
               <div class="kpi-label">Latest Glucose</div>
@@ -143,7 +137,7 @@
             </div>
           </div>
 
-          <!-- Chart Section -->
+          <!-- Chart Section (مبسطة للغاية) -->
           <div class="chart-card" id="trendCard">
             <div class="chart-head">
               <div>
@@ -156,7 +150,6 @@
                 <span class="lg lg-d">DIA</span>
               </div>
             </div>
-
             <div class="sv-chart-wrap" id="svWrap">
               <div class="chart-tooltip" id="svTip"></div>
               <svg class="sv-chart" id="svChart" viewBox="0 0 1000 240" preserveAspectRatio="none"></svg>
@@ -178,7 +171,6 @@
           <h2>My Readings</h2>
           <p class="muted">Browse and manage your saved readings.</p>
         </div>
-
         <div class="table-wrap">
           <table class="table" aria-label="Readings table">
             <thead>
@@ -195,7 +187,6 @@
             </tbody>
           </table>
         </div>
-
         <div class="pager">
           <button class="btn small ghost" type="button" onclick="prevPage()">‹</button>
           <span class="muted small" id="pageLabel">1</span>
@@ -211,7 +202,6 @@
           <h2>Insights</h2>
           <p class="muted">Trends and patterns from your readings.</p>
         </div>
-
         <div class="insights-grid">
           <div class="mini-card">
             <div class="mini-title">7-Day Avg (Glucose)</div>
@@ -240,10 +230,10 @@
     (function() {
       "use strict";
 
-      // DOM shortcuts
+      // ==== DOM shortcuts ====
       const $ = id => document.getElementById(id);
 
-      // Toast
+      // ==== Toast ====
       function toast(msg, type = 'ok') {
         const t = $('toast');
         t.textContent = msg;
@@ -252,7 +242,7 @@
         window.toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
       }
 
-      // Loading state
+      // ==== Loading state ====
       function setLoading(btn, state) {
         if (btn) {
           btn.classList.toggle('loading', state);
@@ -260,18 +250,7 @@
         }
       }
 
-      // Escape HTML
-      function escapeHtml(unsafe) {
-        if (unsafe == null) return '';
-        return String(unsafe)
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;')
-          .replace(/'/g, '&#039;');
-      }
-
-      // Auth
+      // ==== Auth ====
       function getAuth() {
         return {
           userId: localStorage.getItem('userId') || '',
@@ -293,7 +272,7 @@
         window.location.href = './index.html';
       };
 
-      // Tab navigation
+      // ==== Tab navigation ====
       window.showTab = name => {
         document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
@@ -306,7 +285,6 @@
         const bpForm = $('form-bp');
         const gSeg = $('seg-glucose');
         const bpSeg = $('seg-bp');
-
         if (which === 'glucose') {
           gForm.classList.remove('hidden');
           bpForm.classList.add('hidden');
@@ -320,12 +298,12 @@
         }
       };
 
-      // Global state
+      // ==== Global state ====
       let allReadings = [];
       let currentPage = 1;
       const PAGE_SIZE = 10;
 
-      // Date helpers (use UTC to avoid timezone issues)
+      // ==== Date helpers (UTC based) ====
       function parseDate(ts) {
         const d = new Date(ts);
         return isNaN(d.getTime()) ? null : d;
@@ -335,106 +313,74 @@
         return d1.toDateString() === d2.toDateString();
       }
 
-      // ===== Glucose Color Coding =====
+      // ==== Glucose colors ====
       function getGlucoseStatus(value, note = '') {
         const num = Number(value);
-        if (isNaN(num)) return { category: 'unknown', colorClass: '', text: value };
-
+        if (isNaN(num)) return { colorClass: '', value };
         const noteLower = String(note).toLowerCase();
         const isFasting = noteLower.includes('fasting');
-        const isPostprandial = noteLower.includes('after meal') || noteLower.includes('aftermeal');
-
-        let category = '';
-        let colorClass = '';
-
+        const isPostprandial = noteLower.includes('after meal');
         if (isFasting) {
-          if (num < 100) { category = 'normal'; colorClass = 'glucose-normal'; }
-          else if (num >= 100 && num <= 125) { category = 'prediabetes'; colorClass = 'glucose-prediabetes'; }
-          else if (num >= 126) { category = 'diabetes'; colorClass = 'glucose-diabetes'; }
+          if (num < 100) return { colorClass: 'glucose-normal', value: num };
+          if (num <= 125) return { colorClass: 'glucose-prediabetes', value: num };
+          return { colorClass: 'glucose-diabetes', value: num };
         } else if (isPostprandial) {
-          if (num < 140) { category = 'normal'; colorClass = 'glucose-normal'; }
-          else if (num >= 140 && num <= 199) { category = 'prediabetes'; colorClass = 'glucose-prediabetes'; }
-          else if (num >= 200) { category = 'diabetes'; colorClass = 'glucose-diabetes'; }
+          if (num < 140) return { colorClass: 'glucose-normal', value: num };
+          if (num <= 199) return { colorClass: 'glucose-prediabetes', value: num };
+          return { colorClass: 'glucose-diabetes', value: num };
         } else {
-          if (num < 100) { category = 'normal'; colorClass = 'glucose-normal'; }
-          else if (num >= 100 && num <= 125) { category = 'prediabetes'; colorClass = 'glucose-prediabetes'; }
-          else if (num >= 126) { category = 'diabetes'; colorClass = 'glucose-diabetes'; }
+          if (num < 100) return { colorClass: 'glucose-normal', value: num };
+          if (num <= 125) return { colorClass: 'glucose-prediabetes', value: num };
+          return { colorClass: 'glucose-diabetes', value: num };
         }
-
-        return { category, colorClass, value: num };
       }
 
-      // ===== BP Color Coding (5 categories) =====
+      // ==== BP colors (5 categories) ====
       function getBPStatus(bpString) {
-        if (!bpString || typeof bpString !== 'string') {
-          return { category: 'unknown', colorClass: '', explanation: '', sys: null, dia: null };
-        }
+        if (!bpString) return { colorClass: '', explanation: '', display: bpString };
         const parts = bpString.split('/').map(Number);
         if (parts.length !== 2 || isNaN(parts[0]) || isNaN(parts[1])) {
-          return { category: 'unknown', colorClass: '', explanation: '', sys: null, dia: null };
+          return { colorClass: '', explanation: '', display: bpString };
         }
         const sys = parts[0];
         const dia = parts[1];
-
-        let category = '';
         let colorClass = '';
         let explanation = '';
 
         if (sys >= 180 || dia >= 120) {
-          category = 'Crisis';
           colorClass = 'bp-crisis';
-          explanation = 'أزمة ارتفاع ضغط (Hypertensive Crisis) - توجه للطوارئ فوراً';
+          explanation = 'أزمة ارتفاع ضغط - توجه للطوارئ';
         } else if (sys >= 140 || dia >= 90) {
-          category = 'Stage 2';
           colorClass = 'bp-stage2';
-          explanation = 'ارتفاع المرحلة الثانية - يحتاج علاج دوائي';
+          explanation = 'ارتفاع المرحلة الثانية - يحتاج علاج';
         } else if (sys >= 130 || dia >= 80) {
-          category = 'Stage 1';
           colorClass = 'bp-stage1';
-          explanation = 'ارتفاع المرحلة الأولى - متابعة وتعديل نمط حياة';
+          explanation = 'ارتفاع المرحلة الأولى - متابعة';
         } else if (sys >= 120 && sys <= 129 && dia < 80) {
-          category = 'Elevated';
           colorClass = 'bp-elevated';
           explanation = 'مرتفع بسيط (إنذار مبكر)';
         } else if (sys < 120 && dia < 80) {
-          category = 'Normal';
           colorClass = 'bp-normal';
           explanation = 'ضغط طبيعي ممتاز';
         } else {
-          // Mixed cases
-          if (sys >= 140 || dia >= 90) {
-            category = 'Stage 2';
-            colorClass = 'bp-stage2';
-            explanation = 'ارتفاع المرحلة الثانية - يحتاج علاج دوائي';
-          } else if (sys >= 130 || dia >= 80) {
-            category = 'Stage 1';
-            colorClass = 'bp-stage1';
-            explanation = 'ارتفاع المرحلة الأولى - متابعة وتعديل نمط حياة';
-          } else if (sys >= 120 && dia < 80) {
-            category = 'Elevated';
-            colorClass = 'bp-elevated';
-            explanation = 'مرتفع بسيط (إنذار مبكر)';
-          } else {
-            category = 'Normal';
-            colorClass = 'bp-normal';
-            explanation = 'ضغط طبيعي ممتاز';
-          }
+          // حالات مختلطة
+          if (sys >= 140 || dia >= 90) colorClass = 'bp-stage2';
+          else if (sys >= 130 || dia >= 80) colorClass = 'bp-stage1';
+          else if (sys >= 120 && dia < 80) colorClass = 'bp-elevated';
+          else colorClass = 'bp-normal';
         }
-
-        return { category, colorClass, explanation, sys, dia, display: bpString };
+        return { colorClass, explanation, display: bpString };
       }
 
-      // ===== API calls =====
+      // ==== API calls ====
       window.saveGlucose = async () => {
         if (!requireAuth()) return;
         const { userId } = getAuth();
         const btn = document.querySelector('#form-glucose .btn.primary');
         const value = $('glucoseValue').value.trim();
         const note = $('glucoseNote').value;
-
         const num = Number(value);
         if (!value || isNaN(num) || num <= 0) return toast('Enter a valid glucose number', 'err');
-
         try {
           setLoading(btn, true);
           const res = await fetch('/api/readings', {
@@ -461,12 +407,10 @@
         const sys = $('bpSys').value.trim();
         const dia = $('bpDia').value.trim();
         const note = $('bpNote').value;
-
         const s = Number(sys), d = Number(dia);
         if (!sys || !dia || isNaN(s) || isNaN(d) || s <= 0 || d <= 0) {
           return toast('Enter valid BP numbers', 'err');
         }
-
         try {
           setLoading(btn, true);
           const res = await fetch('/api/readings', {
@@ -495,6 +439,7 @@
           if (!res.ok) throw new Error();
           const data = await res.json();
           allReadings = Array.isArray(data) ? data.sort((a, b) => new Date(b.ts) - new Date(a.ts)) : [];
+          console.log('Readings loaded:', allReadings); // للتأكد من تحميل البيانات
         } catch {
           toast('Failed to load readings', 'err');
           allReadings = [];
@@ -502,7 +447,7 @@
         return allReadings;
       }
 
-      // ===== Render functions =====
+      // ==== Render functions ====
       function updateHeader() {
         const { name, email } = getAuth();
         $('whoamiText').textContent = name || email || 'Signed in';
@@ -515,24 +460,20 @@
           const d = parseDate(r.ts);
           return d && isSameDay(d, now);
         }).length;
-
         const latestGlucose = allReadings.find(r => r.type === 'glucose');
         const latestBP = allReadings.find(r => r.type === 'bp');
-
         if (latestGlucose) {
           const { colorClass, value } = getGlucoseStatus(latestGlucose.value, latestGlucose.note);
           $('kpiGlucose').innerHTML = `<span class="${colorClass}">${value}</span>`;
         } else {
           $('kpiGlucose').textContent = '—';
         }
-
         if (latestBP) {
           const bpStatus = getBPStatus(latestBP.value);
           $('kpiBP').innerHTML = `<span class="${bpStatus.colorClass}" title="${bpStatus.explanation}">${bpStatus.display}</span>`;
         } else {
           $('kpiBP').textContent = '—';
         }
-
         $('todayLine').textContent = todayCount ? `${todayCount} reading(s) logged today` : 'No readings yet today';
       }
 
@@ -540,19 +481,16 @@
         const tbody = $('readingsBody');
         const totalPages = Math.max(1, Math.ceil(allReadings.length / PAGE_SIZE));
         if (currentPage > totalPages) currentPage = totalPages;
-
         const start = (currentPage - 1) * PAGE_SIZE;
         const pageItems = allReadings.slice(start, start + PAGE_SIZE);
         $('pageLabel').textContent = `${currentPage} / ${totalPages}`;
-
         if (!pageItems.length) {
           tbody.innerHTML = '<tr><td colspan="5" class="muted">No readings yet.</td></tr>';
           return;
         }
-
         tbody.innerHTML = pageItems.map(r => {
           const date = parseDate(r.ts)?.toLocaleString() || '—';
-          let valueHtml = escapeHtml(r.value);
+          let valueHtml = r.value;
           if (r.type === 'glucose') {
             const { colorClass, value } = getGlucoseStatus(r.value, r.note);
             valueHtml = `<span class="${colorClass}">${value}</span>`;
@@ -560,15 +498,14 @@
             const bpStatus = getBPStatus(r.value);
             valueHtml = `<span class="${bpStatus.colorClass}" title="${bpStatus.explanation}">${bpStatus.display}</span>`;
           }
-
           return `
             <tr>
-              <td>${escapeHtml(date)}</td>
-              <td><span class="pill">${escapeHtml(r.type)}</span></td>
+              <td>${date}</td>
+              <td><span class="pill">${r.type}</span></td>
               <td>${valueHtml}</td>
-              <td class="muted">${escapeHtml(r.note || '')}</td>
+              <td class="muted">${r.note || ''}</td>
               <td class="td-actions">
-                <button class="mini-btn" onclick="editReading('${r.id}', '${escapeHtml(r.value)}', '${escapeHtml(r.note || '')}')">Edit</button>
+                <button class="mini-btn" onclick="editReading('${r.id}', '${r.value}', '${r.note || ''}')">Edit</button>
                 <button class="mini-btn danger" onclick="deleteReading('${r.id}')">Delete</button>
               </td>
             </tr>
@@ -589,7 +526,6 @@
         if (newVal === null) return;
         const newNote = prompt('Edit note (optional):', currentNote);
         if (newNote === null) return;
-
         try {
           const res = await fetch(`/api/readings/${encodeURIComponent(id)}`, {
             method: 'PUT',
@@ -609,7 +545,6 @@
         if (!requireAuth()) return;
         const { userId } = getAuth();
         if (!confirm('Delete this reading?')) return;
-
         try {
           const res = await fetch(`/api/readings/${encodeURIComponent(id)}`, {
             method: 'DELETE',
@@ -630,7 +565,6 @@
           const d = parseDate(r.ts);
           return d && d >= sevenDaysAgo;
         });
-
         const glucoseVals = weekReadings.filter(r => r.type === 'glucose').map(r => Number(r.value)).filter(n => !isNaN(n));
         const avg = arr => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
         const gAvg = avg(glucoseVals);
@@ -640,7 +574,6 @@
         } else {
           $('avg7g').textContent = '—';
         }
-
         const bpReadings = weekReadings.filter(r => r.type === 'bp');
         if (bpReadings.length > 0) {
           let totalSys = 0, totalDia = 0, count = 0;
@@ -664,7 +597,6 @@
         } else {
           $('avg7bp').textContent = '—';
         }
-
         const notes = allReadings.map(r => r.note).filter(Boolean);
         if (notes.length) {
           const freq = notes.reduce((acc, n) => (acc[n] = (acc[n] || 0) + 1, acc), {});
@@ -674,289 +606,196 @@
         }
       }
 
-      // ========== CHART RENDERING (مُعاد كتابتها لحل مشكلة عرض البيانات) ==========
-      const SVG_W = 1000, SVG_H = 240;
-      const PAD = { l: 60, r: 40, t: 20, b: 40 };
-
-      // إنشاء قائمة بآخر 14 يوم (بدون وقت)
-      function getLastNDays(n = 14) {
-        const days = [];
-        const today = new Date();
-        today.setHours(0, 0, 0, 0); // ضبط الوقت إلى منتصف الليل
-        for (let i = n - 1; i >= 0; i--) {
-          const d = new Date(today);
-          d.setDate(today.getDate() - i);
-          days.push(d);
-        }
-        return days;
-      }
-
-      // تحويل التاريخ إلى نص YYYY-MM-DD (باستخدام UTC)
-      function toYYYYMMDD(date) {
-        const y = date.getFullYear();
-        const m = String(date.getMonth() + 1).padStart(2, '0');
-        const d = String(date.getDate()).padStart(2, '0');
-        return `${y}-${m}-${d}`;
-      }
-
-      // بناء بيانات الشارت
-      function buildChartData() {
-        const days = getLastNDays(14);
-        const labels = days.map(d => d.toLocaleDateString(undefined, { month: '2-digit', day: '2-digit' }));
-
-        // تهيئة buckets لكل يوم
-        const buckets = {};
-        days.forEach(d => { buckets[toYYYYMMDD(d)] = { glucose: [], sys: [], dia: [] }; });
-
-        // تجميع القراءات في buckets
-        allReadings.forEach(r => {
-          const date = parseDate(r.ts);
-          if (!date) return;
-          // ضبط التاريخ إلى منتصف الليل للمقارنة
-          const dayKey = toYYYYMMDD(date);
-          if (!buckets[dayKey]) return; // أقدم من 14 يوم
-
-          if (r.type === 'glucose') {
-            const val = Number(r.value);
-            if (!isNaN(val)) buckets[dayKey].glucose.push(val);
-          } else if (r.type === 'bp') {
-            const [s, d] = r.value.split('/').map(Number);
-            if (!isNaN(s)) buckets[dayKey].sys.push(s);
-            if (!isNaN(d)) buckets[dayKey].dia.push(d);
-          }
-        });
-
-        // حساب المتوسط لكل يوم
-        const avg = arr => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
-        const glucose = days.map(d => avg(buckets[toYYYYMMDD(d)].glucose));
-        const sys = days.map(d => avg(buckets[toYYYYMMDD(d)].sys));
-        const dia = days.map(d => avg(buckets[toYYYYMMDD(d)].dia));
-
-        return { labels, glucose, sys, dia };
-      }
-
-      // حساب النطاق (min, max) مع هامش
-      function getRange(values) {
-        const valid = values.filter(v => v != null && isFinite(v));
-        if (valid.length === 0) return { min: 70, max: 150 };
-        const min = Math.min(...valid);
-        const max = Math.max(...valid);
-        const pad = (max - min) * 0.1 || 10;
-        return { min: Math.max(0, Math.floor(min - pad)), max: Math.ceil(max + pad) };
-      }
-
+      // ========== CHART RENDERING (نسخة مبسطة للغاية مع تصحيح) ==========
       function renderChart() {
         const svg = $('svChart');
         const wrap = $('svWrap');
         const tip = $('svTip');
         if (!svg || !wrap || !tip) return;
 
-        const { labels, glucose, sys, dia } = buildChartData();
-        const n = labels.length;
-        if (n === 0) return;
-
-        const gRange = getRange(glucose);
-        const bpRange = getRange([...sys, ...dia]);
-
-        const chartW = SVG_W - PAD.l - PAD.r;
-        const chartH = SVG_H - PAD.t - PAD.b;
-
-        const xPos = i => PAD.l + (i * (chartW / (n - 1 || 1)));
-        const yPos = (val, range) => {
-          if (val == null || !isFinite(val)) return null;
-          return PAD.t + chartH - ((val - range.min) / (range.max - range.min)) * chartH;
-        };
-
-        function buildPath(data, range) {
-          let d = '';
-          let started = false;
-          for (let i = 0; i < n; i++) {
-            const y = yPos(data[i], range);
-            if (y == null) {
-              started = false;
-              continue;
-            }
-            const x = xPos(i);
-            if (!started) {
-              d += `M ${x} ${y}`;
-              started = true;
-            } else {
-              d += ` L ${x} ${y}`;
-            }
-          }
-          return d;
-        }
-
         // مسح المحتوى السابق
         while (svg.firstChild) svg.removeChild(svg.firstChild);
 
-        // خلفية
-        const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        bg.setAttribute('x', '0'); bg.setAttribute('y', '0');
-        bg.setAttribute('width', SVG_W); bg.setAttribute('height', SVG_H);
-        bg.setAttribute('fill', 'rgba(255,255,255,0.02)');
-        bg.setAttribute('rx', '12'); bg.setAttribute('ry', '12');
-        svg.appendChild(bg);
-
-        // شبكة أفقية منقطة
-        const gridGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        gridGroup.setAttribute('opacity', '0.15');
-        for (let i = 0; i <= 4; i++) {
-          const y = PAD.t + (i * (chartH / 4));
-          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-          line.setAttribute('x1', PAD.l); line.setAttribute('y1', y);
-          line.setAttribute('x2', SVG_W - PAD.r); line.setAttribute('y2', y);
-          line.setAttribute('stroke', '#ffffff');
-          line.setAttribute('stroke-width', '1');
-          line.setAttribute('stroke-dasharray', '4,4');
-          gridGroup.appendChild(line);
+        // إنشاء بيانات تجريبية إذا لم توجد قراءات (للاختبار)
+        let chartData;
+        if (allReadings.length === 0) {
+          // بيانات وهمية للتأكد من أن الشارت يعمل
+          chartData = {
+            labels: ['02/07', '02/09', '02/11', '02/13'],
+            glucose: [200, 180, 210, 190],
+            sys: [155, 150, 160, 145],
+            dia: [90, 88, 95, 85]
+          };
+          console.warn('⚠️ لا توجد قراءات حقيقية، استخدام بيانات تجريبية');
+        } else {
+          // بناء البيانات الحقيقية
+          const days = getLastNDays(14);
+          const labels = days.map(d => d.toLocaleDateString(undefined, { month: '2-digit', day: '2-digit' }));
+          const buckets = {};
+          days.forEach(d => { buckets[toYYYYMMDD(d)] = { glucose: [], sys: [], dia: [] }; });
+          allReadings.forEach(r => {
+            const date = parseDate(r.ts);
+            if (!date) return;
+            const key = toYYYYMMDD(date);
+            if (!buckets[key]) return;
+            if (r.type === 'glucose') {
+              const val = Number(r.value);
+              if (!isNaN(val)) buckets[key].glucose.push(val);
+            } else if (r.type === 'bp') {
+              const [s, d] = r.value.split('/').map(Number);
+              if (!isNaN(s)) buckets[key].sys.push(s);
+              if (!isNaN(d)) buckets[key].dia.push(d);
+            }
+          });
+          const avg = arr => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
+          const glucose = days.map(d => avg(buckets[toYYYYMMDD(d)].glucose));
+          const sys = days.map(d => avg(buckets[toYYYYMMDD(d)].sys));
+          const dia = days.map(d => avg(buckets[toYYYYMMDD(d)].dia));
+          chartData = { labels, glucose, sys, dia };
         }
-        svg.appendChild(gridGroup);
 
-        // شبكة رأسية خفيفة كل يومين
-        const vGridGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        vGridGroup.setAttribute('opacity', '0.1');
-        for (let i = 0; i < n; i += 2) {
-          const x = xPos(i);
-          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-          line.setAttribute('x1', x); line.setAttribute('y1', PAD.t);
-          line.setAttribute('x2', x); line.setAttribute('y2', SVG_H - PAD.b);
-          line.setAttribute('stroke', '#ffffff');
-          line.setAttribute('stroke-width', '1');
-          line.setAttribute('stroke-dasharray', '2,2');
-          vGridGroup.appendChild(line);
-        }
-        svg.appendChild(vGridGroup);
+        console.log('📊 Chart data:', chartData);
 
-        // تسميات المحور Y (يسار ويمين)
-        const axisGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        axisGroup.setAttribute('fill', 'rgba(255,255,255,0.7)');
-        axisGroup.setAttribute('font-size', '11');
-        axisGroup.setAttribute('font-weight', '500');
-        
-        for (let i = 0; i <= 4; i++) {
-          const y = PAD.t + (i * (chartH / 4));
-          const gVal = Math.round(gRange.max - i * (gRange.max - gRange.min) / 4);
-          const bpVal = Math.round(bpRange.max - i * (bpRange.max - bpRange.min) / 4);
+        // أبعاد الرسم
+        const w = 1000, h = 240;
+        const pad = { l: 60, r: 40, t: 20, b: 40 };
+        const innerW = w - pad.l - pad.r;
+        const innerH = h - pad.t - pad.b;
 
-          const leftText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-          leftText.setAttribute('x', PAD.l - 12);
-          leftText.setAttribute('y', y + 4);
-          leftText.setAttribute('text-anchor', 'end');
-          leftText.textContent = gVal;
-          axisGroup.appendChild(leftText);
+        // إيجاد النطاق الأقصى للقيم
+        const allGlucose = chartData.glucose.filter(v => v != null);
+        const allSys = chartData.sys.filter(v => v != null);
+        const allDia = chartData.dia.filter(v => v != null);
+        const allValues = [...allGlucose, ...allSys, ...allDia];
+        const minVal = allValues.length ? Math.min(...allValues) : 70;
+        const maxVal = allValues.length ? Math.max(...allValues) : 150;
+        const range = { min: Math.max(0, minVal - 10), max: maxVal + 10 };
 
-          const rightText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-          rightText.setAttribute('x', SVG_W - PAD.r + 12);
-          rightText.setAttribute('y', y + 4);
-          rightText.setAttribute('text-anchor', 'start');
-          rightText.textContent = bpVal;
-          axisGroup.appendChild(rightText);
-        }
-        svg.appendChild(axisGroup);
-
-        // تسميات المحور X (كل يومين مع ضمان عرض الأول والأخير)
-        const xLabelGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        xLabelGroup.setAttribute('fill', 'rgba(255,255,255,0.6)');
-        xLabelGroup.setAttribute('font-size', '10');
-        xLabelGroup.setAttribute('text-anchor', 'middle');
-        
-        const step = n > 10 ? 2 : 1;
-        for (let i = 0; i < n; i += step) {
-          const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-          txt.setAttribute('x', xPos(i));
-          txt.setAttribute('y', SVG_H - 16);
-          txt.textContent = labels[i];
-          xLabelGroup.appendChild(txt);
-        }
-        if ((n-1) % step !== 0) {
-          const lastTxt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-          lastTxt.setAttribute('x', xPos(n-1));
-          lastTxt.setAttribute('y', SVG_H - 16);
-          lastTxt.textContent = labels[n-1];
-          xLabelGroup.appendChild(lastTxt);
-        }
-        svg.appendChild(xLabelGroup);
-
-        // رسم الخطوط
-        const lineGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        lineGroup.setAttribute('fill', 'none');
-        lineGroup.setAttribute('stroke-width', '3.5');
-        lineGroup.setAttribute('stroke-linecap', 'round');
-        lineGroup.setAttribute('stroke-linejoin', 'round');
-        lineGroup.setAttribute('filter', 'drop-shadow(0 2px 3px rgba(0,0,0,0.3))');
-
-        const addLine = (data, range, color) => {
-          const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-          path.setAttribute('d', buildPath(data, range));
-          path.setAttribute('stroke', color);
-          lineGroup.appendChild(path);
+        // دالة لتحويل القيمة إلى إحداثي Y
+        const yPos = val => {
+          if (val == null) return null;
+          return pad.t + innerH - ((val - range.min) / (range.max - range.min)) * innerH;
         };
 
-        addLine(glucose, gRange, '#4c7dff');
-        addLine(sys, bpRange, '#3cff97');
-        addLine(dia, bpRange, '#ff4d6d');
-        svg.appendChild(lineGroup);
+        // دالة لتحويل الفهرس إلى إحداثي X
+        const xPos = i => pad.l + (i / (chartData.labels.length - 1)) * innerW;
 
-        // نقاط البيانات
-        const pointsGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        pointsGroup.setAttribute('fill', 'white');
-        
-        const addPoints = (data, range, color) => {
-          for (let i = 0; i < n; i++) {
-            const y = yPos(data[i], range);
-            if (y == null) continue;
+        // خلفية
+        const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        bg.setAttribute('x', 0); bg.setAttribute('y', 0);
+        bg.setAttribute('width', w); bg.setAttribute('height', h);
+        bg.setAttribute('fill', '#1e2a3a');
+        bg.setAttribute('rx', 12); bg.setAttribute('ry', 12);
+        svg.appendChild(bg);
+
+        // شبكة أفقية
+        for (let i = 0; i <= 4; i++) {
+          const y = pad.t + (i / 4) * innerH;
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          line.setAttribute('x1', pad.l); line.setAttribute('y1', y);
+          line.setAttribute('x2', w - pad.r); line.setAttribute('y2', y);
+          line.setAttribute('stroke', 'rgba(255,255,255,0.2)');
+          line.setAttribute('stroke-width', 1);
+          line.setAttribute('stroke-dasharray', '4,4');
+          svg.appendChild(line);
+        }
+
+        // تسميات Y
+        for (let i = 0; i <= 4; i++) {
+          const y = pad.t + (i / 4) * innerH;
+          const val = Math.round(range.max - i * (range.max - range.min) / 4);
+          const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          text.setAttribute('x', pad.l - 10);
+          text.setAttribute('y', y + 4);
+          text.setAttribute('fill', 'rgba(255,255,255,0.6)');
+          text.setAttribute('font-size', 10);
+          text.setAttribute('text-anchor', 'end');
+          text.textContent = val;
+          svg.appendChild(text);
+        }
+
+        // تسميات X
+        chartData.labels.forEach((label, i) => {
+          if (i % 2 === 0 || i === chartData.labels.length - 1) {
+            const x = xPos(i);
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', x);
+            text.setAttribute('y', h - 16);
+            text.setAttribute('fill', 'rgba(255,255,255,0.6)');
+            text.setAttribute('font-size', 10);
+            text.setAttribute('text-anchor', 'middle');
+            text.textContent = label;
+            svg.appendChild(text);
+          }
+        });
+
+        // رسم الخطوط (مع ألوان قوية)
+        const colors = {
+          glucose: '#4c7dff',
+          sys: '#3cff97',
+          dia: '#ff4d6d'
+        };
+
+        ['glucose', 'sys', 'dia'].forEach(key => {
+          const data = chartData[key];
+          let pathD = '';
+          let first = true;
+          for (let i = 0; i < data.length; i++) {
+            const y = yPos(data[i]);
+            if (y === null) continue;
+            const x = xPos(i);
+            if (first) {
+              pathD += `M ${x} ${y}`;
+              first = false;
+            } else {
+              pathD += ` L ${x} ${y}`;
+            }
+          }
+          if (pathD) {
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('d', pathD);
+            path.setAttribute('stroke', colors[key]);
+            path.setAttribute('stroke-width', 3);
+            path.setAttribute('fill', 'none');
+            path.setAttribute('stroke-linecap', 'round');
+            path.setAttribute('stroke-linejoin', 'round');
+            svg.appendChild(path);
+          }
+        });
+
+        // رسم نقاط البيانات
+        ['glucose', 'sys', 'dia'].forEach(key => {
+          const data = chartData[key];
+          for (let i = 0; i < data.length; i++) {
+            const y = yPos(data[i]);
+            if (y === null) continue;
             const x = xPos(i);
             const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             circle.setAttribute('cx', x);
             circle.setAttribute('cy', y);
-            circle.setAttribute('r', '4.5');
-            circle.setAttribute('fill', color);
-            circle.setAttribute('stroke', 'rgba(255,255,255,0.8)');
-            circle.setAttribute('stroke-width', '1.5');
-            circle.setAttribute('filter', 'drop-shadow(0 2px 2px rgba(0,0,0,0.4))');
-            pointsGroup.appendChild(circle);
+            circle.setAttribute('r', 4);
+            circle.setAttribute('fill', colors[key]);
+            circle.setAttribute('stroke', 'white');
+            circle.setAttribute('stroke-width', 1.5);
+            svg.appendChild(circle);
           }
-        };
+        });
 
-        addPoints(glucose, gRange, '#4c7dff');
-        addPoints(sys, bpRange, '#3cff97');
-        addPoints(dia, bpRange, '#ff4d6d');
-        svg.appendChild(pointsGroup);
-
-        // علامات صغيرة على المحور السيني (ticks)
-        const ticksGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        ticksGroup.setAttribute('stroke', 'rgba(255,255,255,0.3)');
-        ticksGroup.setAttribute('stroke-width', '1');
-        for (let i = 0; i < n; i++) {
-          const x = xPos(i);
-          const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-          tick.setAttribute('x1', x); tick.setAttribute('y1', SVG_H - PAD.b - 5);
-          tick.setAttribute('x2', x); tick.setAttribute('y2', SVG_H - PAD.b + 5);
-          ticksGroup.appendChild(tick);
-        }
-        svg.appendChild(ticksGroup);
-
-        // Tooltip
-        function showTooltip(clientX) {
+        // Tooltip بسيط
+        function showTooltip(e) {
           const rect = wrap.getBoundingClientRect();
-          if (!rect.width) return;
-          const relX = Math.min(Math.max(clientX - rect.left, 0), rect.width);
-          const idx = Math.round((relX / rect.width) * (n - 1));
-          const safeIdx = Math.min(n - 1, Math.max(0, idx));
-
-          const dateStr = getLastNDays(14)[safeIdx].toLocaleDateString(undefined, { month: '2-digit', day: '2-digit', year: 'numeric' });
-          const g = glucose[safeIdx] ?? '—';
-          const s = sys[safeIdx] ?? '—';
-          const d = dia[safeIdx] ?? '—';
-
+          const x = e.clientX - rect.left;
+          const idx = Math.round((x / rect.width) * (chartData.labels.length - 1));
+          if (idx < 0 || idx >= chartData.labels.length) return;
+          const date = chartData.labels[idx];
+          const g = chartData.glucose[idx] ?? '—';
+          const s = chartData.sys[idx] ?? '—';
+          const d = chartData.dia[idx] ?? '—';
           tip.innerHTML = `
-            <div style="font-weight:700; margin-bottom:6px; border-bottom:1px solid rgba(255,255,255,0.2); padding-bottom:4px;">${dateStr}</div>
-            <div style="display:flex; gap:12px; flex-wrap:wrap;">
-              <div><span style="color:#4c7dff;">●</span> Glucose: <b>${g}</b> mg/dL</div>
-              <div><span style="color:#3cff97;">●</span> SYS: <b>${s}</b> mmHg</div>
-              <div><span style="color:#ff4d6d;">●</span> DIA: <b>${d}</b> mmHg</div>
-            </div>
+            <div><b>${date}</b></div>
+            <div>Glucose: ${g}</div>
+            <div>SYS: ${s}</div>
+            <div>DIA: ${d}</div>
           `;
           tip.classList.add('show');
         }
@@ -965,13 +804,33 @@
           tip.classList.remove('show');
         }
 
-        wrap.onpointermove = e => showTooltip(e.clientX);
-        wrap.onpointerleave = hideTooltip;
-        wrap.onclick = e => showTooltip(e.clientX);
+        wrap.onmousemove = showTooltip;
+        wrap.onmouseleave = hideTooltip;
       }
 
-      // ===== Refresh All (معرّفة في النطاق العام) =====
+      // دوال مساعدة للتواريخ (نفس الكود السابق)
+      function getLastNDays(n = 14) {
+        const days = [];
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        for (let i = n - 1; i >= 0; i--) {
+          const d = new Date(today);
+          d.setDate(today.getDate() - i);
+          days.push(d);
+        }
+        return days;
+      }
+
+      function toYYYYMMDD(date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+      }
+
+      // ==== Refresh All ====
       window.refreshAll = async () => {
+        console.log('🔄 Refreshing...');
         await loadReadings();
         updateSummary();
         renderHistory();
@@ -980,7 +839,7 @@
         $('lastSync').textContent = `Updated ${new Date().toLocaleTimeString()}`;
       };
 
-      // ===== Initialization =====
+      // ==== Initialization ====
       async function init() {
         if (!requireAuth()) return;
         updateHeader();

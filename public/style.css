@@ -1,6 +1,8 @@
 /* =========================================================
    Silicon Valley Health App UI (mobile + desktop) - FINAL
-   (NO chart-wrap, NO Chart.js canvas; SVG chart only)
+   ✅ NO chart-wrap
+   ✅ NO canvas
+   ✅ SVG chart only (iPhone/Chrome safe)
    ========================================================= */
 
 :root{
@@ -28,6 +30,11 @@
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 
+/* ✅ Important: prevents iOS/Chrome blue tap overlays */
+body, button, a, input, select, svg{
+  -webkit-tap-highlight-color: transparent;
+}
+
 body{
   margin:0;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
@@ -54,6 +61,7 @@ a { color: inherit; }
   top: 0;
   z-index: 40;
   backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   background: rgba(11,18,32,0.65);
   border-bottom: 1px solid rgba(255,255,255,0.08);
 }
@@ -256,7 +264,7 @@ input, select{
   background: rgba(11,18,32,0.55);
   color: var(--text);
   outline: none;
-  transition: border .12s ease, box-shadow .12s ease, transform .12s ease;
+  transition: border .12s ease, box-shadow .12s ease;
 }
 
 input::placeholder{ color: rgba(255,255,255,0.38); }
@@ -472,7 +480,7 @@ input:focus, select:focus{
 .toast.err{ border-color: rgba(255,77,109,0.35); }
 
 /* =========================================================
-   Login Page (index.html)
+   Login Page (index.html) – iPhone polish
    ========================================================= */
 
 .login-page{
@@ -534,7 +542,6 @@ input:focus, select:focus{
   font-weight: 700;
   text-align:center;
 }
-.msg.ok{ color: rgba(60,255,151,0.95); }
 
 .hero-image{
   margin-top: 14px;
@@ -566,7 +573,7 @@ input:focus, select:focus{
 }
 
 /* =========================================================
-   SVG Chart (Professional, iPhone-safe) - FINAL
+   ✅ SVG Chart (Professional, iPhone-safe) - FINAL
    ========================================================= */
 .chart-card{
   margin-top: 14px;
@@ -613,14 +620,16 @@ input:focus, select:focus{
 .sv-chart-wrap{
   position: relative;
   padding: 0 10px 10px;
-  height: 230px;
-  touch-action: pan-y;
+  height: 230px;              /* ثابت للآيفون */
+  overflow: hidden;
 }
 
 .sv-chart{
   width: 100%;
   height: 100%;
   display: block;
+  user-select: none;
+  touch-action: pan-y;
 }
 
 .chart-tooltip{
@@ -633,6 +642,7 @@ input:focus, select:focus{
   background: rgba(0,0,0,0.55);
   border: 1px solid rgba(255,255,255,0.12);
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   color: var(--text);
   font-size: 12px;
   line-height: 1.35;
@@ -640,21 +650,10 @@ input:focus, select:focus{
   opacity: 0;
   transform: translateY(-4px);
   transition: opacity .12s ease, transform .12s ease;
-  max-width: 80%;
-  white-space: pre-line;
+  max-width: 84%;
 }
+
 .chart-tooltip.show{
   opacity: 1;
   transform: translateY(0);
-}
-
-/* =========================================================
-   iOS / Mobile FIX: stop blue selection overlay on chart
-   ========================================================= */
-.chart-card,
-.chart-card *{
-  -webkit-user-select: none !important;
-  user-select: none !important;
-  -webkit-touch-callout: none !important;
-  -webkit-tap-highlight-color: transparent !important;
 }

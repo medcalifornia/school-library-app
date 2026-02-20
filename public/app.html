@@ -216,6 +216,13 @@ async function loadAll(){
     const dt = new Date(r.ts).toLocaleString();
 
     const tr = document.createElement("tr");
+
+// add background class based on type
+if (r.type === "glucose") {
+  tr.classList.add("row-glucose");
+} else if (r.type === "bp") {
+  tr.classList.add("row-bp");
+}
     tr.innerHTML = `
       <td data-label="Date/Time">${dt}</td>
       <td data-label="Type">${fmtType(r.type)}</td>

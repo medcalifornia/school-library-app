@@ -10,12 +10,17 @@ const cors = require("cors");
 
 const app = express();
 
+app.disable("x-powered-by");
+
+// ===== CORS (safe default; you can tighten later) =====
 app.use(cors());
-app.use(express.json());
-app.use(express.static(path.join(__dirname, "public")));
+
+// ===== Body =====
+app.use(express.json({ limit: "256kb" }));
 
 const PORT = process.env.PORT || 8080;
 
+// ===== DB Config =====
 const dbConfig = {
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
@@ -31,6 +36,7 @@ function getPool() {
   return poolPromise;
 }
 
+// ===== Twilio =====
 const hasTwilio =
   process.env.TWILIO_ACCOUNT_SID &&
   process.env.TWILIO_AUTH_TOKEN &&
@@ -47,6 +53,7 @@ function normalizePhone(phone) {
   return p;
 }
 
+// ===== Password Reset Tokens (in-memory) =====
 const resetTokens = new Map();
 function createResetToken(phone) {
   const token = crypto.randomBytes(24).toString("hex");
@@ -57,12 +64,33 @@ function createResetToken(phone) {
 function verifyResetToken(token, phone) {
   const item = resetTokens.get(token);
   if (!item) return false;
-  if (Date.now() > item.expiresAt) { resetTokens.delete(token); return false; }
+  if (Date.now() > item.expiresAt) {
+    resetTokens.delete(token);
+    return false;
+  }
   if (item.phone !== phone) return false;
   return true;
 }
-function consumeResetToken(token) { resetTokens.delete(token); }
+function consumeResetToken(token) {
+  resetTokens.delete(token);
+}
 
+// ===== Helpers =====
+function safeStr(x, max = 255) {
+  const s = String(x ?? "").trim();
+  return s.length > max ? s.slice(0, max) : s;
+}
+
+function isValidType(t) {
+  const x = String(t || "").toLowerCase();
+  return x === "glucose" || x === "bp";
+}
+
+function isValidGuid(id) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(id || ""));
+}
+
+// ===== Ensure Tables =====
 async function ensureTables() {
   const pool = await getPool();
 
@@ -92,11 +120,40 @@ async function ensureTables() {
         Ts DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
         CONSTRAINT FK_Readings_Users FOREIGN KEY (UserId) REFERENCES dbo.Users(Id)
       );
-      CREATE INDEX IX_Readings_UserId_Ts ON dbo.Readings(UserId, Ts);
+      CREATE INDEX IX_Readings_UserId_Ts ON dbo.Readings(UserId, Ts DESC);
     END
   `);
 }
 
+// ======================================================
+// ✅ IMPORTANT: Disable caching for HTML/CSS/JS (Azure+iPhone)
+// ======================================================
+app.use((req, res, next) => {
+  // No-cache for app files to stop "old css" issues
+  if (req.method === "GET" && (req.path.endsWith(".html") || req.path.endsWith(".css") || req.path.endsWith(".js"))) {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+    res.setHeader("Surrogate-Control", "no-store");
+  }
+  next();
+});
+
+// Static (public)
+app.use(
+  express.static(path.join(__dirname, "public"), {
+    setHeaders: (res, filePath) => {
+      // Also enforce no-cache for html/css/js served from static
+      if (filePath.endsWith(".html") || filePath.endsWith(".css") || filePath.endsWith(".js")) {
+        res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+        res.setHeader("Pragma", "no-cache");
+        res.setHeader("Expires", "0");
+      }
+    },
+  })
+);
+
+// ================= HEALTH =================
 app.get("/health", (req, res) => {
   res.json({ status: "OK", message: "Server Running" });
 });
@@ -105,9 +162,17 @@ app.get("/api/db-test", async (req, res) => {
   try {
     const pool = await getPool();
     const result = await pool.request().query("SELECT GETDATE() AS currentTime");
-    res.json({ connected: true, status: "Database Connected Successfully", time: result.recordset[0].currentTime });
+    res.json({
+      connected: true,
+      status: "Database Connected Successfully",
+      time: result.recordset[0].currentTime,
+    });
   } catch (err) {
-    res.status(500).json({ connected: false, error: "Database Connection Failed", details: err.message });
+    res.status(500).json({
+      connected: false,
+      error: "Database Connection Failed",
+      details: err.message,
+    });
   }
 });
 
@@ -117,21 +182,28 @@ app.post("/api/register", async (req, res) => {
     const { name, email, phone, password } = req.body || {};
     if (!name || !email || !phone || !password) return res.status(400).json({ error: "Missing fields" });
 
-    const e = String(email).trim().toLowerCase();
+    const e = safeStr(email, 255).toLowerCase();
     const p = normalizePhone(phone);
-    const hash = await bcrypt.hash(String(password), 10);
+    const nm = safeStr(name, 120);
 
+    if (String(password).length < 8) {
+      return res.status(400).json({ error: "Password must be at least 8 characters" });
+    }
+
+    const hash = await bcrypt.hash(String(password), 10);
     const pool = await getPool();
 
-    const dup = await pool.request()
+    const dup = await pool
+      .request()
       .input("Email", sql.NVarChar(255), e)
       .input("Phone", sql.NVarChar(32), p)
       .query(`SELECT TOP 1 Id FROM dbo.Users WHERE Email=@Email OR Phone=@Phone`);
 
     if (dup.recordset.length) return res.status(400).json({ error: "Email or phone already used" });
 
-    await pool.request()
-      .input("Name", sql.NVarChar(120), String(name).trim())
+    await pool
+      .request()
+      .input("Name", sql.NVarChar(120), nm)
       .input("Email", sql.NVarChar(255), e)
       .input("Phone", sql.NVarChar(32), p)
       .input("PasswordHash", sql.NVarChar(255), hash)
@@ -146,11 +218,12 @@ app.post("/api/register", async (req, res) => {
 app.post("/api/login", async (req, res) => {
   try {
     const { email, password } = req.body || {};
-    const e = String(email || "").trim().toLowerCase();
+    const e = safeStr(email, 255).toLowerCase();
     if (!e || !password) return res.status(400).json({ error: "Missing fields" });
 
     const pool = await getPool();
-    const result = await pool.request()
+    const result = await pool
+      .request()
       .input("Email", sql.NVarChar(255), e)
       .query(`SELECT TOP 1 Id, Name, Phone, PasswordHash FROM dbo.Users WHERE Email=@Email`);
 
@@ -171,13 +244,32 @@ app.post("/api/readings", async (req, res) => {
   try {
     const { userId, type, value, note } = req.body || {};
     if (!userId || !type || !value) return res.status(400).json({ error: "Missing fields" });
+    if (!isValidGuid(userId)) return res.status(400).json({ error: "Invalid userId" });
+    if (!isValidType(type)) return res.status(400).json({ error: "Invalid type" });
+
+    const t = String(type).toLowerCase();
+    const v = safeStr(value, 40);
+    const n = safeStr(note ?? "", 120);
+
+    // Basic value validation
+    if (t === "glucose") {
+      const num = Number(v);
+      if (Number.isNaN(num) || num <= 0) return res.status(400).json({ error: "Invalid glucose value" });
+    } else if (t === "bp") {
+      const parts = v.split("/");
+      if (parts.length !== 2) return res.status(400).json({ error: "Invalid BP format" });
+      const s = Number(parts[0]);
+      const d = Number(parts[1]);
+      if (Number.isNaN(s) || Number.isNaN(d) || s <= 0 || d <= 0) return res.status(400).json({ error: "Invalid BP numbers" });
+    }
 
     const pool = await getPool();
-    await pool.request()
+    await pool
+      .request()
       .input("UserId", sql.UniqueIdentifier, userId)
-      .input("Type", sql.NVarChar(20), String(type))
-      .input("Value", sql.NVarChar(40), String(value))
-      .input("Note", sql.NVarChar(120), note ? String(note) : "")
+      .input("Type", sql.NVarChar(20), t)
+      .input("Value", sql.NVarChar(40), v)
+      .input("Note", sql.NVarChar(120), n ? n : null)
       .query(`INSERT INTO dbo.Readings (UserId, Type, Value, Note) VALUES (@UserId, @Type, @Value, @Note)`);
 
     res.json({ message: "Saved" });
@@ -189,38 +281,48 @@ app.post("/api/readings", async (req, res) => {
 app.get("/api/readings/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
+    if (!isValidGuid(userId)) return res.status(400).json({ error: "Invalid userId" });
+
     const pool = await getPool();
-
-    const result = await pool.request()
+    const result = await pool
+      .request()
       .input("UserId", sql.UniqueIdentifier, userId)
-      .query(`SELECT Id, UserId, Type, Value, Note, Ts FROM dbo.Readings WHERE UserId=@UserId ORDER BY Ts ASC`);
+      // ✅ DESC returns newest first (faster UI + less sorting work)
+      .query(`SELECT Id, UserId, Type, Value, Note, Ts FROM dbo.Readings WHERE UserId=@UserId ORDER BY Ts DESC`);
 
-    res.json(result.recordset.map(r => ({
-      id: r.Id,
-      userId: r.UserId,
-      type: r.Type,
-      value: r.Value,
-      note: r.Note || "",
-      ts: r.Ts,
-    })));
+    res.json(
+      result.recordset.map((r) => ({
+        id: r.Id,
+        userId: r.UserId,
+        type: r.Type,
+        value: r.Value,
+        note: r.Note || "",
+        ts: r.Ts,
+      }))
+    );
   } catch (err) {
     res.status(500).json({ error: "Load failed", details: err.message });
   }
 });
 
-/* ✅ UPDATE reading (Edit) */
+// ✅ UPDATE reading (Edit)
 app.put("/api/readings/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const { userId, value, note } = req.body || {};
     if (!id || !userId || !value) return res.status(400).json({ error: "Bad input" });
+    if (!isValidGuid(id) || !isValidGuid(userId)) return res.status(400).json({ error: "Invalid id/userId" });
+
+    const v = safeStr(value, 40);
+    const n = safeStr(note ?? "", 120);
 
     const pool = await getPool();
-    const upd = await pool.request()
+    const upd = await pool
+      .request()
       .input("Id", sql.UniqueIdentifier, id)
       .input("UserId", sql.UniqueIdentifier, userId)
-      .input("Value", sql.NVarChar(40), String(value))
-      .input("Note", sql.NVarChar(120), note ? String(note) : "")
+      .input("Value", sql.NVarChar(40), v)
+      .input("Note", sql.NVarChar(120), n ? n : null)
       .query(`UPDATE dbo.Readings SET Value=@Value, Note=@Note WHERE Id=@Id AND UserId=@UserId`);
 
     if (!upd.rowsAffected?.[0]) return res.status(404).json({ error: "Not found" });
@@ -230,15 +332,17 @@ app.put("/api/readings/:id", async (req, res) => {
   }
 });
 
-/* ✅ DELETE reading */
+// ✅ DELETE reading
 app.delete("/api/readings/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const { userId } = req.body || {};
     if (!id || !userId) return res.status(400).json({ error: "Bad input" });
+    if (!isValidGuid(id) || !isValidGuid(userId)) return res.status(400).json({ error: "Invalid id/userId" });
 
     const pool = await getPool();
-    const del = await pool.request()
+    const del = await pool
+      .request()
       .input("Id", sql.UniqueIdentifier, id)
       .input("UserId", sql.UniqueIdentifier, userId)
       .query(`DELETE FROM dbo.Readings WHERE Id=@Id AND UserId=@UserId`);
@@ -250,12 +354,15 @@ app.delete("/api/readings/:id", async (req, res) => {
   }
 });
 
+// ✅ OPTIONAL: Keep this endpoint (not needed for SVG chart, but harmless)
 app.get("/api/chart/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
-    const pool = await getPool();
+    if (!isValidGuid(userId)) return res.status(400).json({ error: "Invalid userId" });
 
-    const result = await pool.request()
+    const pool = await getPool();
+    const result = await pool
+      .request()
       .input("UserId", sql.UniqueIdentifier, userId)
       .query(`SELECT Type, Value, Note, Ts FROM dbo.Readings WHERE UserId=@UserId ORDER BY Ts ASC`);
 
@@ -266,24 +373,24 @@ app.get("/api/chart/:userId", async (req, res) => {
       const d = new Date(r.Ts).toISOString().slice(0, 10);
       byDate[d] = byDate[d] || { glucose: [], bpSys: [], bpDia: [] };
 
-      if (r.Type === "glucose") {
+      if (String(r.Type).toLowerCase() === "glucose") {
         const n = Number(r.Value);
         if (!Number.isNaN(n)) byDate[d].glucose.push(n);
-      } else if (r.Type === "bp") {
-        const [s, di] = String(r.Value).split("/").map(x => Number(x));
+      } else if (String(r.Type).toLowerCase() === "bp") {
+        const [s, di] = String(r.Value).split("/").map((x) => Number(x));
         if (!Number.isNaN(s)) byDate[d].bpSys.push(s);
         if (!Number.isNaN(di)) byDate[d].bpDia.push(di);
       }
     }
 
     const labels = Object.keys(byDate).sort();
-    const avg = (arr) => arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) : null;
+    const avg = (arr) => (arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null);
 
     res.json({
       labels,
-      glucoseAvg: labels.map(d => avg(byDate[d].glucose)),
-      sysAvg: labels.map(d => avg(byDate[d].bpSys)),
-      diaAvg: labels.map(d => avg(byDate[d].bpDia)),
+      glucoseAvg: labels.map((d) => avg(byDate[d].glucose)),
+      sysAvg: labels.map((d) => avg(byDate[d].bpSys)),
+      diaAvg: labels.map((d) => avg(byDate[d].bpDia)),
     });
   } catch (err) {
     res.status(500).json({ error: "Chart failed", details: err.message });
@@ -298,7 +405,8 @@ app.post("/api/forgot-password", async (req, res) => {
     if (!hasTwilio) return res.status(500).json({ error: "Twilio not configured on server" });
 
     const pool = await getPool();
-    const userCheck = await pool.request()
+    const userCheck = await pool
+      .request()
       .input("Phone", sql.NVarChar(32), phone)
       .query(`SELECT TOP 1 Id FROM dbo.Users WHERE Phone=@Phone`);
 
@@ -337,6 +445,7 @@ app.post("/api/reset-password", async (req, res) => {
     const phone = normalizePhone(req.body?.phone);
     const newPassword = String(req.body?.newPassword || "");
     const resetToken = String(req.body?.resetToken || "");
+
     if (!phone || !newPassword) return res.status(400).json({ error: "Bad input" });
     if (newPassword.length < 8) return res.status(400).json({ error: "Password must be at least 8 characters" });
 
@@ -347,7 +456,8 @@ app.post("/api/reset-password", async (req, res) => {
     const hash = await bcrypt.hash(newPassword, 10);
     const pool = await getPool();
 
-    const upd = await pool.request()
+    const upd = await pool
+      .request()
       .input("Phone", sql.NVarChar(32), phone)
       .input("PasswordHash", sql.NVarChar(255), hash)
       .query(`UPDATE dbo.Users SET PasswordHash=@PasswordHash WHERE Phone=@Phone`);
@@ -361,10 +471,12 @@ app.post("/api/reset-password", async (req, res) => {
   }
 });
 
+// Root
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
+// Start
 (async () => {
   try {
     await ensureTables();

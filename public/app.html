@@ -147,7 +147,7 @@
           </div>
 
           <div class="chart-wrap">
-            <canvas id="trendChart" height="130"></canvas>
+            <canvas id="trendChart"></canvas>
           </div>
 
           <div class="card-foot">
@@ -229,7 +229,7 @@
 
   <script>
     // =========================
-    // Storage helpers (matches your /api/login response)
+    // Storage helpers
     // =========================
     function getAuth() {
       return {
@@ -257,7 +257,7 @@
     }
 
     // =========================
-    // Silicon Valley UI helpers
+    // UI helpers
     // =========================
     function toast(msg, type = "ok") {
       const t = document.getElementById("toast");
@@ -301,7 +301,7 @@
     }
 
     // =========================
-    // API that matches your server.js
+    // API
     // =========================
     async function loadUserHeader() {
       if (!requireAuth()) return;
@@ -312,7 +312,6 @@
         (email ? email : "Welcome back") + " • " + new Date().toLocaleString();
     }
 
-    // Save glucose using POST /api/readings
     async function saveGlucose() {
       if (!requireAuth()) return;
       const { userId } = getAuth();
@@ -344,7 +343,6 @@
       }
     }
 
-    // Save BP using POST /api/readings (Value = "SYS/DIA")
     async function saveBP() {
       if (!requireAuth()) return;
       const { userId } = getAuth();
@@ -381,10 +379,10 @@
     }
 
     // =========================
-    // Data + UI rendering (client pagination because server returns all rows)
+    // Data + UI rendering
     // =========================
-    let allReadings = [];      // full list from GET /api/readings/:userId
-    let chart;                 // chart.js instance
+    let allReadings = [];
+    let chart;
     let page = 1;
     const pageSize = 10;
 
@@ -402,8 +400,7 @@
     function latestOfType(type) {
       const list = allReadings.filter(r => String(r.type).toLowerCase() === type);
       if (!list.length) return null;
-      // server returns ASC; latest is last
-      return list[list.length - 1];
+      return list[0]; // because we sort newest-first
     }
 
     function computeSummary() {
@@ -430,52 +427,73 @@
       const data = await r.json();
       if (!r.ok) throw new Error(data?.error || "Load failed");
 
-      // Sort DESC in UI (newest first)
       allReadings = Array.isArray(data) ? data.slice().sort((a,b) => {
         const da = parseTs(a.ts)?.getTime() || 0;
         const db = parseTs(b.ts)?.getTime() || 0;
-        return db - da;
+        return db - da; // newest first
       }) : [];
     }
 
+    // ✅ FIXED CHART (removes blue overlay on iPhone)
     async function loadChart() {
       if (!requireAuth()) return;
       const { userId } = getAuth();
 
-      try {
-        const r = await fetch(`/api/chart/${encodeURIComponent(userId)}`);
-        const data = await r.json();
-        if (!r.ok) throw new Error(data?.error || "Chart failed");
+      const r = await fetch(`/api/chart/${encodeURIComponent(userId)}`);
+      const data = await r.json();
+      if (!r.ok) throw new Error(data?.error || "Chart failed");
 
-        const labels = data.labels || [];
-        const glucoseAvg = data.glucoseAvg || [];
+      const labels = data.labels || [];
+      const glucoseAvg = data.glucoseAvg || [];
+      const sysAvg = data.sysAvg || [];
+      const diaAvg = data.diaAvg || [];
 
-        const ctx = document.getElementById("trendChart").getContext("2d");
-        if (chart) chart.destroy();
+      const canvas = document.getElementById("trendChart");
+      const ctx = canvas.getContext("2d");
+      if (chart) chart.destroy();
 
-        chart = new Chart(ctx, {
-          type: "line",
-          data: {
-            labels,
-            datasets: [
-              { label: "Glucose Avg", data: glucoseAvg, tension: 0.35 }
-            ]
+      chart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [
+            {
+              label: "Glucose Avg",
+              data: glucoseAvg,
+              tension: 0.35,
+              fill: false,
+              backgroundColor: "transparent"
+            },
+            {
+              label: "BP Systolic Avg",
+              data: sysAvg,
+              tension: 0.35,
+              fill: false,
+              backgroundColor: "transparent"
+            },
+            {
+              label: "BP Diastolic Avg",
+              data: diaAvg,
+              tension: 0.35,
+              fill: false,
+              backgroundColor: "transparent"
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          elements: {
+            line: { fill: false }
           },
-          options: {
-            responsive: true,
-            plugins: { legend: { display: true } },
-            scales: { y: { beginAtZero: false } }
+          plugins: {
+            legend: { display: true }
+          },
+          scales: {
+            y: { beginAtZero: false }
           }
-        });
-      } catch {
-        const ctx = document.getElementById("trendChart").getContext("2d");
-        if (chart) chart.destroy();
-        chart = new Chart(ctx, {
-          type: "line",
-          data: { labels: [], datasets: [{ label: "Glucose Avg", data: [] }] },
-          options: { responsive: true, plugins: { legend: { display: false } } }
-        });
-      }
+        }
+      });
     }
 
     function renderHistoryPage() {
@@ -501,6 +519,11 @@
         const value = row.value || "—";
         const note = row.note || "";
         const id = row.id || "";
+
+        // keep prompts safe (avoid quote breaking)
+        const safeValue = String(value).replace(/'/g, "\\'");
+        const safeNote = String(note).replace(/'/g, "\\'");
+
         return `
           <tr>
             <td>${escapeHtml(date)}</td>
@@ -508,7 +531,7 @@
             <td>${escapeHtml(String(value))}</td>
             <td class="muted">${escapeHtml(note)}</td>
             <td class="td-actions">
-              <button class="mini-btn" type="button" onclick="editReadingPrompt('${id}', '${escapeHtml(String(value))}', '${escapeHtml(String(note))}')">Edit</button>
+              <button class="mini-btn" type="button" onclick="editReadingPrompt('${id}', '${safeValue}', '${safeNote}')">Edit</button>
               <button class="mini-btn danger" type="button" onclick="deleteReading('${id}')">Delete</button>
             </td>
           </tr>
@@ -522,7 +545,6 @@
       if (page < totalPages) { page++; renderHistoryPage(); }
     }
 
-    // Simple edit (prompt). Next step: replace with a nice modal.
     async function editReadingPrompt(id, currentValue, currentNote) {
       if (!requireAuth()) return;
       const { userId } = getAuth();
@@ -574,7 +596,6 @@
     }
 
     function computeInsights() {
-      // 7-day window (by Ts)
       const now = new Date();
       const sevenDaysAgo = new Date(now.getTime() - 7*24*60*60*1000);
 
@@ -602,7 +623,6 @@
       document.getElementById("avg7g").textContent = gAvg ?? "—";
       document.getElementById("avg7bp").textContent = (sAvg && dAvg) ? `${sAvg}/${dAvg}` : "—";
 
-      // Most common note
       const notes = allReadings.map(r => (r.note || "").trim()).filter(Boolean);
       if (!notes.length) {
         document.getElementById("commonNote").textContent = "—";

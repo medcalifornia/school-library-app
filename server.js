@@ -10,12 +10,9 @@ const cors = require("cors");
 
 const app = express();
 
+// ===== Middleware =====
 app.disable("x-powered-by");
-
-// ===== CORS (safe default; you can tighten later) =====
 app.use(cors());
-
-// ===== Body =====
 app.use(express.json({ limit: "256kb" }));
 
 const PORT = process.env.PORT || 8080;
@@ -36,39 +33,31 @@ function getPool() {
   return poolPromise;
 }
 
-// ===== Twilio =====
-const hasTwilio =
-  process.env.TWILIO_ACCOUNT_SID &&
-  process.env.TWILIO_AUTH_TOKEN &&
-  process.env.TWILIO_VERIFY_SERVICE_SID;
-
+// ===== Twilio Setup =====
+const hasTwilio = !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_VERIFY_SERVICE_SID);
 const twilioClient = hasTwilio
   ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
   : null;
 
 function normalizePhone(phone) {
   if (!phone) return "";
-  let p = String(phone).trim();
-  if (!p.startsWith("+")) p = "+" + p;
-  return p;
+  let p = String(phone).trim().replace(/\s+/g, '');
+  return p.startsWith("+") ? p : "+" + p;
 }
 
 // ===== Password Reset Tokens (in-memory) =====
 const resetTokens = new Map();
 function createResetToken(phone) {
   const token = crypto.randomBytes(24).toString("hex");
-  const expiresAt = Date.now() + 10 * 60 * 1000;
-  resetTokens.set(token, { phone, expiresAt });
+  resetTokens.set(token, { phone, expiresAt: Date.now() + 10 * 60 * 1000 });
   return token;
 }
 function verifyResetToken(token, phone) {
   const item = resetTokens.get(token);
-  if (!item) return false;
-  if (Date.now() > item.expiresAt) {
+  if (!item || Date.now() > item.expiresAt || item.phone !== phone) {
     resetTokens.delete(token);
     return false;
   }
-  if (item.phone !== phone) return false;
   return true;
 }
 function consumeResetToken(token) {
@@ -77,13 +66,9 @@ function consumeResetToken(token) {
 
 // ===== Helpers =====
 function safeStr(x, max = 255) {
-  const s = String(x ?? "").trim();
+  if (x == null) return "";
+  const s = String(x).trim();
   return s.length > max ? s.slice(0, max) : s;
-}
-
-function isValidType(t) {
-  const x = String(t || "").toLowerCase();
-  return x === "glucose" || x === "bp";
 }
 
 function isValidGuid(id) {
@@ -125,364 +110,139 @@ async function ensureTables() {
   `);
 }
 
-// ======================================================
-// ✅ IMPORTANT: Disable caching for HTML/CSS/JS (Azure+iPhone)
-// ======================================================
+// ===== Cache Control (لمنع التخزين المؤقت) =====
 app.use((req, res, next) => {
-  // No-cache for app files to stop "old css" issues
   if (req.method === "GET" && (req.path.endsWith(".html") || req.path.endsWith(".css") || req.path.endsWith(".js"))) {
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
     res.setHeader("Pragma", "no-cache");
     res.setHeader("Expires", "0");
-    res.setHeader("Surrogate-Control", "no-store");
   }
   next();
 });
 
-// Static (public)
-app.use(
-  express.static(path.join(__dirname, "public"), {
-    setHeaders: (res, filePath) => {
-      // Also enforce no-cache for html/css/js served from static
-      if (filePath.endsWith(".html") || filePath.endsWith(".css") || filePath.endsWith(".js")) {
-        res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
-        res.setHeader("Pragma", "no-cache");
-        res.setHeader("Expires", "0");
-      }
-    },
-  })
-);
+// ===== Static Files =====
+app.use(express.static(path.join(__dirname, "public"), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith(".html") || filePath.endsWith(".css") || filePath.endsWith(".js")) {
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    }
+  },
+}));
 
-// ================= HEALTH =================
+// ==================== API Routes ====================
+
+// Health check
 app.get("/health", (req, res) => {
   res.json({ status: "OK", message: "Server Running" });
 });
 
-app.get("/api/db-test", async (req, res) => {
-  try {
-    const pool = await getPool();
-    const result = await pool.request().query("SELECT GETDATE() AS currentTime");
-    res.json({
-      connected: true,
-      status: "Database Connected Successfully",
-      time: result.recordset[0].currentTime,
-    });
-  } catch (err) {
-    res.status(500).json({
-      connected: false,
-      error: "Database Connection Failed",
-      details: err.message,
-    });
-  }
-});
-
-// ================= AUTH =================
+// ===== Auth =====
 app.post("/api/register", async (req, res) => {
   try {
     const { name, email, phone, password } = req.body || {};
-    if (!name || !email || !phone || !password) return res.status(400).json({ error: "Missing fields" });
+    if (!name || !email || !phone || !password) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
 
-    const e = safeStr(email, 255).toLowerCase();
-    const p = normalizePhone(phone);
-    const nm = safeStr(name, 120);
+    const normalizedEmail = safeStr(email, 255).toLowerCase();
+    const normalizedPhone = normalizePhone(phone);
+    const normalizedName = safeStr(name, 120);
 
-    if (String(password).length < 8) {
+    if (password.length < 8) {
       return res.status(400).json({ error: "Password must be at least 8 characters" });
     }
 
-    const hash = await bcrypt.hash(String(password), 10);
+    const hash = await bcrypt.hash(password, 10);
     const pool = await getPool();
 
-    const dup = await pool
+    const duplicateCheck = await pool
       .request()
-      .input("Email", sql.NVarChar(255), e)
-      .input("Phone", sql.NVarChar(32), p)
-      .query(`SELECT TOP 1 Id FROM dbo.Users WHERE Email=@Email OR Phone=@Phone`);
+      .input("Email", sql.NVarChar(255), normalizedEmail)
+      .input("Phone", sql.NVarChar(32), normalizedPhone)
+      .query("SELECT TOP 1 Id FROM dbo.Users WHERE Email = @Email OR Phone = @Phone");
 
-    if (dup.recordset.length) return res.status(400).json({ error: "Email or phone already used" });
+    if (duplicateCheck.recordset.length) {
+      return res.status(400).json({ error: "Email or phone already in use" });
+    }
 
     await pool
       .request()
-      .input("Name", sql.NVarChar(120), nm)
-      .input("Email", sql.NVarChar(255), e)
-      .input("Phone", sql.NVarChar(32), p)
+      .input("Name", sql.NVarChar(120), normalizedName)
+      .input("Email", sql.NVarChar(255), normalizedEmail)
+      .input("Phone", sql.NVarChar(32), normalizedPhone)
       .input("PasswordHash", sql.NVarChar(255), hash)
-      .query(`INSERT INTO dbo.Users (Name, Email, Phone, PasswordHash) VALUES (@Name, @Email, @Phone, @PasswordHash)`);
+      .query("INSERT INTO dbo.Users (Name, Email, Phone, PasswordHash) VALUES (@Name, @Email, @Phone, @PasswordHash)");
 
     res.json({ message: "Registered successfully" });
   } catch (err) {
-    res.status(500).json({ error: "Register failed", details: err.message });
+    console.error("Register error:", err);
+    res.status(500).json({ error: "Registration failed" });
   }
 });
 
 app.post("/api/login", async (req, res) => {
   try {
     const { email, password } = req.body || {};
-    const e = safeStr(email, 255).toLowerCase();
-    if (!e || !password) return res.status(400).json({ error: "Missing fields" });
+    const normalizedEmail = safeStr(email, 255).toLowerCase();
+
+    if (!normalizedEmail || !password) {
+      return res.status(400).json({ error: "Email and password required" });
+    }
 
     const pool = await getPool();
     const result = await pool
       .request()
-      .input("Email", sql.NVarChar(255), e)
-      .query(`SELECT TOP 1 Id, Name, Phone, PasswordHash FROM dbo.Users WHERE Email=@Email`);
+      .input("Email", sql.NVarChar(255), normalizedEmail)
+      .query("SELECT TOP 1 Id, Name, Phone, PasswordHash FROM dbo.Users WHERE Email = @Email");
 
-    if (!result.recordset.length) return res.status(400).json({ error: "Invalid email or password" });
+    if (!result.recordset.length) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
 
     const user = result.recordset[0];
-    const ok = await bcrypt.compare(String(password), String(user.PasswordHash));
-    if (!ok) return res.status(400).json({ error: "Invalid email or password" });
+    const isValid = await bcrypt.compare(password, user.PasswordHash);
 
-    res.json({ message: "Login OK", userId: user.Id, name: user.Name, phone: user.Phone });
+    if (!isValid) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
+
+    res.json({
+      message: "Login successful",
+      userId: user.Id,
+      name: user.Name,
+      phone: user.Phone
+    });
   } catch (err) {
-    res.status(500).json({ error: "Login failed", details: err.message });
+    console.error("Login error:", err);
+    res.status(500).json({ error: "Login failed" });
   }
 });
 
-// ================= READINGS =================
+// ===== Readings =====
 app.post("/api/readings", async (req, res) => {
   try {
     const { userId, type, value, note } = req.body || {};
-    if (!userId || !type || !value) return res.status(400).json({ error: "Missing fields" });
-    if (!isValidGuid(userId)) return res.status(400).json({ error: "Invalid userId" });
-    if (!isValidType(type)) return res.status(400).json({ error: "Invalid type" });
-
-    const t = String(type).toLowerCase();
-    const v = safeStr(value, 40);
-    const n = safeStr(note ?? "", 120);
-
-    // Basic value validation
-    if (t === "glucose") {
-      const num = Number(v);
-      if (Number.isNaN(num) || num <= 0) return res.status(400).json({ error: "Invalid glucose value" });
-    } else if (t === "bp") {
-      const parts = v.split("/");
-      if (parts.length !== 2) return res.status(400).json({ error: "Invalid BP format" });
-      const s = Number(parts[0]);
-      const d = Number(parts[1]);
-      if (Number.isNaN(s) || Number.isNaN(d) || s <= 0 || d <= 0) return res.status(400).json({ error: "Invalid BP numbers" });
+    
+    if (!userId || !type || !value) {
+      return res.status(400).json({ error: "Missing fields" });
+    }
+    if (!isValidGuid(userId)) {
+      return res.status(400).json({ error: "Invalid userId" });
     }
 
-    const pool = await getPool();
-    await pool
-      .request()
-      .input("UserId", sql.UniqueIdentifier, userId)
-      .input("Type", sql.NVarChar(20), t)
-      .input("Value", sql.NVarChar(40), v)
-      .input("Note", sql.NVarChar(120), n ? n : null)
-      .query(`INSERT INTO dbo.Readings (UserId, Type, Value, Note) VALUES (@UserId, @Type, @Value, @Note)`);
+    const normalizedType = String(type).toLowerCase();
+    if (!["glucose", "bp"].includes(normalizedType)) {
+      return res.status(400).json({ error: "Invalid type" });
+    }
 
-    res.json({ message: "Saved" });
-  } catch (err) {
-    res.status(500).json({ error: "Save failed", details: err.message });
-  }
-});
+    const safeValue = safeStr(value, 40);
+    const safeNote = note ? safeStr(note, 120) : null;
 
-app.get("/api/readings/:userId", async (req, res) => {
-  try {
-    const { userId } = req.params;
-    if (!isValidGuid(userId)) return res.status(400).json({ error: "Invalid userId" });
-
-    const pool = await getPool();
-    const result = await pool
-      .request()
-      .input("UserId", sql.UniqueIdentifier, userId)
-      // ✅ DESC returns newest first (faster UI + less sorting work)
-      .query(`SELECT Id, UserId, Type, Value, Note, Ts FROM dbo.Readings WHERE UserId=@UserId ORDER BY Ts DESC`);
-
-    res.json(
-      result.recordset.map((r) => ({
-        id: r.Id,
-        userId: r.UserId,
-        type: r.Type,
-        value: r.Value,
-        note: r.Note || "",
-        ts: r.Ts,
-      }))
-    );
-  } catch (err) {
-    res.status(500).json({ error: "Load failed", details: err.message });
-  }
-});
-
-// ✅ UPDATE reading (Edit)
-app.put("/api/readings/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { userId, value, note } = req.body || {};
-    if (!id || !userId || !value) return res.status(400).json({ error: "Bad input" });
-    if (!isValidGuid(id) || !isValidGuid(userId)) return res.status(400).json({ error: "Invalid id/userId" });
-
-    const v = safeStr(value, 40);
-    const n = safeStr(note ?? "", 120);
-
-    const pool = await getPool();
-    const upd = await pool
-      .request()
-      .input("Id", sql.UniqueIdentifier, id)
-      .input("UserId", sql.UniqueIdentifier, userId)
-      .input("Value", sql.NVarChar(40), v)
-      .input("Note", sql.NVarChar(120), n ? n : null)
-      .query(`UPDATE dbo.Readings SET Value=@Value, Note=@Note WHERE Id=@Id AND UserId=@UserId`);
-
-    if (!upd.rowsAffected?.[0]) return res.status(404).json({ error: "Not found" });
-    res.json({ message: "Updated" });
-  } catch (err) {
-    res.status(500).json({ error: "Update failed", details: err.message });
-  }
-});
-
-// ✅ DELETE reading
-app.delete("/api/readings/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { userId } = req.body || {};
-    if (!id || !userId) return res.status(400).json({ error: "Bad input" });
-    if (!isValidGuid(id) || !isValidGuid(userId)) return res.status(400).json({ error: "Invalid id/userId" });
-
-    const pool = await getPool();
-    const del = await pool
-      .request()
-      .input("Id", sql.UniqueIdentifier, id)
-      .input("UserId", sql.UniqueIdentifier, userId)
-      .query(`DELETE FROM dbo.Readings WHERE Id=@Id AND UserId=@UserId`);
-
-    if (!del.rowsAffected?.[0]) return res.status(404).json({ error: "Not found" });
-    res.json({ message: "Deleted" });
-  } catch (err) {
-    res.status(500).json({ error: "Delete failed", details: err.message });
-  }
-});
-
-// ✅ OPTIONAL: Keep this endpoint (not needed for SVG chart, but harmless)
-app.get("/api/chart/:userId", async (req, res) => {
-  try {
-    const { userId } = req.params;
-    if (!isValidGuid(userId)) return res.status(400).json({ error: "Invalid userId" });
-
-    const pool = await getPool();
-    const result = await pool
-      .request()
-      .input("UserId", sql.UniqueIdentifier, userId)
-      .query(`SELECT Type, Value, Note, Ts FROM dbo.Readings WHERE UserId=@UserId ORDER BY Ts ASC`);
-
-    const readings = result.recordset;
-
-    const byDate = {};
-    for (const r of readings) {
-      const d = new Date(r.Ts).toISOString().slice(0, 10);
-      byDate[d] = byDate[d] || { glucose: [], bpSys: [], bpDia: [] };
-
-      if (String(r.Type).toLowerCase() === "glucose") {
-        const n = Number(r.Value);
-        if (!Number.isNaN(n)) byDate[d].glucose.push(n);
-      } else if (String(r.Type).toLowerCase() === "bp") {
-        const [s, di] = String(r.Value).split("/").map((x) => Number(x));
-        if (!Number.isNaN(s)) byDate[d].bpSys.push(s);
-        if (!Number.isNaN(di)) byDate[d].bpDia.push(di);
+    // Validate based on type
+    if (normalizedType === "glucose") {
+      const num = Number(safeValue);
+      if (isNaN(num) || num <= 0) {
+        return res.status(400).json({ error: "Invalid glucose value" });
       }
-    }
-
-    const labels = Object.keys(byDate).sort();
-    const avg = (arr) => (arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null);
-
-    res.json({
-      labels,
-      glucoseAvg: labels.map((d) => avg(byDate[d].glucose)),
-      sysAvg: labels.map((d) => avg(byDate[d].bpSys)),
-      diaAvg: labels.map((d) => avg(byDate[d].bpDia)),
-    });
-  } catch (err) {
-    res.status(500).json({ error: "Chart failed", details: err.message });
-  }
-});
-
-// ================= FORGOT PASSWORD (Twilio Verify) =================
-app.post("/api/forgot-password", async (req, res) => {
-  try {
-    const phone = normalizePhone(req.body?.phone);
-    if (!phone) return res.status(400).json({ error: "Phone required" });
-    if (!hasTwilio) return res.status(500).json({ error: "Twilio not configured on server" });
-
-    const pool = await getPool();
-    const userCheck = await pool
-      .request()
-      .input("Phone", sql.NVarChar(32), phone)
-      .query(`SELECT TOP 1 Id FROM dbo.Users WHERE Phone=@Phone`);
-
-    if (!userCheck.recordset.length) return res.status(400).json({ error: "Phone not found" });
-
-    await twilioClient.verify.v2.services(process.env.TWILIO_VERIFY_SERVICE_SID)
-      .verifications.create({ to: phone, channel: "sms" });
-
-    res.json({ message: "Code sent" });
-  } catch (err) {
-    res.status(500).json({ error: "Send code failed", details: err.message });
-  }
-});
-
-app.post("/api/verify-reset-code", async (req, res) => {
-  try {
-    const phone = normalizePhone(req.body?.phone);
-    const code = String(req.body?.code || "").trim();
-    if (!phone || !code) return res.status(400).json({ error: "Phone & code required" });
-    if (!hasTwilio) return res.status(500).json({ error: "Twilio not configured on server" });
-
-    const check = await twilioClient.verify.v2.services(process.env.TWILIO_VERIFY_SERVICE_SID)
-      .verificationChecks.create({ to: phone, code });
-
-    if (check.status !== "approved") return res.status(400).json({ error: "Invalid code" });
-
-    const resetToken = createResetToken(phone);
-    res.json({ message: "Verified", resetToken });
-  } catch (err) {
-    res.status(500).json({ error: "Verify failed", details: err.message });
-  }
-});
-
-app.post("/api/reset-password", async (req, res) => {
-  try {
-    const phone = normalizePhone(req.body?.phone);
-    const newPassword = String(req.body?.newPassword || "");
-    const resetToken = String(req.body?.resetToken || "");
-
-    if (!phone || !newPassword) return res.status(400).json({ error: "Bad input" });
-    if (newPassword.length < 8) return res.status(400).json({ error: "Password must be at least 8 characters" });
-
-    if (!resetToken || !verifyResetToken(resetToken, phone)) {
-      return res.status(400).json({ error: "Reset token missing/expired. Please verify code again." });
-    }
-
-    const hash = await bcrypt.hash(newPassword, 10);
-    const pool = await getPool();
-
-    const upd = await pool
-      .request()
-      .input("Phone", sql.NVarChar(32), phone)
-      .input("PasswordHash", sql.NVarChar(255), hash)
-      .query(`UPDATE dbo.Users SET PasswordHash=@PasswordHash WHERE Phone=@Phone`);
-
-    consumeResetToken(resetToken);
-
-    if (!upd.rowsAffected?.[0]) return res.status(400).json({ error: "Phone not found" });
-    res.json({ message: "Password updated" });
-  } catch (err) {
-    res.status(500).json({ error: "Reset failed", details: err.message });
-  }
-});
-
-// Root
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
-// Start
-(async () => {
-  try {
-    await ensureTables();
-    app.listen(PORT, () => console.log("Server running on port", PORT));
-  } catch (err) {
-    console.error("Startup failed:", err);
-    process.exit(1);
-  }
-})();
+    } else if (normalizedType === "bp") {
+      const parts = safeValue

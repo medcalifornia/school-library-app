@@ -618,3 +618,59 @@ input:focus, select:focus{
   line-height: 1.35;
   color: var(--muted2);
 }
+/* =========================
+   NEW Professional Chart
+   ========================= */
+
+.chart-card{
+  margin-top: 14px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  overflow: hidden;
+}
+
+.chart-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 12px 8px;
+}
+
+.chart-title{
+  font-weight: 900;
+  letter-spacing: 0.2px;
+  font-size: 14px;
+}
+
+.legend-inline{
+  display:flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.lg{
+  font-size: 11px;
+  font-weight: 900;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.06);
+}
+
+.lg-g{ box-shadow: inset 0 0 0 999px rgba(76,125,255,0.10); }
+.lg-s{ box-shadow: inset 0 0 0 999px rgba(60,255,151,0.10); }
+.lg-d{ box-shadow: inset 0 0 0 999px rgba(255,77,109,0.10); }
+
+.chart-canvas{
+  height: 210px;            /* ✅ fixed height for iPhone */
+  padding: 0 10px 10px;
+}
+
+.chart-canvas canvas{
+  width: 100% !important;
+  height: 100% !important;  /* ✅ prevents weird scaling overlay */
+  display:block;
+}

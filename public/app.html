@@ -146,7 +146,7 @@
             </div>
           </div>
 
-          <!-- ✅ Professional Chart -->
+          <!-- ✅ FINAL PROFESSIONAL CHART (iPhone-safe) -->
           <div class="chart-card">
             <div class="chart-head">
               <div>
@@ -162,7 +162,9 @@
             </div>
 
             <div class="chart-canvas">
-              <canvas id="healthChart"></canvas>
+              <div class="chart-plot">
+                <canvas id="healthChart"></canvas>
+              </div>
             </div>
           </div>
 
@@ -293,14 +295,6 @@
       document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
       document.querySelector(`.tab[data-tab="${name}"]`).classList.add("active");
       document.getElementById("tab-" + name).classList.add("active");
-
-      // ✅ iPhone: chart sometimes needs resize when tab becomes visible
-      if (name === "dashboard") {
-        requestAnimationFrame(() => {
-          if (healthChart) healthChart.resize();
-          else renderHealthChart();
-        });
-      }
     }
 
     function toggleForm(which) {
@@ -330,7 +324,6 @@
     async function loadUserHeader() {
       if (!requireAuth()) return;
       const { name, email } = getAuth();
-
       document.getElementById("whoamiText").textContent = name || email || "Signed in";
       document.getElementById("subtitle").textContent =
         (email ? email : "Welcome back") + " • " + new Date().toLocaleString();
@@ -423,7 +416,7 @@
     function latestOfType(type) {
       const list = allReadings.filter(r => String(r.type).toLowerCase() === type);
       if (!list.length) return null;
-      return list[0]; // sorted DESC
+      return list[0];
     }
 
     function computeSummary() {
@@ -479,11 +472,10 @@
         const type = row.type || "—";
         const value = row.value || "—";
         const note = row.note || "";
-        const id = row.id || "";
+        const id = String(row.id || "").replace(/'/g, "\\'"); // safe for onclick
 
-        // ✅ SAFE passing for prompt (no HTML escaping inside prompt)
-        const vEnc = encodeURIComponent(String(value));
-        const nEnc = encodeURIComponent(String(note));
+        const vJS = JSON.stringify(String(value));
+        const nJS = JSON.stringify(String(note));
 
         return `
           <tr>
@@ -492,8 +484,8 @@
             <td>${escapeHtml(String(value))}</td>
             <td class="muted">${escapeHtml(note)}</td>
             <td class="td-actions">
-              <button class="mini-btn" type="button" onclick="editReadingPrompt('${escapeHtml(id)}','${vEnc}','${nEnc}')">Edit</button>
-              <button class="mini-btn danger" type="button" onclick="deleteReading('${escapeHtml(id)}')">Delete</button>
+              <button class="mini-btn" type="button" onclick="editReadingPrompt('${id}', ${vJS}, ${nJS})">Edit</button>
+              <button class="mini-btn danger" type="button" onclick="deleteReading('${id}')">Delete</button>
             </td>
           </tr>
         `;
@@ -506,28 +498,21 @@
       if (page < totalPages) { page++; renderHistoryPage(); }
     }
 
-    async function editReadingPrompt(id, valueEnc, noteEnc) {
+    async function editReadingPrompt(id, currentValue, currentNote) {
       if (!requireAuth()) return;
       const { userId } = getAuth();
 
-      const currentValue = decodeURIComponent(valueEnc || "");
-      const currentNote = decodeURIComponent(noteEnc || "");
-
-      const newValue = prompt("Edit value:", currentValue);
+      const newValue = prompt("Edit value:", currentValue || "");
       if (newValue === null) return;
 
-      const newNote = prompt("Edit note (optional):", currentNote);
+      const newNote = prompt("Edit note (optional):", currentNote || "");
       if (newNote === null) return;
 
       try {
         const r = await fetch(`/api/readings/${encodeURIComponent(id)}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            userId,
-            value: String(newValue).trim(),
-            note: String(newNote || "").trim()
-          })
+          body: JSON.stringify({ userId, value: String(newValue).trim(), note: String(newNote || "").trim() })
         });
         const data = await r.json().catch(() => ({}));
         if (!r.ok) throw new Error(data.error || "Update failed");
@@ -603,7 +588,7 @@
     }
 
     // =========================
-    // Chart (FINAL iPhone SAFE + BP visible)
+    // FINAL Chart (iPhone stable)
     // =========================
     let healthChart;
 
@@ -643,7 +628,9 @@
         if (t === "glucose") {
           const v = Number(r.value);
           if (!Number.isNaN(v)) buckets[k].g.push(v);
-        } else if (t === "bp") {
+        }
+
+        if (t === "bp") {
           const parts = String(r.value || "").split("/");
           if (parts.length === 2) {
             const s = Number(parts[0]);
@@ -664,18 +651,12 @@
       for (const d of daysArr) {
         const k = dayKey(d);
         const b = buckets[k] || { g: [], sys: [], dia: [] };
-
-        glucose.push(avg(b.g)); // can be null
-        sys.push(avg(b.sys));   // can be null
-        dia.push(avg(b.dia));   // can be null
+        glucose.push(avg(b.g));
+        sys.push(avg(b.sys));
+        dia.push(avg(b.dia));
       }
 
       return { labels, glucose, sys, dia };
-    }
-
-    function cssVar(name, fallback) {
-      const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-      return v || fallback;
     }
 
     function renderHealthChart() {
@@ -684,13 +665,15 @@
 
       const { labels, glucose, sys, dia } = buildTrend(14);
 
-      if (healthChart) healthChart.destroy();
+      if (healthChart) {
+        healthChart.destroy();
+        healthChart = null;
+      }
 
       const ctx = el.getContext("2d");
 
-      const cGlucose = cssVar("--primary", "#4c7dff");
-      const cSys = "#3cff97";
-      const cDia = cssVar("--danger", "#ff4d6d");
+      // small safe defaults to avoid iOS weird paints
+      Chart.defaults.animation = false;
 
       healthChart = new Chart(ctx, {
         type: "line",
@@ -704,9 +687,7 @@
               tension: 0.35,
               pointRadius: 2,
               pointHoverRadius: 4,
-              spanGaps: false,
-              borderColor: cGlucose,
-              borderWidth: 2
+              spanGaps: true
             },
             {
               label: "SYS",
@@ -715,9 +696,7 @@
               tension: 0.35,
               pointRadius: 2,
               pointHoverRadius: 4,
-              spanGaps: false,
-              borderColor: cSys,
-              borderWidth: 2
+              spanGaps: true
             },
             {
               label: "DIA",
@@ -726,21 +705,25 @@
               tension: 0.35,
               pointRadius: 2,
               pointHoverRadius: 4,
-              spanGaps: false,
-              borderColor: cDia,
-              borderWidth: 2
+              spanGaps: true
             }
           ]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
+
+          // ✅ iPhone stability
+          devicePixelRatio: 1,
           animation: false,
-          devicePixelRatio: 1, // ✅ iPhone stability
+
+          // better touch experience
           interaction: { mode: "index", intersect: false },
+
           plugins: {
             legend: { display: false },
             tooltip: {
+              displayColors: true,
               callbacks: {
                 label: (c) => {
                   const v = c.parsed.y;
@@ -751,8 +734,17 @@
               }
             }
           },
+
+          elements: {
+            line: { borderWidth: 3 },
+            point: { hitRadius: 16 }
+          },
+
           scales: {
-            x: { grid: { display: false } },
+            x: {
+              grid: { display: false },
+              ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 7 }
+            },
             yG: {
               position: "left",
               title: { display: true, text: "mg/dL" },
@@ -778,8 +770,12 @@
         computeSummary();
         computeInsights();
         renderHistoryPage();
-        renderHealthChart();
-        document.getElementById("lastSync").textContent = "Updated " + new Date().toLocaleTimeString();
+
+        // wait one frame so layout is final before chart paint (helps Safari)
+        requestAnimationFrame(() => renderHealthChart());
+
+        document.getElementById("lastSync").textContent =
+          "Updated " + new Date().toLocaleTimeString();
       } catch {
         document.getElementById("todayLine").textContent = "Could not load readings (check DB/API).";
         document.getElementById("readingsBody").innerHTML =
@@ -790,10 +786,6 @@
     // Init
     loadUserHeader();
     if (requireAuth()) refreshAll();
-
-    // ✅ Helps iPhone when rotating / resizing
-    window.addEventListener("orientationchange", () => setTimeout(() => healthChart?.resize(), 200));
-    window.addEventListener("resize", () => healthChart?.resize());
   </script>
 </body>
 </html>

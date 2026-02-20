@@ -67,6 +67,13 @@
     <button class="btn" onclick="saveBP()">Save Blood Pressure</button>
   </div>
 
+  <!-- ✅ Chart FIRST -->
+  <div class="card">
+    <h3>Chart</h3>
+    <canvas id="chart" height="120"></canvas>
+  </div>
+
+  <!-- ✅ My Readings AFTER Chart -->
   <div class="card">
     <div class="row-between">
       <h3>My Readings</h3>
@@ -92,11 +99,6 @@
     </div>
   </div>
 
-  <div class="card">
-    <h3>Chart</h3>
-    <canvas id="chart" height="120"></canvas>
-  </div>
-
 </div>
 
 <script>
@@ -104,16 +106,10 @@ const userId = localStorage.getItem("userId");
 if (!userId) location.href = "/index.html";
 
 hello.textContent = "Hello, " + (localStorage.getItem("name") || "");
-function renderNow(){
-  const d = new Date();
-  now.textContent = d.toLocaleString();
-}
-renderNow();
-setInterval(renderNow, 1000);
-// ===== Live Date/Time =====
+
+// ===== Live Date/Time (clean: only once) =====
 function updateNow(){
-  const d = new Date();
-  now.textContent = d.toLocaleString();
+  now.textContent = new Date().toLocaleString();
 }
 updateNow();
 setInterval(updateNow, 1000);
@@ -146,9 +142,8 @@ function bpHtml(v){
   if (Number.isNaN(s) || Number.isNaN(d)) return String(v);
 
   let cls = "bp-low"; // Normal
-
   if (s >= 120 && s <= 129 && d < 80) cls = "bp-mid"; // Elevated
-  if (s >= 130 || d >= 80) cls = "bp-high"; // High (Stage 1/2)
+  if (s >= 130 || d >= 80) cls = "bp-high"; // High
 
   return `<span class="${cls}">${s}/${d}</span>`;
 }
@@ -219,15 +214,12 @@ async function loadAll(){
 
   for (const r of data.slice().reverse()) {
     const dt = new Date(r.ts).toLocaleString();
-
     const tr = document.createElement("tr");
 
-// add background class based on type
-if (r.type === "glucose") {
-  tr.classList.add("row-glucose");
-} else if (r.type === "bp") {
-  tr.classList.add("row-bp");
-}
+    // background class based on type
+    if (r.type === "glucose") tr.classList.add("row-glucose");
+    if (r.type === "bp") tr.classList.add("row-bp");
+
     tr.innerHTML = `
       <td data-label="Date/Time">${dt}</td>
       <td data-label="Type">${fmtType(r.type)}</td>

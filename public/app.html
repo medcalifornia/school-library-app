@@ -676,8 +676,9 @@
           ]
         },
         options: {
-          responsive: true,
-          maintainAspectRatio: false,  // ✅ fixes iPhone weird overlay/resize
+  responsive: true,
+  maintainAspectRatio: false,
+  devicePixelRatio: 1,     // ✅ يثبت رندر iPhone ويمنع الطبقات الغريبة
           animation: false,
           interaction: { mode: "index", intersect: false },
           plugins: {

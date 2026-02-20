@@ -8,23 +8,23 @@
 </head>
 
 <body class="login-page">
+
   <div class="container">
     <div class="card">
 
       <div class="login-head">
-  <div class="brand-row">
-    <img src="./images/logo.png" alt="DahniTech Logo" class="brand-logo">
-    <h2 class="login-title">Health Tracker</h2>
-  </div>
-  <p class="muted">Login to continue</p>
-</div>
+        <div class="brand-row">
+          <img src="./images/logo.png" alt="DahniTech Logo" class="brand-logo">
+          <h2 class="login-title">Health Tracker</h2>
+        </div>
+        <p class="muted">Login to continue</p>
+      </div>
 
       <input id="email" type="email" placeholder="Email" autocomplete="email" />
       <input id="password" type="password" placeholder="Password" autocomplete="current-password" />
 
       <button class="btn" onclick="login()">Login</button>
 
-      <!-- ✅ links side-by-side (professional) -->
       <div class="links-pro">
         <a class="link-btn" href="./register.html">Create account</a>
         <a class="link-btn link-ghost" href="./forgot.html">Forgot password?</a>
@@ -32,13 +32,25 @@
 
       <div id="msg" class="msg"></div>
 
-      <!-- ✅ FIXED IMAGE PATH (your file is inside /images/) -->
       <div class="hero-image">
         <img src="./images/health-app.jpg" alt="Health Tracker" />
       </div>
 
     </div>
   </div>
+
+  <!-- ================= FOOTER SIGNATURE ================= -->
+  <footer class="app-footer">
+    <div class="footer-inner">
+      <p>© 2026 El Mehdi Dahni</p>
+      <p>DahniTech Solutions</p>
+      <p>Health Tracker – Beta Version</p>
+      <p class="footer-small">
+        Developed as a personal academic project during studies at Cerritos College.
+      </p>
+    </div>
+  </footer>
+  <!-- ===================================================== -->
 
 <script>
 async function login(){

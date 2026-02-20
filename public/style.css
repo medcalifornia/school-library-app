@@ -384,3 +384,34 @@ button:disabled {
   border-radius: 14px;
   font-size: 16px;
 }
+/* Pagination */
+.pager{
+  margin-top: 14px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.pager-num{
+  border: 1px solid #d9d9e3;
+  background: #fff;
+  color: #111;
+  font-weight: 700;
+  padding: 10px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  min-width: 44px;
+}
+
+.pager-num.active{
+  background: #4a6cf7;
+  color: #fff;
+  border-color: #4a6cf7;
+}
+
+.pager-dots{
+  padding: 0 6px;
+  color: #666;
+  font-weight: 700;
+}

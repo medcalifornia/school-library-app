@@ -229,7 +229,7 @@
 
   <script>
     // =========================
-    // Storage helpers
+    // Storage helpers (matches your /api/login response)
     // =========================
     function getAuth() {
       return {
@@ -400,7 +400,7 @@
     function latestOfType(type) {
       const list = allReadings.filter(r => String(r.type).toLowerCase() === type);
       if (!list.length) return null;
-      return list[0]; // because we sort newest-first
+      return list[list.length - 1];
     }
 
     function computeSummary() {
@@ -430,70 +430,64 @@
       allReadings = Array.isArray(data) ? data.slice().sort((a,b) => {
         const da = parseTs(a.ts)?.getTime() || 0;
         const db = parseTs(b.ts)?.getTime() || 0;
-        return db - da; // newest first
+        return db - da;
       }) : [];
     }
 
-    // ✅ FIXED CHART (removes blue overlay on iPhone)
+    // ✅ FIXED chart config to avoid the “blue overlay” on iPhone
     async function loadChart() {
       if (!requireAuth()) return;
       const { userId } = getAuth();
 
-      const r = await fetch(`/api/chart/${encodeURIComponent(userId)}`);
-      const data = await r.json();
-      if (!r.ok) throw new Error(data?.error || "Chart failed");
+      const ctx = document.getElementById("trendChart").getContext("2d");
 
-      const labels = data.labels || [];
-      const glucoseAvg = data.glucoseAvg || [];
-      const sysAvg = data.sysAvg || [];
-      const diaAvg = data.diaAvg || [];
+      try {
+        const r = await fetch(`/api/chart/${encodeURIComponent(userId)}`);
+        const data = await r.json();
+        if (!r.ok) throw new Error(data?.error || "Chart failed");
 
-      const canvas = document.getElementById("trendChart");
-      const ctx = canvas.getContext("2d");
-      if (chart) chart.destroy();
+        const labels = data.labels || [];
+        const glucoseAvg = data.glucoseAvg || [];
 
-      chart = new Chart(ctx, {
-        type: "line",
-        data: {
-          labels,
-          datasets: [
-            {
+        if (chart) chart.destroy();
+
+        chart = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels,
+            datasets: [{
               label: "Glucose Avg",
               data: glucoseAvg,
               tension: 0.35,
-              fill: false,
-              backgroundColor: "transparent"
+              fill: false,                 // ✅ important
+              backgroundColor: "transparent",
+              pointRadius: 3,
+              pointHoverRadius: 5,
+              borderWidth: 3
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,   // ✅ important (CSS controls height)
+            animation: false,             // ✅ avoids iOS glitches
+            interaction: { mode: "index", intersect: false },
+            plugins: {
+              legend: { display: true }
             },
-            {
-              label: "BP Systolic Avg",
-              data: sysAvg,
-              tension: 0.35,
-              fill: false,
-              backgroundColor: "transparent"
-            },
-            {
-              label: "BP Diastolic Avg",
-              data: diaAvg,
-              tension: 0.35,
-              fill: false,
-              backgroundColor: "transparent"
+            scales: {
+              x: { ticks: { maxRotation: 0, autoSkip: true } },
+              y: { beginAtZero: false }
             }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          elements: {
-            line: { fill: false }
-          },
-          plugins: {
-            legend: { display: true }
-          },
-          scales: {
-            y: { beginAtZero: false }
           }
-        }
-      });
+        });
+      } catch (e) {
+        if (chart) chart.destroy();
+        chart = new Chart(ctx, {
+          type: "line",
+          data: { labels: [], datasets: [{ label: "Glucose Avg", data: [], fill:false }] },
+          options: { responsive: true, maintainAspectRatio:false, plugins: { legend: { display: false } }, animation:false }
+        });
+      }
     }
 
     function renderHistoryPage() {
@@ -519,11 +513,6 @@
         const value = row.value || "—";
         const note = row.note || "";
         const id = row.id || "";
-
-        // keep prompts safe (avoid quote breaking)
-        const safeValue = String(value).replace(/'/g, "\\'");
-        const safeNote = String(note).replace(/'/g, "\\'");
-
         return `
           <tr>
             <td>${escapeHtml(date)}</td>
@@ -531,7 +520,8 @@
             <td>${escapeHtml(String(value))}</td>
             <td class="muted">${escapeHtml(note)}</td>
             <td class="td-actions">
-              <button class="mini-btn" type="button" onclick="editReadingPrompt('${id}', '${safeValue}', '${safeNote}')">Edit</button>
+              <button class="mini-btn" type="button"
+                onclick="editReadingPrompt('${id}', '${escapeHtml(String(value))}', '${escapeHtml(String(note))}')">Edit</button>
               <button class="mini-btn danger" type="button" onclick="deleteReading('${id}')">Delete</button>
             </td>
           </tr>
@@ -648,6 +638,16 @@
           `<tr><td colspan="5" class="muted">Could not load history.</td></tr>`;
       }
     }
+
+    // ✅ iPhone: re-render chart on resize/orientation
+    window.addEventListener("resize", () => {
+      if (requireAuth()) {
+        clearTimeout(window.__resizeTimer);
+        window.__resizeTimer = setTimeout(() => {
+          loadChart();
+        }, 250);
+      }
+    });
 
     // Init
     loadUserHeader();

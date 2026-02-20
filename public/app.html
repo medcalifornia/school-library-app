@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Health Tracker</title>
   <link rel="stylesheet" href="./style.css" />
 </head>
@@ -145,8 +145,8 @@
             </div>
           </div>
 
-          <!-- ✅ SVG CHART (Professional, iPhone-safe) -->
-          <div class="chart-card">
+          <!-- ✅ FINAL: SVG CHART (NO CANVAS, NO Chart.js) -->
+          <div class="chart-card" id="trendCard">
             <div class="chart-head">
               <div>
                 <div class="chart-title">Trends</div>
@@ -160,9 +160,12 @@
               </div>
             </div>
 
-            <div class="sv-chart-wrap" id="svWrap" aria-label="Health trends chart">
+            <div class="sv-chart-wrap" id="svWrap">
               <div class="chart-tooltip" id="svTip"></div>
-              <svg class="sv-chart" id="svChart" viewBox="0 0 1000 240" preserveAspectRatio="none" aria-hidden="true"></svg>
+
+              <svg class="sv-chart" id="svChart" viewBox="0 0 1000 260" preserveAspectRatio="none" aria-label="Trend chart">
+                <!-- Grid + axes drawn by JS -->
+              </svg>
             </div>
           </div>
 
@@ -415,7 +418,7 @@
     function latestOfType(type) {
       const list = allReadings.filter(r => String(r.type).toLowerCase() === type);
       if (!list.length) return null;
-      return list[0];
+      return list[0]; // because we sort DESC
     }
 
     function computeSummary() {
@@ -442,6 +445,7 @@
       const data = await r.json();
       if (!r.ok) throw new Error(data?.error || "Load failed");
 
+      // Sort DESC newest first
       allReadings = Array.isArray(data) ? data.slice().sort((a, b) => {
         const da = parseTs(a.ts)?.getTime() || 0;
         const db = parseTs(b.ts)?.getTime() || 0;
@@ -583,8 +587,12 @@
     }
 
     // =========================
-    // SVG Chart (NO Chart.js)
+    // ✅ SVG CHART (Dual-scale, iPhone-safe)
     // =========================
+    const SVG_W = 1000;
+    const SVG_H = 260;
+    const PAD_L = 64, PAD_R = 64, PAD_T = 18, PAD_B = 42;
+
     function dayKey(d) {
       const x = new Date(d);
       const y = x.getFullYear();
@@ -649,7 +657,21 @@
         dia.push(avg(b.dia));
       }
 
-      return { labels, glucose, sys, dia };
+      return { labels, daysArr, glucose, sys, dia };
+    }
+
+    function niceRange(min, max) {
+      if (!isFinite(min) || !isFinite(max)) return { min: 0, max: 1 };
+      if (min === max) {
+        return { min: min - 1, max: max + 1 };
+      }
+      const span = max - min;
+      const step = Math.pow(10, Math.floor(Math.log10(span)));
+      const pad = step * 0.2;
+      return {
+        min: Math.floor((min - pad) / step) * step,
+        max: Math.ceil((max + pad) / step) * step
+      };
     }
 
     function svgEl(name, attrs = {}) {
@@ -658,28 +680,38 @@
       return el;
     }
 
-    function calcDomain(values, fallbackMin, fallbackMax) {
-      const clean = values.filter(v => typeof v === "number" && !Number.isNaN(v));
-      if (!clean.length) return { min: fallbackMin, max: fallbackMax };
-      let mn = Math.min(...clean);
-      let mx = Math.max(...clean);
-      if (mn === mx) { mn -= 10; mx += 10; }
-      const pad = Math.max(5, Math.round((mx - mn) * 0.12));
-      return { min: mn - pad, max: mx + pad };
+    function clearSvg(svg) {
+      while (svg.firstChild) svg.removeChild(svg.firstChild);
     }
 
-    function toY(v, min, max, top, height) {
-      if (v === null || v === undefined || Number.isNaN(v)) return null;
-      const t = (v - min) / (max - min);
-      const y = top + (1 - t) * height;
-      return y;
+    function xAt(i, n) {
+      const w = SVG_W - PAD_L - PAD_R;
+      if (n <= 1) return PAD_L + w / 2;
+      return PAD_L + (i * (w / (n - 1)));
     }
 
-    function buildPath(points) {
-      // points: [{x,y,idx,val}] with y != null
-      if (!points.length) return "";
-      let d = `M ${points[0].x} ${points[0].y}`;
-      for (let i = 1; i < points.length; i++) d += ` L ${points[i].x} ${points[i].y}`;
+    function yAt(v, r) {
+      const h = SVG_H - PAD_T - PAD_B;
+      if (v === null || v === undefined || !isFinite(v)) return null;
+      const t = (v - r.min) / (r.max - r.min);
+      return (PAD_T + h) - (t * h);
+    }
+
+    function buildPath(values, n, yMap) {
+      let d = "";
+      let started = false;
+
+      for (let i = 0; i < n; i++) {
+        const y = yMap(values[i]);
+        if (y === null) { started = false; continue; }
+        const x = xAt(i, n);
+        if (!started) {
+          d += `M ${x} ${y}`;
+          started = true;
+        } else {
+          d += ` L ${x} ${y}`;
+        }
+      }
       return d;
     }
 
@@ -689,199 +721,167 @@
       const tip = document.getElementById("svTip");
       if (!svg || !wrap || !tip) return;
 
-      // reset
-      svg.innerHTML = "";
-      tip.classList.remove("show");
-      tip.textContent = "";
-
-      const { labels, glucose, sys, dia } = buildTrend(14);
-
-      // layout
-      const W = 1000, H = 240;
-      const padL = 42, padR = 22, padT = 14, padB = 26;
-      const plotW = W - padL - padR;
-      const plotH = H - padT - padB;
-
-      // domains (separate scales)
-      const gDom = calcDomain(glucose, 70, 180);
-      const bpDom = calcDomain([...sys, ...dia], 60, 160);
-
-      // x positions
+      const { labels, daysArr, glucose, sys, dia } = buildTrend(14);
       const n = labels.length;
-      const xs = Array.from({ length: n }, (_, i) => padL + (plotW * (n === 1 ? 0 : i / (n - 1))));
 
-      // background grid lines (subtle)
-      const grid = svgEl("g", { opacity: "0.55" });
-      for (let i = 0; i < 4; i++) {
-        const y = padT + (plotH * (i / 3));
-        grid.appendChild(svgEl("line", {
-          x1: padL, x2: W - padR, y1: y, y2: y,
-          stroke: "rgba(255,255,255,0.10)",
-          "stroke-width": "1"
+      const gNums = glucose.filter(v => v !== null && isFinite(v));
+      const bpNums = sys.concat(dia).filter(v => v !== null && isFinite(v));
+
+      const gR = niceRange(Math.min(...(gNums.length ? gNums : [80])), Math.max(...(gNums.length ? gNums : [180])));
+      const bpR = niceRange(Math.min(...(bpNums.length ? bpNums : [60])), Math.max(...(bpNums.length ? bpNums : [140])));
+
+      clearSvg(svg);
+
+      // Background
+      svg.appendChild(svgEl("rect", { x: 0, y: 0, width: SVG_W, height: SVG_H, rx: 18, ry: 18, fill: "rgba(255,255,255,0.02)" }));
+
+      // Grid (4 lines)
+      const gridGroup = svgEl("g", { opacity: "0.55" });
+      const h = SVG_H - PAD_T - PAD_B;
+      for (let i = 0; i <= 4; i++) {
+        const y = PAD_T + (i * (h / 4));
+        gridGroup.appendChild(svgEl("line", {
+          x1: PAD_L, y1: y,
+          x2: SVG_W - PAD_R, y2: y,
+          stroke: "rgba(255,255,255,0.10)", "stroke-width": 1
         }));
       }
-      svg.appendChild(grid);
+      svg.appendChild(gridGroup);
 
-      // x labels (first, middle, last)
-      const xLab = svgEl("g", { opacity: "0.75" });
-      const ix = [0, Math.floor((n - 1) / 2), n - 1].filter((v, i, a) => a.indexOf(v) === i);
-      for (const i of ix) {
-        xLab.appendChild(svgEl("text", {
-          x: xs[i],
-          y: H - 8,
-          "text-anchor": i === 0 ? "start" : (i === n - 1 ? "end" : "middle"),
-          fill: "rgba(255,255,255,0.55)",
-          "font-size": "11",
-          "font-weight": "700"
+      // Axes labels (left mg/dL, right mmHg)
+      const axisGroup = svgEl("g", { opacity: "0.70" });
+      const ticks = 4;
+      for (let i = 0; i <= ticks; i++) {
+        const y = PAD_T + (i * (h / ticks));
+
+        const gVal = Math.round(gR.max - (i * (gR.max - gR.min) / ticks));
+        const bpVal = Math.round(bpR.max - (i * (bpR.max - bpR.min) / ticks));
+
+        axisGroup.appendChild(svgEl("text", {
+          x: PAD_L - 10, y: y + 4,
+          "text-anchor": "end",
+          "font-size": "12",
+          fill: "rgba(255,255,255,0.55)"
+        })).textContent = String(gVal);
+
+        axisGroup.appendChild(svgEl("text", {
+          x: SVG_W - PAD_R + 10, y: y + 4,
+          "text-anchor": "start",
+          "font-size": "12",
+          fill: "rgba(255,255,255,0.55)"
+        })).textContent = String(bpVal);
+      }
+
+      // X labels (start / middle / end)
+      const xLabelGroup = svgEl("g", { opacity: "0.70" });
+      const idxs = [0, Math.floor((n - 1) / 2), n - 1].filter((v, i, a) => a.indexOf(v) === i);
+      for (const i of idxs) {
+        xLabelGroup.appendChild(svgEl("text", {
+          x: xAt(i, n), y: SVG_H - 16,
+          "text-anchor": "middle",
+          "font-size": "12",
+          fill: "rgba(255,255,255,0.55)"
         })).textContent = labels[i];
       }
-      svg.appendChild(xLab);
+      svg.appendChild(axisGroup);
+      svg.appendChild(xLabelGroup);
 
-      // helper to create series points
-      function seriesPoints(values, min, max) {
-        const pts = [];
-        for (let i = 0; i < n; i++) {
-          const v = values[i];
-          const y = toY(v, min, max, padT, plotH);
-          if (y === null) continue;
-          pts.push({ x: xs[i], y, idx: i, val: v });
-        }
-        return pts;
-      }
+      // Lines
+      const lineGroup = svgEl("g", { fill: "none", "stroke-linecap": "round", "stroke-linejoin": "round" });
 
-      const gPts = seriesPoints(glucose, gDom.min, gDom.max);
-      const sPts = seriesPoints(sys, bpDom.min, bpDom.max);
-      const dPts = seriesPoints(dia, bpDom.min, bpDom.max);
+      const yG = (v) => yAt(v, gR);
+      const yBP = (v) => yAt(v, bpR);
 
-      // paths
-      const gPath = svgEl("path", {
-        d: buildPath(gPts),
-        fill: "none",
+      const dG = buildPath(glucose, n, yG);
+      const dS = buildPath(sys, n, yBP);
+      const dD = buildPath(dia, n, yBP);
+
+      // Glucose
+      lineGroup.appendChild(svgEl("path", {
+        d: dG,
         stroke: "rgba(76,125,255,0.95)",
-        "stroke-width": "2.6",
-        "stroke-linecap": "round",
-        "stroke-linejoin": "round"
-      });
+        "stroke-width": 4
+      }));
+      // SYS
+      lineGroup.appendChild(svgEl("path", {
+        d: dS,
+        stroke: "rgba(60,255,151,0.95)",
+        "stroke-width": 4
+      }));
+      // DIA
+      lineGroup.appendChild(svgEl("path", {
+        d: dD,
+        stroke: "rgba(255,77,109,0.95)",
+        "stroke-width": 4
+      }));
 
-      const sPath = svgEl("path", {
-        d: buildPath(sPts),
-        fill: "none",
-        stroke: "rgba(60,255,151,0.90)",
-        "stroke-width": "2.2",
-        "stroke-linecap": "round",
-        "stroke-linejoin": "round"
-      });
+      svg.appendChild(lineGroup);
 
-      const dPath = svgEl("path", {
-        d: buildPath(dPts),
-        fill: "none",
-        stroke: "rgba(255,77,109,0.88)",
-        "stroke-width": "2.2",
-        "stroke-linecap": "round",
-        "stroke-linejoin": "round"
-      });
+      // Points (last available point each series)
+      function lastPoint(values, yMap, color) {
+        for (let i = values.length - 1; i >= 0; i--) {
+          const v = values[i];
+          const y = yMap(v);
+          if (y === null) continue;
+          const x = xAt(i, n);
 
-      // If no data at all -> show message
-      if (!gPts.length && !sPts.length && !dPts.length) {
-        const msg = svgEl("text", {
-          x: W / 2,
-          y: H / 2,
-          "text-anchor": "middle",
-          fill: "rgba(255,255,255,0.60)",
-          "font-size": "13",
-          "font-weight": "800"
-        });
-        msg.textContent = "No chart data yet — add readings to see trends";
-        svg.appendChild(msg);
-        return;
-      }
-
-      svg.appendChild(gPath);
-      svg.appendChild(sPath);
-      svg.appendChild(dPath);
-
-      // last points highlight (optional)
-      function addLastDot(pts, color) {
-        if (!pts.length) return;
-        const p = pts[pts.length - 1];
-        svg.appendChild(svgEl("circle", { cx: p.x, cy: p.y, r: "4.2", fill: color, opacity: "0.95" }));
-        svg.appendChild(svgEl("circle", { cx: p.x, cy: p.y, r: "10", fill: color, opacity: "0.12" }));
-      }
-      addLastDot(gPts, "rgba(76,125,255,1)");
-      addLastDot(sPts, "rgba(60,255,151,1)");
-      addLastDot(dPts, "rgba(255,77,109,1)");
-
-      // hover line + interaction
-      const hoverLine = svgEl("line", {
-        x1: padL, x2: padL, y1: padT, y2: padT + plotH,
-        stroke: "rgba(255,255,255,0.18)",
-        "stroke-width": "1",
-        opacity: "0"
-      });
-      svg.appendChild(hoverLine);
-
-      // Build lookup by day index
-      function nearestIndex(clientX) {
-        const rect = wrap.getBoundingClientRect();
-        const x = ((clientX - rect.left) / rect.width) * W;
-        // clamp
-        const cx = Math.max(padL, Math.min(W - padR, x));
-        // find nearest
-        let best = 0;
-        let bestDist = Infinity;
-        for (let i = 0; i < n; i++) {
-          const dist = Math.abs(xs[i] - cx);
-          if (dist < bestDist) { bestDist = dist; best = i; }
+          svg.appendChild(svgEl("circle", {
+            cx: x, cy: y, r: 7,
+            fill: "rgba(11,18,32,0.85)",
+            stroke: color,
+            "stroke-width": 4
+          }));
+          return { i, x, y, v };
         }
-        return { i: best, x: xs[best] };
+        return null;
       }
 
-      function showTip(i, lineX) {
-        const g = glucose[i];
-        const s = sys[i];
-        const di = dia[i];
+      const lpG = lastPoint(glucose, yG, "rgba(76,125,255,0.95)");
+      const lpS = lastPoint(sys, yBP, "rgba(60,255,151,0.95)");
+      const lpD = lastPoint(dia, yBP, "rgba(255,77,109,0.95)");
 
-        const lines = [];
-        lines.push(`Date: ${labels[i]}`);
-        lines.push(`Glucose: ${g ?? "—"} mg/dL`);
-        lines.push(`SYS: ${s ?? "—"} mmHg`);
-        lines.push(`DIA: ${di ?? "—"} mmHg`);
+      // Hover/Tap tooltip (nearest x)
+      function showTipAt(clientX) {
+        const rect = wrap.getBoundingClientRect();
+        const px = Math.min(Math.max(clientX - rect.left, 0), rect.width);
 
-        tip.textContent = lines.join("\n");
+        // map px to nearest index
+        const t = (rect.width <= 1) ? 0 : (px / rect.width);
+        const idx = Math.round(t * (n - 1));
+
+        const dateStr = daysArr[idx].toLocaleDateString(undefined, { month: "2-digit", day: "2-digit", year: "numeric" });
+        const g = glucose[idx];
+        const s = sys[idx];
+        const d = dia[idx];
+
+        tip.innerHTML =
+          `<div style="font-weight:900; margin-bottom:6px;">${dateStr}</div>` +
+          `<div>Glucose: <b>${(g ?? "—")}</b> mg/dL</div>` +
+          `<div>SYS: <b>${(s ?? "—")}</b> mmHg</div>` +
+          `<div>DIA: <b>${(d ?? "—")}</b> mmHg</div>`;
+
         tip.classList.add("show");
-
-        hoverLine.setAttribute("x1", lineX);
-        hoverLine.setAttribute("x2", lineX);
-        hoverLine.setAttribute("opacity", "1");
       }
 
-      function hideTip() {
-        tip.classList.remove("show");
-        hoverLine.setAttribute("opacity", "0");
+      function hideTip() { tip.classList.remove("show"); }
+
+      // Remove previous listeners safely
+      wrap.onpointerdown = null;
+      wrap.onpointermove = null;
+      wrap.onpointerleave = null;
+
+      wrap.onpointerdown = (e) => { showTipAt(e.clientX); };
+      wrap.onpointermove = (e) => { if (tip.classList.contains("show")) showTipAt(e.clientX); };
+      wrap.onpointerleave = () => { hideTip(); };
+
+      // If there is data, show tooltip on last day automatically (subtle)
+      if (lpG || lpS || lpD) {
+        requestAnimationFrame(() => {
+          const rect = wrap.getBoundingClientRect();
+          showTipAt(rect.left + rect.width);
+          setTimeout(() => hideTip(), 1800);
+        });
       }
-
-      // mouse + touch
-      const onMove = (ev) => {
-        const clientX = (ev.touches && ev.touches[0]) ? ev.touches[0].clientX : ev.clientX;
-        const { i, x } = nearestIndex(clientX);
-        showTip(i, x);
-      };
-
-      const onLeave = () => hideTip();
-
-      // clean old listeners (safe)
-      wrap.onmousemove = null;
-      wrap.onmouseleave = null;
-      wrap.ontouchstart = null;
-      wrap.ontouchmove = null;
-      wrap.ontouchend = null;
-
-      wrap.onmousemove = onMove;
-      wrap.onmouseleave = onLeave;
-
-      wrap.ontouchstart = (e) => { onMove(e); };
-      wrap.ontouchmove = (e) => { onMove(e); };
-      wrap.ontouchend = () => { hideTip(); };
     }
 
     // =========================

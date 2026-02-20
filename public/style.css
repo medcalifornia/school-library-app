@@ -259,3 +259,25 @@ table.readings th{
   .container{ margin: 18px auto; }
   .app-title{ font-size: 26px; }
 }
+/* ===== Background by Type ===== */
+
+/* Glucose = light blue */
+.row-glucose{
+  background: #e8f1ff;
+}
+
+/* Blood Pressure = light green */
+.row-bp{
+  background: #e9f8ec;
+}
+
+/* Mobile card border color */
+@media (max-width:560px){
+  .row-glucose{
+    border: 1px solid #c8dcff !important;
+  }
+
+  .row-bp{
+    border: 1px solid #c8f0cf !important;
+  }
+}

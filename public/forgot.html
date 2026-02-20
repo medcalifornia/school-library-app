@@ -1,163 +1,255 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Health Tracker - Forgot Password</title>
-
-  <!-- نفس التصميم الموحد -->
-  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="./style.css">
 </head>
 
-<body>
+<body class="login-page">
 
-<div class="container">
+  <main class="login-wrap">
+    <section class="card login-card" aria-label="Forgot Password">
 
-  <h2>Health Tracker</h2>
+      <header class="login-head">
+        <div class="brand-row">
+          <img src="./images/logo.png" alt="DahniTech Logo" class="brand-logo">
+          <h2 class="login-title">Forgot Password</h2>
+        </div>
+        <p class="muted">Reset your password using SMS verification.</p>
+      </header>
 
-  <div class="card">
-    <h3>Forgot Password (SMS)</h3>
+      <!-- STEP 1 -->
+      <div class="form-block" id="step1">
+        <label class="field">
+          <span class="label">Phone (with country code)</span>
+          <input id="phone" placeholder="+15625551234" inputmode="tel" autocomplete="tel" />
+        </label>
 
-    <!-- STEP 1 -->
-    <div id="step1">
-      <div class="muted">Enter your phone number. We will send a 6-digit code.</div>
-      <input id="phone" placeholder="+12225554444" />
-      <button onclick="sendCode()">Send Code</button>
-      <div class="msg" id="msg1"></div>
-    </div>
+        <button class="btn primary" id="sendBtn" type="button" onclick="sendCode()">
+          <span class="btn-text">Send Code</span>
+          <span class="spinner" aria-hidden="true"></span>
+        </button>
 
-    <!-- STEP 2 -->
-    <div id="step2" style="display:none;">
-      <div class="muted">Code sent to <b id="masked"></b></div>
-      <input id="code" placeholder="6-digit code" maxlength="6" inputmode="numeric" />
-      <div class="rowBtns">
-        <button onclick="verifyCode()">Verify</button>
-        <button onclick="resend()">Resend</button>
+        <div class="muted small" style="margin-top:10px;">
+          Example: +1XXXXXXXXXX
+        </div>
       </div>
-      <button onclick="backTo1()" style="margin-top:10px;">Back</button>
-      <div class="msg" id="msg2"></div>
-    </div>
 
-    <!-- STEP 3 -->
-    <div id="step3" style="display:none;">
-      <div class="muted">Verified ✅ Set a new password.</div>
-      <input id="newpass" type="password" placeholder="New password (min 8 chars)" />
-      <button onclick="resetPassword()">Reset Password</button>
-      <div class="msg" id="msg3"></div>
-    </div>
+      <!-- STEP 2 -->
+      <div class="form-block hidden" id="step2">
+        <div class="muted small" style="margin-bottom:10px;">
+          Code sent to <b id="masked">••••</b>
+        </div>
 
-    <div class="links">
-      <a href="/index.html">← Back to Login</a>
-    </div>
+        <label class="field">
+          <span class="label">6-digit code</span>
+          <input id="code" placeholder="123456" maxlength="6" inputmode="numeric" autocomplete="one-time-code" />
+        </label>
 
-  </div>
-</div>
+        <div class="row" style="grid-template-columns:1fr 1fr;">
+          <button class="btn" id="verifyBtn" type="button" onclick="verifyCode()">
+            <span class="btn-text">Verify</span>
+            <span class="spinner" aria-hidden="true"></span>
+          </button>
+
+          <button class="btn" id="resendBtn" type="button" onclick="resend()">
+            <span class="btn-text">Resend</span>
+            <span class="spinner" aria-hidden="true"></span>
+          </button>
+        </div>
+
+        <button class="btn ghost" type="button" onclick="backTo1()" style="margin-top:10px;">
+          Back
+        </button>
+      </div>
+
+      <!-- STEP 3 -->
+      <div class="form-block hidden" id="step3">
+        <div class="muted small" style="margin-bottom:10px;">
+          Verified ✅ Set a new password.
+        </div>
+
+        <label class="field">
+          <span class="label">New password</span>
+          <input id="newpass" type="password" placeholder="Minimum 8 characters" autocomplete="new-password" />
+        </label>
+
+        <button class="btn primary" id="resetBtn" type="button" onclick="resetPassword()">
+          <span class="btn-text">Update Password</span>
+          <span class="spinner" aria-hidden="true"></span>
+        </button>
+
+        <nav class="links-pro" aria-label="Back to login" style="margin-top:12px;">
+          <a class="link-btn link-ghost" href="./index.html">← Back to Login</a>
+        </nav>
+      </div>
+
+      <div id="msg" class="msg" role="status" aria-live="polite"></div>
+
+    </section>
+  </main>
 
 <script>
-const API_SEND   = "/api/forgot-password";
-const API_VERIFY = "/api/verify-reset-code";
-const API_RESET  = "/api/reset-password";
+  const API_SEND   = "/api/forgot-password";
+  const API_VERIFY = "/api/verify-reset-code";
+  const API_RESET  = "/api/reset-password";
 
-const $ = (id)=>document.getElementById(id);
+  const $ = (id) => document.getElementById(id);
 
-function maskPhone(p){
-  if(!p) return "••••••••••";
-  const s = String(p).trim();
-  return "••••••" + s.slice(-4);
-}
+  let resetToken = "";
+  let cachedPhone = "";
 
-function setMsg(id, text, ok=false){
-  const el = $(id);
-  el.textContent = text || "";
-  el.className = ok ? "msg ok" : "msg";
-}
-
-function show(step){
-  $("step1").style.display = step===1 ? "block":"none";
-  $("step2").style.display = step===2 ? "block":"none";
-  $("step3").style.display = step===3 ? "block":"none";
-}
-
-async function sendCode(){
-  setMsg("msg1","");
-  const phone = $("phone").value.trim();
-  if(!phone) return setMsg("msg1","Please enter your phone number.");
-
-  localStorage.setItem("fp_phone", phone);
-  $("masked").textContent = maskPhone(phone);
-
-  try{
-    const res = await fetch(API_SEND,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ phone })
-    });
-    const data = await res.json();
-    if(!res.ok) return setMsg("msg1", data.error || "Failed to send code.");
-    setMsg("msg1", data.message || "Code sent ✅", true);
-    show(2);
-  }catch(e){
-    setMsg("msg1","Network error.");
+  function setLoading(btn, isLoading){
+    btn.classList.toggle("loading", !!isLoading);
+    btn.disabled = !!isLoading;
   }
-}
 
-async function resend(){
-  setMsg("msg2","");
-  await sendCode();
-}
-
-function backTo1(){
-  setMsg("msg2","");
-  show(1);
-}
-
-async function verifyCode(){
-  setMsg("msg2","");
-  const phone = localStorage.getItem("fp_phone") || $("phone").value.trim();
-  const code = $("code").value.trim();
-
-  if(!phone) return setMsg("msg2","Phone missing. Go back.");
-  if(!/^\d{6}$/.test(code)) return setMsg("msg2","Enter a valid 6-digit code.");
-
-  try{
-    const res = await fetch(API_VERIFY,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ phone, code })
-    });
-    const data = await res.json();
-    if(!res.ok) return setMsg("msg2", data.error || "Invalid code.");
-
-    sessionStorage.setItem("fp_code_ok", code);
-    setMsg("msg2", data.message || "Verified ✅", true);
-    show(3);
-  }catch(e){
-    setMsg("msg2","Network error.");
+  function showMsg(text, isErr=false){
+    const m = $("msg");
+    m.className = "msg";
+    m.style.color = isErr ? "var(--danger)" : "rgba(255,255,255,0.85)";
+    m.textContent = text || "";
   }
-}
 
-async function resetPassword(){
-  setMsg("msg3","");
-  const phone = localStorage.getItem("fp_phone") || "";
-  const newPassword = $("newpass").value;
-
-  if(!phone) return setMsg("msg3","Phone missing.");
-  if(!newPassword || newPassword.length < 8) return setMsg("msg3","Password must be at least 8 characters.");
-
-  try{
-    const res = await fetch(API_RESET,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ phone, newPassword })
-    });
-    const data = await res.json();
-
-    if(!res.ok) return setMsg("msg3", data.error || "Reset failed.");
-    setMsg("msg3", data.message || "Password reset ✅ Now go back to login.", true);
-  }catch(e){
-    setMsg("msg3","Network error.");
+  function showStep(n){
+    $("step1").classList.toggle("hidden", n !== 1);
+    $("step2").classList.toggle("hidden", n !== 2);
+    $("step3").classList.toggle("hidden", n !== 3);
   }
-}
+
+  function maskPhone(p){
+    if(!p) return "••••";
+    const s = String(p).trim();
+    return "••••••" + s.slice(-4);
+  }
+
+  async function sendCode(){
+    showMsg("");
+    const phone = $("phone").value.trim();
+    if(!phone) return showMsg("Please enter your phone number.", true);
+
+    const btn = $("sendBtn");
+    try{
+      setLoading(btn, true);
+
+      const res = await fetch(API_SEND, {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ phone })
+      });
+
+      const data = await res.json().catch(()=>({}));
+      if(!res.ok) return showMsg(data.error || "Failed to send code.", true);
+
+      cachedPhone = phone;
+      localStorage.setItem("fp_phone", phone);
+      $("masked").textContent = maskPhone(phone);
+
+      showMsg("Code sent ✅ Check your SMS.");
+      showStep(2);
+    }catch(e){
+      showMsg("Network error.", true);
+    }finally{
+      setLoading(btn, false);
+    }
+  }
+
+  async function resend(){
+    const btn = $("resendBtn");
+    try{
+      setLoading(btn, true);
+      await sendCode();
+    }finally{
+      setLoading(btn, false);
+    }
+  }
+
+  function backTo1(){
+    showMsg("");
+    showStep(1);
+  }
+
+  async function verifyCode(){
+    showMsg("");
+    const phone = cachedPhone || localStorage.getItem("fp_phone") || $("phone").value.trim();
+    const code  = $("code").value.trim();
+
+    if(!phone) return showMsg("Phone missing. Go back.", true);
+    if(!/^\d{6}$/.test(code)) return showMsg("Enter a valid 6-digit code.", true);
+
+    const btn = $("verifyBtn");
+    try{
+      setLoading(btn, true);
+
+      const res = await fetch(API_VERIFY, {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ phone, code })
+      });
+
+      const data = await res.json().catch(()=>({}));
+      if(!res.ok) return showMsg(data.error || "Invalid code.", true);
+
+      // ✅ IMPORTANT: server returns resetToken
+      resetToken = data.resetToken || "";
+      if(!resetToken) return showMsg("Verified but resetToken missing. Check server.", true);
+
+      sessionStorage.setItem("fp_resetToken", resetToken);
+      showMsg("Verified ✅ Now set a new password.");
+      showStep(3);
+    }catch(e){
+      showMsg("Network error.", true);
+    }finally{
+      setLoading(btn, false);
+    }
+  }
+
+  async function resetPassword(){
+    showMsg("");
+    const phone = cachedPhone || localStorage.getItem("fp_phone") || "";
+    const newPassword = $("newpass").value;
+
+    // ✅ token from memory/session
+    const token = resetToken || sessionStorage.getItem("fp_resetToken") || "";
+
+    if(!phone) return showMsg("Phone missing.", true);
+    if(!token) return showMsg("Token missing. Please verify code again.", true);
+    if(!newPassword || newPassword.length < 8) return showMsg("Password must be at least 8 characters.", true);
+
+    const btn = $("resetBtn");
+    try{
+      setLoading(btn, true);
+
+      const res = await fetch(API_RESET, {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ phone, newPassword, resetToken: token })
+      });
+
+      const data = await res.json().catch(()=>({}));
+      if(!res.ok) return showMsg(data.error || "Reset failed.", true);
+
+      localStorage.removeItem("fp_phone");
+      sessionStorage.removeItem("fp_resetToken");
+      resetToken = "";
+
+      showMsg("Password updated ✅ Redirecting to login...");
+      setTimeout(()=> window.location.href = "./index.html", 900);
+
+    }catch(e){
+      showMsg("Network error.", true);
+    }finally{
+      setLoading(btn, false);
+    }
+  }
+
+  // Prefill
+  (function init(){
+    const p = localStorage.getItem("fp_phone") || "";
+    if(p) $("phone").value = p;
+  })();
 </script>
 
 </body>

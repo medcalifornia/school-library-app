@@ -1,5 +1,5 @@
 /* =========================================================
-   Health Tracker UI - Optimized for iPhone/Android/Desktop
+   Health Tracker UI - مع ألوان BP خمس فئات
    ========================================================= */
 
 :root {
@@ -15,6 +15,9 @@
   --primary-glow: #6a5cff;
   --danger: #ff4d6d;
   --success: #3cff97;
+  --warning: #ffaa33; /* برتقالي */
+  --elevated: #f1c40f; /* أصفر */
+  --crisis: #8e44ad; /* بنفسجي */
 
   --radius: 18px;
   --radius-sm: 14px;
@@ -36,7 +39,6 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ✅ إزالة التظليل الأزرق عند النقر على العناصر في Safari */
 body, button, a, input, select, textarea, svg {
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
@@ -495,7 +497,50 @@ input::placeholder {
   color: var(--muted2);
 }
 
-/* ===== Chart Card (محسّن) ===== */
+/* ===== Glucose Colors ===== */
+.glucose-normal {
+  color: #2ecc71; /* أخضر */
+  font-weight: 700;
+}
+
+.glucose-prediabetes {
+  color: #f39c12; /* برتقالي */
+  font-weight: 700;
+}
+
+.glucose-diabetes {
+  color: #e74c3c; /* أحمر */
+  font-weight: 700;
+}
+
+/* ===== BP Colors (5 Categories) ===== */
+.bp-normal {
+  color: #2ecc71; /* أخضر */
+  font-weight: 700;
+}
+
+.bp-elevated {
+  color: #f1c40f; /* أصفر */
+  font-weight: 700;
+}
+
+.bp-stage1 {
+  color: #f39c12; /* برتقالي */
+  font-weight: 700;
+}
+
+.bp-stage2 {
+  color: #e74c3c; /* أحمر */
+  font-weight: 700;
+}
+
+.bp-crisis {
+  color: #9b59b6; /* بنفسجي */
+  font-weight: 700;
+  text-decoration: underline wavy #e74c3c;
+}
+
+/* ===== Chart Card ===== */
 .chart-card {
   margin-top: 16px;
   border-radius: 16px;
@@ -540,7 +585,7 @@ input::placeholder {
 .sv-chart-wrap {
   position: relative;
   padding: 8px 8px 12px;
-  height: 220px; /* ✅ ارتفاع مناسب لجميع الأجهزة */
+  height: 220px;
   touch-action: pan-y;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
@@ -733,7 +778,7 @@ input::placeholder {
   border-color: rgba(255, 77, 109, 0.4);
 }
 
-/* ===== Login Page (محسّن) ===== */
+/* ===== Login Page ===== */
 .login-page {
   min-height: 100vh;
   display: flex;

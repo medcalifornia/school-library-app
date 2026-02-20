@@ -1,6 +1,6 @@
 /* =========================================================
    Silicon Valley Health App UI (mobile + desktop) - FINAL
-   (NO chart-wrap, NO canvas chart; SVG chart only)
+   (NO chart-wrap, NO Chart.js canvas; SVG chart only)
    ========================================================= */
 
 :root{
@@ -472,7 +472,7 @@ input:focus, select:focus{
 .toast.err{ border-color: rgba(255,77,109,0.35); }
 
 /* =========================================================
-   Login Page (index.html) – iPhone polish
+   Login Page (index.html)
    ========================================================= */
 
 .login-page{
@@ -534,6 +534,7 @@ input:focus, select:focus{
   font-weight: 700;
   text-align:center;
 }
+.msg.ok{ color: rgba(60,255,151,0.95); }
 
 .hero-image{
   margin-top: 14px;
@@ -612,7 +613,8 @@ input:focus, select:focus{
 .sv-chart-wrap{
   position: relative;
   padding: 0 10px 10px;
-  height: 230px;              /* ثابت للآيفون */
+  height: 230px;
+  touch-action: pan-y;
 }
 
 .sv-chart{
@@ -639,33 +641,18 @@ input:focus, select:focus{
   transform: translateY(-4px);
   transition: opacity .12s ease, transform .12s ease;
   max-width: 80%;
+  white-space: pre-line;
 }
-
 .chart-tooltip.show{
   opacity: 1;
   transform: translateY(0);
 }
-/* =========================================================
-   iOS FIX: Stop blue selection overlay on charts (Safari/Chrome)
-   ========================================================= */
 
-/* Prevent text-selection highlight / callout inside chart area */
+/* =========================================================
+   iOS / Mobile FIX: stop blue selection overlay on chart
+   ========================================================= */
 .chart-card,
 .chart-card *{
-  -webkit-user-select: none !important;
-  user-select: none !important;
-  -webkit-touch-callout: none !important;
-  -webkit-tap-highlight-color: transparent !important;
-}
-
-/* Prevent long-press selection + weird overlays while scrolling */
-.sv-chart-wrap{
-  touch-action: pan-y;
-}
-
-/* Optional: also apply to canvas if you still use Chart.js somewhere */
-.chart-canvas,
-.chart-canvas *{
   -webkit-user-select: none !important;
   user-select: none !important;
   -webkit-touch-callout: none !important;

@@ -1,417 +1,44 @@
-:root{
-  --font: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-
-  --primary: #4a6cf7;
-  --primaryDark: #3757d6;
-
-  --bg1: #f6f7fb;
-  --bg2: #eef1f7;
-
-  --text: #111;
-  --muted: #6b7280;
-
-  --card: #ffffff;
-  --border: #e5e7eb;
-
-  /* Row background colors (as you requested) */
-  --glucoseRow: #dbeafe;   /* light blue */
-  --bpRow: #d1fae5;        /* light green */
-
-  /* Value colors */
-  --ok: #16a34a;
-  --warn: #f59e0b;
-  --bad: #dc2626;
-}
-
-*{ box-sizing: border-box; }
-
-body{
-  margin: 0;
-  font-family: var(--font);
-  font-size: 18px;
-  line-height: 1.4;
-  background: linear-gradient(to bottom, var(--bg1), var(--bg2));
-  color: var(--text);
-}
-
-/* Main container centered */
-.container{
-  width: min(520px, 92vw);
-  margin: 40px auto;
-  padding: 18px;
-}
-
-/* Wider container for app page */
-.container-wide{
-  width: min(980px, 92vw);
-}
-
-/* Card */
-.card{
-  background: var(--card);
-  border-radius: 16px;
-  padding: 22px;
-  box-shadow: 0 8px 22px rgba(0,0,0,.08);
-  margin: 14px 0;
-}
-
-/* Titles */
-h1,h2{
-  margin: 8px 0 14px;
-  font-size: 26px;
-}
-h3{
-  margin: 0 0 12px;
-  font-size: 22px;
-}
-
-/* Inputs */
-input, select, button{
-  width: 100%;
-  font-size: 18px;
-  padding: 14px 12px;
-  border-radius: 12px;
-  border: 1px solid #d9d9e3;
-  outline: none;
-  background: #fff;
-}
-
-input:focus, select:focus{
-  border-color: rgba(74,108,247,.55);
-  box-shadow: 0 0 0 4px rgba(74,108,247,.14);
-}
-
-/* Buttons (same as login) */
-button, .btn{
-  margin-top: 14px;
-  border: none;
-  cursor: pointer;
-  font-weight: 700;
-  background: var(--primary);
-  color: #fff;
-  transition: 0.2s ease;
-}
-
-button:hover, .btn:hover{
-  background: var(--primaryDark);
-}
-
-/* Small button (used in My Readings top right) */
-.btn-small{
-  width: auto;
-  padding: 10px 14px;
-  font-size: 16px;
-  border-radius: 12px;
-  margin-top: 0;
-}
-
-/* Links */
-.links{
-  display:flex;
-  justify-content: space-between;
-  margin-top: 12px;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-a{
-  text-decoration:none;
-  font-weight:600;
-  color: var(--primary);
-}
-
-/* Message */
-.msg{
-  margin-top: 10px;
-  color: #b00020;
-  min-height: 18px;
-}
-.msg.ok{ color: var(--ok); }
-
-.muted{
-  color: var(--muted);
-  font-size: 15px;
-  margin-bottom: 10px;
-}
-
-/* ===== CENTERED IMAGE (login page) ===== */
-.hero-image{
-  margin-top: 20px;
-  border-radius: 16px;
-  overflow: hidden;
-}
-.hero-image img{
-  display: block;
-  width: 100%;
-  height: 220px;
-  object-fit: cover;
-  object-position: center;
-  border-radius: 16px;
-}
-@media (min-width: 768px){
-  .hero-image img{ height: 260px; }
-}
-
-/* ===== App Topbar ===== */
-.topbar{
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 8px;
-}
-
-.app-title{
-  font-size: 34px;
-  margin: 0 0 6px;
-}
-
-.subline{
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--muted);
-  font-size: 16px;
-  flex-wrap: wrap;
-}
-
-.subline .dot{
-  opacity: .7;
-}
-
-/* Grid (Add Glucose / BP) */
-.grid3{
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 12px;
-  align-items: end;
-}
-@media (max-width: 860px){
-  .grid3{ grid-template-columns: 1fr; }
-}
-
-/* Row between title and button */
-.row-between{
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-/* ===== Value coloring ===== */
-.glucose-low{ color: var(--ok); font-weight: 800; }
-.glucose-mid{ color: var(--warn); font-weight: 800; }
-.glucose-high{ color: var(--bad); font-weight: 800; }
-
-.bp-low{ color: var(--ok); font-weight: 800; }
-.bp-mid{ color: var(--warn); font-weight: 800; }
-.bp-high{ color: var(--bad); font-weight: 800; }
-
-/* ===== Legend ===== */
-.legend{
-  margin-top: 12px;
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-  font-size: 14px;
-  color: #333;
-}
-.legend .dot{
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  margin-right: 6px;
-  vertical-align: middle;
-}
-.legend .dot.ok{ background: var(--ok); }
-.legend .dot.warn{ background: var(--warn); }
-.legend .dot.bad{ background: var(--bad); }
-
-/* ===== Desktop table styles ===== */
-table.readings{
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  margin-top: 12px;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: #fff;
-}
-
-table.readings thead th{
-  text-align: left;
-  padding: 12px 12px;
-  background: #f3f4f6;
-  border-bottom: 1px solid var(--border);
-  font-size: 16px;
-}
-
-table.readings td{
-  padding: 12px 12px;
-  border-bottom: 1px solid var(--border);
-  font-size: 16px;
-  vertical-align: top;
-}
-
-table.readings tbody tr:last-child td{
-  border-bottom: none;
-}
-
-/* Row background colors (requested) */
-.row-glucose td{ background: var(--glucoseRow); }
-.row-bp td{ background: var(--bpRow); }
-
-/* ===== Mobile-first: table becomes cards ===== */
-@media (max-width: 720px){
-
-  table.readings{
-    border: none;
-    background: transparent;
-  }
-
-  table.readings thead{
-    display: none;
-  }
-
-  table.readings tbody{
-    display: grid;
-    gap: 12px;
-  }
-
-  table.readings tr{
-    display: block;
-    border-radius: 16px;
-    overflow: hidden;
-    border: 1px solid var(--border);
-    box-shadow: 0 6px 16px rgba(0,0,0,.06);
-  }
-
-  table.readings td{
-    display: grid;
-    grid-template-columns: 110px 1fr;
-    gap: 10px;
-    align-items: start;
-    border-bottom: 1px solid rgba(0,0,0,.06);
-    padding: 12px 14px;
-  }
-
-  table.readings td:last-child{
-    border-bottom: none;
-  }
-
-  /* Label on left */
-  table.readings td::before{
-    content: attr(data-label);
-    font-weight: 800;
-    color: #4b5563;
-  }
-
-  /* Keep row background colors on mobile cards */
-  table.readings tr.row-glucose td{ background: var(--glucoseRow); }
-  table.readings tr.row-bp td{ background: var(--bpRow); }
-
-  /* Make values stand out slightly */
-  table.readings td[data-label="Value"]{
-    font-size: 18px;
-  }
-}
-
-/* Mobile adjustments */
-@media (max-width: 420px){
-  body{ font-size: 17px; }
-  h1,h2{ font-size: 22px; }
-  .container{ margin: 18px auto; }
-
-  .app-title{ font-size: 30px; }
-}
-
-/* iPhone button fix */
-button {
-  -webkit-appearance: none;
-  appearance: none;
-  opacity: 1;
-}
-button:disabled {
-  opacity: 1;
-}
-/* ===== New Modern Header ===== */
-
-.header{
-  background: linear-gradient(135deg, #eef2ff, #e0e7ff);
-  padding: 22px;
-  border-radius: 18px;
-  margin-bottom: 20px;
-
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.header-left{
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.app-title{
-  font-size: 28px;
-  margin: 0;
-  font-weight: 800;
-  letter-spacing: -0.5px;
-}
-
-.header-info{
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #555;
-  font-size: 15px;
-  flex-wrap: wrap;
-}
-
-.header-info .sep{
-  opacity: .6;
-}
-
-.btn-logout{
-  width: auto;
-  padding: 12px 18px;
-  border-radius: 14px;
-  font-size: 16px;
-}
-/* Pagination */
+/* ===== Professional Pagination (small + inline) ===== */
 .pager{
   margin-top: 14px;
   display: flex;
+  justify-content: center;
   gap: 8px;
   flex-wrap: wrap;
   align-items: center;
 }
 
-.pager-num{
+.pager-btn{
+  min-width: 38px;
+  height: 38px;
+  padding: 0 10px;
+  border-radius: 10px;
   border: 1px solid #d9d9e3;
-  background: #fff;
+  background: #ffffff;
   color: #111;
-  font-weight: 700;
-  padding: 10px 12px;
-  border-radius: 12px;
+  font-weight: 800;
   cursor: pointer;
-  min-width: 44px;
+  transition: 0.2s ease;
+  margin-top: 0; /* مهم عشان ما ينزل تحت */
 }
 
-.pager-num.active{
-  background: #4a6cf7;
-  color: #fff;
-  border-color: #4a6cf7;
+.pager-btn:hover{
+  background: #eef2ff;
+}
+
+.pager-btn.active{
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.pager-btn:disabled{
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .pager-dots{
-  padding: 0 6px;
+  padding: 0 4px;
   color: #666;
-  font-weight: 700;
+  font-weight: 800;
 }

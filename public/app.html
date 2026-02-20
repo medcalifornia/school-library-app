@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -11,21 +11,19 @@
 
 <body>
 
-<div class="container wide">
+<div class="container container-wide">
 
   <div class="topbar">
-    <div class="topbar-left">
+    <div>
       <h2 class="app-title">Health Tracker</h2>
       <div class="subline">
         <span id="hello"></span>
-        <span class="dot-sep">•</span>
-        <span id="dtNow" class="muted"></span>
+        <span class="dot">•</span>
+        <span id="now"></span>
       </div>
     </div>
 
-    <div class="topbar-right">
-      <button class="btn-small" onclick="logout()">Logout</button>
-    </div>
+    <button class="btn" onclick="logout()">Logout</button>
   </div>
 
   <div class="card">
@@ -44,7 +42,8 @@
         <option>After dinner</option>
         <option>Before sleep</option>
       </select>
-      <button onclick="saveGlucose()">Save Glucose</button>
+
+      <button class="btn" onclick="saveGlucose()">Save Glucose</button>
     </div>
   </div>
 
@@ -65,28 +64,26 @@
       </select>
     </div>
 
-    <button onclick="saveBP()">Save Blood Pressure</button>
+    <button class="btn" onclick="saveBP()">Save Blood Pressure</button>
   </div>
 
   <div class="card">
-    <div class="title-row">
+    <div class="row-between">
       <h3>My Readings</h3>
-      <button class="btn-small" onclick="loadAll()">Load My Readings</button>
+      <button class="btn btn-small" onclick="loadAll()">Load My Readings</button>
     </div>
 
-    <div class="tableWrap">
-      <table class="readings">
-        <thead>
-          <tr>
-            <th>Date/Time</th>
-            <th>Type</th>
-            <th>Value</th>
-            <th>Note</th>
-          </tr>
-        </thead>
-        <tbody id="rows"></tbody>
-      </table>
-    </div>
+    <table class="readings">
+      <thead>
+        <tr>
+          <th>Date/Time</th>
+          <th>Type</th>
+          <th>Value</th>
+          <th>Note</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
 
     <div class="legend">
       <div><span class="dot ok"></span> Normal</div>
@@ -97,9 +94,7 @@
 
   <div class="card">
     <h3>Chart</h3>
-    <div class="chartWrap">
-      <canvas id="chart"></canvas>
-    </div>
+    <canvas id="chart" height="120"></canvas>
   </div>
 
 </div>
@@ -108,25 +103,27 @@
 const userId = localStorage.getItem("userId");
 if (!userId) location.href = "/index.html";
 
-document.getElementById("hello").textContent =
-  "Hello, " + (localStorage.getItem("name") || "");
+hello.textContent = "Hello, " + (localStorage.getItem("name") || "");
 
+// ===== Live Date/Time =====
 function updateNow(){
-  document.getElementById("dtNow").textContent = new Date().toLocaleString();
+  const d = new Date();
+  now.textContent = d.toLocaleString();
 }
 updateNow();
 setInterval(updateNow, 1000);
 
+// ===== Logout =====
 function logout(){
   localStorage.removeItem("userId");
   localStorage.removeItem("name");
   localStorage.removeItem("email");
-  // localStorage.removeItem("phone");
   location.href = "/index.html";
 }
 
-/* ===== Coloring ===== */
+/* ===== Coloring Functions ===== */
 
+// Glucose: <100 green, 100-125 orange, >=126 red
 function glucoseClass(v){
   const n = Number(v);
   if (Number.isNaN(n)) return "";
@@ -135,28 +132,20 @@ function glucoseClass(v){
   return "glucose-high";
 }
 
-// ACC/AHA for BP
-function bpClass(v){
+// BP: Normal green, Elevated orange, High red (ACC/AHA)
+function bpHtml(v){
   const parts = String(v).split("/");
   const s = Number(parts[0]);
   const d = Number(parts[1]);
 
-  if (Number.isNaN(s) || Number.isNaN(d)) return "";
+  if (Number.isNaN(s) || Number.isNaN(d)) return String(v);
 
-  // High (Stage 1/2)
-  if (s >= 130 || d >= 80) return "bp-high";
+  let cls = "bp-low"; // Normal
 
-  // Elevated
-  if (s >= 120 && s <= 129 && d < 80) return "bp-mid";
+  if (s >= 120 && s <= 129 && d < 80) cls = "bp-mid"; // Elevated
+  if (s >= 130 || d >= 80) cls = "bp-high"; // High (Stage 1/2)
 
-  // Normal
-  return "bp-low";
-}
-
-function bpHtml(v){
-  const cls = bpClass(v);
-  if (!cls) return String(v);
-  return `<span class="${cls}">${String(v)}</span>`;
+  return `<span class="${cls}">${s}/${d}</span>`;
 }
 
 /* ===== Save ===== */
@@ -203,7 +192,19 @@ async function saveBP(){
   loadAll();
 }
 
-/* ===== Load ===== */
+/* ===== Load Table (Mobile-first Cards) ===== */
+
+function fmtType(t){
+  return t === "bp" ? "Blood Pressure" : "Glucose";
+}
+
+function fmtValue(r){
+  if (r.type === "glucose"){
+    const cls = glucoseClass(r.value);
+    return `<span class="${cls}">${r.value}</span>`;
+  }
+  return bpHtml(r.value);
+}
 
 async function loadAll(){
   const res = await fetch(`/api/readings/${userId}`);
@@ -212,19 +213,15 @@ async function loadAll(){
   rows.innerHTML = "";
 
   for (const r of data.slice().reverse()) {
+    const dt = new Date(r.ts).toLocaleString();
+
     const tr = document.createElement("tr");
-
     tr.innerHTML = `
-      <td>${new Date(r.ts).toLocaleString()}</td>
-      <td>${r.type === "bp" ? "Blood Pressure" : "Glucose"}</td>
-      <td>${
-        r.type === "glucose"
-          ? `<span class="${glucoseClass(r.value)}">${r.value}</span>`
-          : bpHtml(r.value)
-      }</td>
-      <td>${r.note || ""}</td>
+      <td data-label="Date/Time">${dt}</td>
+      <td data-label="Type">${fmtType(r.type)}</td>
+      <td data-label="Value">${fmtValue(r)}</td>
+      <td data-label="Note">${r.note || ""}</td>
     `;
-
     rows.appendChild(tr);
   }
 
@@ -251,10 +248,6 @@ async function loadChart(){
         { label: "BP Systolic Avg", data: data.sysAvg },
         { label: "BP Diastolic Avg", data: data.diaAvg }
       ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false
     }
   });
 }

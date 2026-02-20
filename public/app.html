@@ -6,10 +6,9 @@
   <title>Health Tracker · Dashboard</title>
   <link rel="stylesheet" href="./style.css" />
   <style>
-    /* تحسينات إضافية خاصة بالـ Chart */
-    .chart-tooltip.show { opacity: 1; transform: translateY(0); }
-    .sv-chart { display: block; width: 100%; height: 100%; }
-    .sv-chart-wrap { touch-action: pan-y; user-select: none; -webkit-tap-highlight-color: transparent; }
+    /* تحسينات بسيطة للـ SVG */
+    .sv-chart-wrap { touch-action: pan-y; user-select: none; }
+    .chart-tooltip { transition: opacity 0.15s ease; }
   </style>
 </head>
 
@@ -140,12 +139,12 @@
             <div class="kpi">
               <div class="kpi-label">Latest Glucose</div>
               <div class="kpi-value" id="kpiGlucose">—</div>
-              <div class="kpi-sub" id="kpiGlucoseSub">mg/dL</div>
+              <div class="kpi-sub">mg/dL</div>
             </div>
             <div class="kpi">
               <div class="kpi-label">Latest BP</div>
               <div class="kpi-value" id="kpiBP">—</div>
-              <div class="kpi-sub" id="kpiBPSub">mmHg</div>
+              <div class="kpi-sub">mmHg</div>
             </div>
           </div>
 
@@ -156,7 +155,7 @@
                 <div class="chart-title">Trends</div>
                 <div class="muted small">Last 14 days • Glucose & Blood Pressure</div>
               </div>
-              <div class="legend-inline" aria-label="Legend">
+              <div class="legend-inline">
                 <span class="lg lg-g">Glucose</span>
                 <span class="lg lg-s">SYS</span>
                 <span class="lg lg-d">DIA</span>
@@ -165,7 +164,7 @@
 
             <div class="sv-chart-wrap" id="svWrap">
               <div class="chart-tooltip" id="svTip"></div>
-              <svg class="sv-chart" id="svChart" viewBox="0 0 1000 240" preserveAspectRatio="none" aria-label="Trend chart"></svg>
+              <svg class="sv-chart" id="svChart" viewBox="0 0 1000 240" preserveAspectRatio="none"></svg>
             </div>
           </div>
 
@@ -203,9 +202,9 @@
         </div>
 
         <div class="pager">
-          <button class="btn small ghost" type="button" onclick="prevPage()" aria-label="Previous page">‹</button>
-          <div class="muted small" id="pageLabel">1</div>
-          <button class="btn small ghost" type="button" onclick="nextPage()" aria-label="Next page">›</button>
+          <button class="btn small ghost" type="button" onclick="prevPage()">‹</button>
+          <span class="muted small" id="pageLabel">1</span>
+          <button class="btn small ghost" type="button" onclick="nextPage()">›</button>
         </div>
       </section>
     </section>
@@ -243,121 +242,129 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script>
-    (function(){
-      // =========================
-      // Strict Mode & Helpers
-      // =========================
+    (function() {
       "use strict";
 
-      // --- UI Helpers ---
+      // --- DOM shortcuts ---
       const $ = id => document.getElementById(id);
-      const toast = (msg, type = "ok") => {
-        const t = $("toast");
-        t.className = "toast show " + (type === "err" ? "err" : "ok");
+
+      // --- Toast ---
+      function toast(msg, type = 'ok') {
+        const t = $('toast');
         t.textContent = msg;
-        clearTimeout(window.__toastTimer);
-        window.__toastTimer = setTimeout(() => t.className = "toast", 2000);
-      };
+        t.className = `toast show ${type}`;
+        clearTimeout(window.toastTimer);
+        window.toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
+      }
 
-      const setLoading = (btn, isLoading) => {
+      // --- Loading state ---
+      function setLoading(btn, state) {
         if (btn) {
-          btn.classList.toggle("loading", !!isLoading);
-          btn.disabled = !!isLoading;
+          btn.classList.toggle('loading', state);
+          btn.disabled = state;
         }
-      };
+      }
 
-      const escapeHtml = (s) => {
-        if (s == null) return '';
-        return String(s).replace(/[&<>"']/g, (c) => ({
-          "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
-        }[c]));
-      };
+      // --- Escape HTML ---
+      function escapeHtml(unsafe) {
+        if (unsafe == null) return '';
+        return String(unsafe)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      }
 
-      // --- Auth Helpers ---
-      const getAuth = () => ({
-        userId: localStorage.getItem("userId") || "",
-        name: localStorage.getItem("name") || "",
-        email: localStorage.getItem("email") || ""
-      });
+      // --- Auth ---
+      function getAuth() {
+        return {
+          userId: localStorage.getItem('userId') || '',
+          name: localStorage.getItem('name') || '',
+          email: localStorage.getItem('email') || ''
+        };
+      }
 
-      const requireAuth = () => {
-        const { userId } = getAuth();
-        if (!userId) {
-          window.location.href = "./index.html";
+      function requireAuth() {
+        if (!getAuth().userId) {
+          window.location.href = './index.html';
           return false;
         }
         return true;
-      };
+      }
 
       window.logout = () => {
-        ["userId", "name", "phone", "email"].forEach(key => localStorage.removeItem(key));
-        window.location.href = "./index.html";
+        ['userId', 'name', 'phone', 'email'].forEach(k => localStorage.removeItem(k));
+        window.location.href = './index.html';
       };
 
-      // --- Tab Navigation ---
-      window.showTab = (name) => {
-        document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
-        document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
-        document.querySelector(`.tab[data-tab="${name}"]`).classList.add("active");
-        $(`tab-${name}`).classList.add("active");
+      // --- Tab navigation ---
+      window.showTab = name => {
+        document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        document.querySelector(`.tab[data-tab="${name}"]`).classList.add('active');
+        $(`tab-${name}`).classList.add('active');
       };
 
-      window.toggleForm = (which) => {
-        const gForm = $("form-glucose");
-        const bpForm = $("form-bp");
-        const gSeg = $("seg-glucose");
-        const bpSeg = $("seg-bp");
+      window.toggleForm = which => {
+        const gForm = $('form-glucose');
+        const bpForm = $('form-bp');
+        const gSeg = $('seg-glucose');
+        const bpSeg = $('seg-bp');
 
-        if (which === "glucose") {
-          gForm.classList.remove("hidden"); bpForm.classList.add("hidden");
-          gSeg.classList.add("active"); bpSeg.classList.remove("active");
+        if (which === 'glucose') {
+          gForm.classList.remove('hidden');
+          bpForm.classList.add('hidden');
+          gSeg.classList.add('active');
+          bpSeg.classList.remove('active');
         } else {
-          bpForm.classList.remove("hidden"); gForm.classList.add("hidden");
-          bpSeg.classList.add("active"); gSeg.classList.remove("active");
+          bpForm.classList.remove('hidden');
+          gForm.classList.add('hidden');
+          bpSeg.classList.add('active');
+          gSeg.classList.remove('active');
         }
       };
 
-      // =========================
-      // Data & State
-      // =========================
+      // --- Global state ---
       let allReadings = [];
       let currentPage = 1;
       const PAGE_SIZE = 10;
 
-      const parseDate = (ts) => {
+      // --- Date helpers ---
+      function parseDate(ts) {
         const d = new Date(ts);
         return isNaN(d.getTime()) ? null : d;
-      };
+      }
 
-      const isSameDay = (d1, d2) => d1.toDateString() === d2.toDateString();
+      function isSameDay(d1, d2) {
+        return d1.toDateString() === d2.toDateString();
+      }
 
-      // =========================
-      // API Calls
-      // =========================
+      // --- API calls ---
       window.saveGlucose = async () => {
         if (!requireAuth()) return;
         const { userId } = getAuth();
-        const btn = document.querySelector("#form-glucose .btn.primary");
-        const value = $("glucoseValue").value.trim();
-        const note = $("glucoseNote").value;
+        const btn = document.querySelector('#form-glucose .btn.primary');
+        const value = $('glucoseValue').value.trim();
+        const note = $('glucoseNote').value;
 
         const num = Number(value);
-        if (!value || isNaN(num) || num <= 0) return toast("Enter a valid glucose number", "err");
+        if (!value || isNaN(num) || num <= 0) return toast('Enter a valid glucose number', 'err');
 
         try {
           setLoading(btn, true);
-          const res = await fetch("/api/readings", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId, type: "glucose", value: String(num), note })
+          const res = await fetch('/api/readings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, type: 'glucose', value: String(num), note })
           });
-          if (!res.ok) throw new Error("Save failed");
-          $("glucoseValue").value = "";
-          $("glucoseNote").value = "";
-          toast("Glucose saved");
+          if (!res.ok) throw new Error();
+          $('glucoseValue').value = '';
+          $('glucoseNote').value = '';
+          toast('Glucose saved');
           await refreshAll();
         } catch {
-          toast("Could not save glucose", "err");
+          toast('Could not save glucose', 'err');
         } finally {
           setLoading(btn, false);
         }
@@ -366,97 +373,89 @@
       window.saveBP = async () => {
         if (!requireAuth()) return;
         const { userId } = getAuth();
-        const btn = document.querySelector("#form-bp .btn.primary");
-        const sys = $("bpSys").value.trim();
-        const dia = $("bpDia").value.trim();
-        const note = $("bpNote").value;
+        const btn = document.querySelector('#form-bp .btn.primary');
+        const sys = $('bpSys').value.trim();
+        const dia = $('bpDia').value.trim();
+        const note = $('bpNote').value;
 
-        const sNum = Number(sys), dNum = Number(dia);
-        if (!sys || !dia || isNaN(sNum) || isNaN(dNum) || sNum <= 0 || dNum <= 0) {
-          return toast("Enter valid BP numbers", "err");
+        const s = Number(sys), d = Number(dia);
+        if (!sys || !dia || isNaN(s) || isNaN(d) || s <= 0 || d <= 0) {
+          return toast('Enter valid BP numbers', 'err');
         }
 
         try {
           setLoading(btn, true);
-          const value = `${sNum}/${dNum}`;
-          const res = await fetch("/api/readings", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId, type: "bp", value, note })
+          const res = await fetch('/api/readings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, type: 'bp', value: `${s}/${d}`, note })
           });
-          if (!res.ok) throw new Error("Save failed");
-          $("bpSys").value = "";
-          $("bpDia").value = "";
-          $("bpNote").value = "";
-          toast("Blood pressure saved");
+          if (!res.ok) throw new Error();
+          $('bpSys').value = '';
+          $('bpDia').value = '';
+          $('bpNote').value = '';
+          toast('Blood pressure saved');
           await refreshAll();
         } catch {
-          toast("Could not save blood pressure", "err");
+          toast('Could not save BP', 'err');
         } finally {
           setLoading(btn, false);
         }
       };
 
-      const loadAllReadings = async () => {
+      async function loadReadings() {
         if (!requireAuth()) return [];
         const { userId } = getAuth();
         try {
           const res = await fetch(`/api/readings/${encodeURIComponent(userId)}`);
-          if (!res.ok) throw new Error("Load failed");
+          if (!res.ok) throw new Error();
           const data = await res.json();
           allReadings = Array.isArray(data) ? data.sort((a, b) => new Date(b.ts) - new Date(a.ts)) : [];
-        } catch (err) {
-          toast("Could not load readings", "err");
+        } catch {
+          toast('Failed to load readings', 'err');
           allReadings = [];
         }
         return allReadings;
-      };
+      }
 
-      // =========================
-      // Render Functions
-      // =========================
-      const loadUserHeader = () => {
-        if (!requireAuth()) return;
+      // --- Render functions ---
+      function updateHeader() {
         const { name, email } = getAuth();
-        $("whoamiText").textContent = name || email || "Signed in";
-        $("subtitle").textContent = email ? `${email} • Just now` : "Welcome back";
-      };
+        $('whoamiText').textContent = name || email || 'Signed in';
+        $('subtitle').textContent = email ? `${email} • just now` : 'Welcome back';
+      }
 
-      const computeSummary = () => {
+      function updateSummary() {
         const now = new Date();
-        const todayReadings = allReadings.filter(r => {
+        const todayCount = allReadings.filter(r => {
           const d = parseDate(r.ts);
           return d && isSameDay(d, now);
-        });
+        }).length;
 
-        const latestGlucose = allReadings.find(r => r.type === "glucose");
-        const latestBP = allReadings.find(r => r.type === "bp");
+        const latestGlucose = allReadings.find(r => r.type === 'glucose');
+        const latestBP = allReadings.find(r => r.type === 'bp');
 
-        $("kpiGlucose").textContent = latestGlucose?.value || "—";
-        $("kpiBP").textContent = latestBP?.value || "—";
-        $("todayLine").textContent = todayReadings.length
-          ? `${todayReadings.length} reading(s) logged today`
-          : "No readings yet today";
-      };
+        $('kpiGlucose').textContent = latestGlucose?.value || '—';
+        $('kpiBP').textContent = latestBP?.value || '—';
+        $('todayLine').textContent = todayCount ? `${todayCount} reading(s) logged today` : 'No readings yet today';
+      }
 
-      const renderHistoryPage = () => {
-        const tbody = $("readingsBody");
-        if (!tbody) return;
-
+      function renderHistory() {
+        const tbody = $('readingsBody');
         const totalPages = Math.max(1, Math.ceil(allReadings.length / PAGE_SIZE));
         if (currentPage > totalPages) currentPage = totalPages;
 
         const start = (currentPage - 1) * PAGE_SIZE;
         const pageItems = allReadings.slice(start, start + PAGE_SIZE);
-        $("pageLabel").textContent = `${currentPage} / ${totalPages}`;
+        $('pageLabel').textContent = `${currentPage} / ${totalPages}`;
 
         if (!pageItems.length) {
-          tbody.innerHTML = `<tr><td colspan="5" class="muted">No readings yet.</td></tr>`;
+          tbody.innerHTML = '<tr><td colspan="5" class="muted">No readings yet.</td></tr>';
           return;
         }
 
         tbody.innerHTML = pageItems.map(r => {
-          const date = parseDate(r.ts)?.toLocaleString() || "—";
+          const date = parseDate(r.ts)?.toLocaleString() || '—';
           return `
             <tr>
               <td>${escapeHtml(date)}</td>
@@ -469,151 +468,163 @@
               </td>
             </tr>
           `;
-        }).join("");
-      };
+        }).join('');
+      }
 
-      window.prevPage = () => { if (currentPage > 1) { currentPage--; renderHistoryPage(); } };
+      window.prevPage = () => { if (currentPage > 1) { currentPage--; renderHistory(); } };
       window.nextPage = () => {
-        const totalPages = Math.max(1, Math.ceil(allReadings.length / PAGE_SIZE));
-        if (currentPage < totalPages) { currentPage++; renderHistoryPage(); }
+        const total = Math.ceil(allReadings.length / PAGE_SIZE);
+        if (currentPage < total) { currentPage++; renderHistory(); }
       };
 
       window.editReading = async (id, currentVal, currentNote) => {
         if (!requireAuth()) return;
         const { userId } = getAuth();
-        const newVal = prompt("Edit value:", currentVal);
+        const newVal = prompt('Edit value:', currentVal);
         if (newVal === null) return;
-        const newNote = prompt("Edit note (optional):", currentNote);
+        const newNote = prompt('Edit note (optional):', currentNote);
         if (newNote === null) return;
 
         try {
           const res = await fetch(`/api/readings/${encodeURIComponent(id)}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId, value: newVal.trim(), note: (newNote || "").trim() })
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, value: newVal.trim(), note: (newNote || '').trim() })
           });
-          if (!res.ok) throw new Error("Update failed");
-          toast("Updated");
+          if (!res.ok) throw new Error();
+          toast('Updated');
           await refreshAll();
           showTab('history');
         } catch {
-          toast("Update failed", "err");
+          toast('Update failed', 'err');
         }
       };
 
       window.deleteReading = async (id) => {
         if (!requireAuth()) return;
         const { userId } = getAuth();
-        if (!confirm("Delete this reading?")) return;
+        if (!confirm('Delete this reading?')) return;
 
         try {
           const res = await fetch(`/api/readings/${encodeURIComponent(id)}`, {
-            method: "DELETE",
-            headers: { "Content-Type": "application/json" },
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId })
           });
-          if (!res.ok) throw new Error("Delete failed");
-          toast("Deleted");
+          if (!res.ok) throw new Error();
+          toast('Deleted');
           await refreshAll();
         } catch {
-          toast("Delete failed", "err");
+          toast('Delete failed', 'err');
         }
       };
 
-      const computeInsights = () => {
+      function updateInsights() {
         const sevenDaysAgo = new Date(Date.now() - 7 * 86400000);
         const weekReadings = allReadings.filter(r => {
           const d = parseDate(r.ts);
           return d && d >= sevenDaysAgo;
         });
 
-        const glucoseVals = weekReadings.filter(r => r.type === "glucose").map(r => Number(r.value)).filter(n => !isNaN(n));
-        const bpVals = weekReadings.filter(r => r.type === "bp").map(r => {
+        const glucoseVals = weekReadings.filter(r => r.type === 'glucose').map(r => Number(r.value)).filter(n => !isNaN(n));
+        const bpVals = weekReadings.filter(r => r.type === 'bp').map(r => {
           const [s, d] = r.value.split('/').map(Number);
           return { s, d };
         }).filter(bp => !isNaN(bp.s) && !isNaN(bp.d));
 
         const avg = arr => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
-        const gAvg = avg(glucoseVals);
+        $('avg7g').textContent = avg(glucoseVals) ?? '—';
         const sAvg = avg(bpVals.map(bp => bp.s));
         const dAvg = avg(bpVals.map(bp => bp.d));
-
-        $("avg7g").textContent = gAvg ?? "—";
-        $("avg7bp").textContent = (sAvg && dAvg) ? `${sAvg}/${dAvg}` : "—";
+        $('avg7bp').textContent = (sAvg && dAvg) ? `${sAvg}/${dAvg}` : '—';
 
         const notes = allReadings.map(r => r.note).filter(Boolean);
         if (notes.length) {
           const freq = notes.reduce((acc, n) => (acc[n] = (acc[n] || 0) + 1, acc), {});
-          $("commonNote").textContent = Object.entries(freq).sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
+          $('commonNote').textContent = Object.entries(freq).sort((a, b) => b[1] - a[1])[0]?.[0] || '—';
         } else {
-          $("commonNote").textContent = "—";
+          $('commonNote').textContent = '—';
         }
-      };
+      }
 
-      // =========================
-      // ✅ SVG Chart (محسّن)
-      // =========================
+      // ========== ✅ CHART RENDERING (FIXED) ==========
       const SVG_W = 1000, SVG_H = 240;
       const PAD = { l: 50, r: 30, t: 15, b: 35 };
 
-      const formatDateKey = d => d.toISOString().split('T')[0];
-      const lastNDays = (n = 14) => Array.from({ length: n }, (_, i) => {
-        const d = new Date();
-        d.setDate(d.getDate() - (n - 1 - i));
-        return d;
-      });
+      // Generate last 14 days as Date objects
+      function getLastNDays(n = 14) {
+        const days = [];
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        for (let i = n - 1; i >= 0; i--) {
+          const d = new Date(today);
+          d.setDate(today.getDate() - i);
+          days.push(d);
+        }
+        return days;
+      }
 
-      const buildTrendData = () => {
-        const days = lastNDays(14);
+      // Format date to YYYY-MM-DD
+      function toYYYYMMDD(date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+      }
+
+      // Build dataset for chart
+      function buildChartData() {
+        const days = getLastNDays(14);
         const labels = days.map(d => d.toLocaleDateString(undefined, { month: '2-digit', day: '2-digit' }));
-        const dataMap = {};
 
+        // Initialize buckets
+        const buckets = {};
+        days.forEach(d => { buckets[toYYYYMMDD(d)] = { glucose: [], sys: [], dia: [] }; });
+
+        // Fill buckets with readings
         allReadings.forEach(r => {
-          const d = parseDate(r.ts);
-          if (!d) return;
-          const key = formatDateKey(d);
-          if (!dataMap[key]) dataMap[key] = { g: [], sys: [], dia: [] };
-          
-          if (r.type === "glucose") {
-            const v = Number(r.value);
-            if (!isNaN(v)) dataMap[key].g.push(v);
-          } else if (r.type === "bp") {
-            const [s, dVal] = r.value.split('/').map(Number);
-            if (!isNaN(s)) dataMap[key].sys.push(s);
-            if (!isNaN(dVal)) dataMap[key].dia.push(dVal);
+          const date = parseDate(r.ts);
+          if (!date) return;
+          const key = toYYYYMMDD(date);
+          if (!buckets[key]) return; // older than 14 days
+
+          if (r.type === 'glucose') {
+            const val = Number(r.value);
+            if (!isNaN(val)) buckets[key].glucose.push(val);
+          } else if (r.type === 'bp') {
+            const [s, d] = r.value.split('/').map(Number);
+            if (!isNaN(s)) buckets[key].sys.push(s);
+            if (!isNaN(d)) buckets[key].dia.push(d);
           }
         });
 
+        // Calculate daily averages
         const avg = arr => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
-
-        const glucose = [], sys = [], dia = [];
-        days.forEach(day => {
-          const key = formatDateKey(day);
-          const dayData = dataMap[key] || {};
-          glucose.push(avg(dayData.g));
-          sys.push(avg(dayData.sys));
-          dia.push(avg(dayData.dia));
-        });
+        const glucose = days.map(d => avg(buckets[toYYYYMMDD(d)].glucose));
+        const sys = days.map(d => avg(buckets[toYYYYMMDD(d)].sys));
+        const dia = days.map(d => avg(buckets[toYYYYMMDD(d)].dia));
 
         return { labels, glucose, sys, dia };
-      };
+      }
 
-      const getRange = (values) => {
+      // Get min/max with padding
+      function getRange(values) {
         const valid = values.filter(v => v != null && isFinite(v));
-        if (!valid.length) return { min: 70, max: 150 };
+        if (valid.length === 0) return { min: 70, max: 150 };
         const min = Math.min(...valid);
         const max = Math.max(...valid);
         const pad = (max - min) * 0.1 || 10;
         return { min: Math.max(0, Math.floor(min - pad)), max: Math.ceil(max + pad) };
-      };
+      }
 
-      const renderChart = () => {
-        const svg = $("svChart");
-        const wrap = $("svWrap");
-        const tip = $("svTip");
+      // Render SVG chart
+      function renderChart() {
+        const svg = $('svChart');
+        const wrap = $('svWrap');
+        const tip = $('svTip');
         if (!svg || !wrap || !tip) return;
 
-        const { labels, glucose, sys, dia } = buildTrendData();
+        const { labels, glucose, sys, dia } = buildChartData();
         const n = labels.length;
         if (n === 0) return;
 
@@ -624,153 +635,160 @@
         const chartH = SVG_H - PAD.t - PAD.b;
 
         const xPos = i => PAD.l + (i * (chartW / (n - 1 || 1)));
-        const yPos = (val, range) => val == null ? null : PAD.t + chartH - ((val - range.min) / (range.max - range.min)) * chartH;
+        const yPos = (val, range) => {
+          if (val == null || !isFinite(val)) return null;
+          return PAD.t + chartH - ((val - range.min) / (range.max - range.min)) * chartH;
+        };
 
-        const buildPath = (data, range) => {
-          let d = "", started = false;
+        // Build path string
+        function buildPath(data, range) {
+          let d = '';
+          let started = false;
           for (let i = 0; i < n; i++) {
             const y = yPos(data[i], range);
-            if (y == null) { started = false; continue; }
+            if (y == null) {
+              started = false;
+              continue;
+            }
             const x = xPos(i);
-            if (!started) { d += `M ${x} ${y}`; started = true; }
-            else d += ` L ${x} ${y}`;
+            if (!started) {
+              d += `M ${x} ${y}`;
+              started = true;
+            } else {
+              d += ` L ${x} ${y}`;
+            }
           }
           return d;
-        };
+        }
 
         // Clear SVG
         while (svg.firstChild) svg.removeChild(svg.firstChild);
 
-        // Draw background
-        const bgRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-        bgRect.setAttribute("x", "0"); bgRect.setAttribute("y", "0");
-        bgRect.setAttribute("width", SVG_W); bgRect.setAttribute("height", SVG_H);
-        bgRect.setAttribute("fill", "rgba(255,255,255,0.02)");
-        bgRect.setAttribute("rx", "12"); bgRect.setAttribute("ry", "12");
-        svg.appendChild(bgRect);
+        // Background
+        const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        bg.setAttribute('x', '0'); bg.setAttribute('y', '0');
+        bg.setAttribute('width', SVG_W); bg.setAttribute('height', SVG_H);
+        bg.setAttribute('fill', 'rgba(255,255,255,0.02)');
+        bg.setAttribute('rx', '12'); bg.setAttribute('ry', '12');
+        svg.appendChild(bg);
 
-        // Grid (4 lines)
-        const gridGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-        gridGroup.setAttribute("opacity", "0.25");
+        // Grid lines (4 horizontal)
+        const grid = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        grid.setAttribute('opacity', '0.2');
         for (let i = 0; i <= 4; i++) {
           const y = PAD.t + (i * (chartH / 4));
-          const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-          line.setAttribute("x1", PAD.l); line.setAttribute("y1", y);
-          line.setAttribute("x2", SVG_W - PAD.r); line.setAttribute("y2", y);
-          line.setAttribute("stroke", "rgba(255,255,255,0.15)");
-          line.setAttribute("stroke-width", "1");
-          gridGroup.appendChild(line);
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          line.setAttribute('x1', PAD.l); line.setAttribute('y1', y);
+          line.setAttribute('x2', SVG_W - PAD.r); line.setAttribute('y2', y);
+          line.setAttribute('stroke', 'rgba(255,255,255,0.3)');
+          line.setAttribute('stroke-width', '1');
+          grid.appendChild(line);
         }
-        svg.appendChild(gridGroup);
+        svg.appendChild(grid);
 
-        // Axes labels
-        const labelGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-        labelGroup.setAttribute("fill", "rgba(255,255,255,0.55)");
-        labelGroup.setAttribute("font-size", "10");
-
+        // Axis labels (left: glucose, right: bp)
+        const labelsGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        labelsGroup.setAttribute('fill', 'rgba(255,255,255,0.5)');
+        labelsGroup.setAttribute('font-size', '10');
         for (let i = 0; i <= 4; i++) {
           const y = PAD.t + (i * (chartH / 4));
           const gVal = Math.round(gRange.max - i * (gRange.max - gRange.min) / 4);
           const bpVal = Math.round(bpRange.max - i * (bpRange.max - bpRange.min) / 4);
 
-          // Left (glucose)
-          const leftText = document.createElementNS("http://www.w3.org/2000/svg", "text");
-          leftText.setAttribute("x", PAD.l - 8); leftText.setAttribute("y", y + 3);
-          leftText.setAttribute("text-anchor", "end");
-          leftText.textContent = gVal;
-          labelGroup.appendChild(leftText);
+          const left = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          left.setAttribute('x', PAD.l - 8); left.setAttribute('y', y + 3);
+          left.setAttribute('text-anchor', 'end');
+          left.textContent = gVal;
+          labelsGroup.appendChild(left);
 
-          // Right (BP)
-          const rightText = document.createElementNS("http://www.w3.org/2000/svg", "text");
-          rightText.setAttribute("x", SVG_W - PAD.r + 8); rightText.setAttribute("y", y + 3);
-          rightText.setAttribute("text-anchor", "start");
-          rightText.textContent = bpVal;
-          labelGroup.appendChild(rightText);
+          const right = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          right.setAttribute('x', SVG_W - PAD.r + 8); right.setAttribute('y', y + 3);
+          right.setAttribute('text-anchor', 'start');
+          right.textContent = bpVal;
+          labelsGroup.appendChild(right);
         }
-        svg.appendChild(labelGroup);
+        svg.appendChild(labelsGroup);
 
         // X-axis labels (first, middle, last)
-        const xLabelGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-        xLabelGroup.setAttribute("fill", "rgba(255,255,255,0.55)");
-        xLabelGroup.setAttribute("font-size", "10");
-        xLabelGroup.setAttribute("text-anchor", "middle");
-        [0, Math.floor((n-1)/2), n-1].forEach(i => {
-          const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-          text.setAttribute("x", xPos(i));
-          text.setAttribute("y", SVG_H - 12);
-          text.textContent = labels[i];
-          xLabelGroup.appendChild(text);
+        const xLabels = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        xLabels.setAttribute('fill', 'rgba(255,255,255,0.5)');
+        xLabels.setAttribute('font-size', '10');
+        xLabels.setAttribute('text-anchor', 'middle');
+        [0, Math.floor((n - 1) / 2), n - 1].forEach(i => {
+          const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          txt.setAttribute('x', xPos(i));
+          txt.setAttribute('y', SVG_H - 12);
+          txt.textContent = labels[i];
+          xLabels.appendChild(txt);
         });
-        svg.appendChild(xLabelGroup);
+        svg.appendChild(xLabels);
 
         // Draw lines
-        const lineGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-        lineGroup.setAttribute("fill", "none");
-        lineGroup.setAttribute("stroke-width", "3");
-        lineGroup.setAttribute("stroke-linecap", "round");
+        const lineGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        lineGroup.setAttribute('fill', 'none');
+        lineGroup.setAttribute('stroke-width', '3');
+        lineGroup.setAttribute('stroke-linecap', 'round');
 
-        const addPath = (data, range, color) => {
-          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-          path.setAttribute("d", buildPath(data, range));
-          path.setAttribute("stroke", color);
+        const addLine = (data, range, color) => {
+          const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          path.setAttribute('d', buildPath(data, range));
+          path.setAttribute('stroke', color);
           lineGroup.appendChild(path);
         };
 
-        addPath(glucose, gRange, "rgba(76,125,255,0.95)");
-        addPath(sys, bpRange, "rgba(60,255,151,0.95)");
-        addPath(dia, bpRange, "rgba(255,77,109,0.95)");
+        addLine(glucose, gRange, '#4c7dff');
+        addLine(sys, bpRange, '#3cff97');
+        addLine(dia, bpRange, '#ff4d6d');
         svg.appendChild(lineGroup);
 
         // Tooltip handler
-        const showTooltip = (clientX) => {
+        function showTooltip(clientX) {
           const rect = wrap.getBoundingClientRect();
           if (!rect.width) return;
           const relX = Math.min(Math.max(clientX - rect.left, 0), rect.width);
           const idx = Math.round((relX / rect.width) * (n - 1));
-          const idxClamped = Math.min(n-1, Math.max(0, idx));
-          
-          const dateStr = lastNDays(14)[idxClamped].toLocaleDateString(undefined, { month: '2-digit', day: '2-digit' });
-          const g = glucose[idxClamped] ?? '—';
-          const s = sys[idxClamped] ?? '—';
-          const dVal = dia[idxClamped] ?? '—';
+          const safeIdx = Math.min(n - 1, Math.max(0, idx));
+
+          const dateStr = getLastNDays(14)[safeIdx].toLocaleDateString(undefined, { month: '2-digit', day: '2-digit' });
+          const g = glucose[safeIdx] ?? '—';
+          const s = sys[safeIdx] ?? '—';
+          const d = dia[safeIdx] ?? '—';
 
           tip.innerHTML = `
             <div style="font-weight:600; margin-bottom:4px;">${dateStr}</div>
             <div>Glucose: <b>${g}</b> mg/dL</div>
             <div>SYS: <b>${s}</b> mmHg</div>
-            <div>DIA: <b>${dVal}</b> mmHg</div>
+            <div>DIA: <b>${d}</b> mmHg</div>
           `;
-          tip.classList.add("show");
-        };
+          tip.classList.add('show');
+        }
 
-        const hideTooltip = () => tip.classList.remove("show");
+        function hideTooltip() {
+          tip.classList.remove('show');
+        }
 
         // Attach events
-        wrap.onpointermove = (e) => showTooltip(e.clientX);
+        wrap.onpointermove = e => showTooltip(e.clientX);
         wrap.onpointerleave = hideTooltip;
-        wrap.onclick = (e) => showTooltip(e.clientX);
-      };
+        wrap.onclick = e => showTooltip(e.clientX);
+      }
 
-      // =========================
-      // Refresh All
-      // =========================
+      // --- Refresh all ---
       window.refreshAll = async () => {
-        await loadAllReadings();
-        computeSummary();
-        renderHistoryPage();
-        computeInsights();
+        await loadReadings();
+        updateSummary();
+        renderHistory();
+        updateInsights();
         renderChart();
-        $("lastSync").textContent = `Updated ${new Date().toLocaleTimeString()}`;
+        $('lastSync').textContent = `Updated ${new Date().toLocaleTimeString()}`;
       };
 
-      // =========================
-      // Initialization
-      // =========================
-      const init = async () => {
+      // --- Initialization ---
+      async function init() {
         if (!requireAuth()) return;
-        loadUserHeader();
+        updateHeader();
         await refreshAll();
-      };
+      }
 
       init();
     })();

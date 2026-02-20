@@ -1,910 +1,136 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Health Tracker</title>
-  <link rel="stylesheet" href="./style.css" />
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>Health Tracker</title>
+<link rel="stylesheet" href="./style.css"/>
 </head>
 
-<body class="app-page">
-  <!-- Top App Bar -->
-  <header class="appbar">
-    <div class="appbar-inner">
-      <div class="brand">
-        <img src="./images/logo.png" alt="DahniTech Solutions" class="brand-logo" />
-        <div class="brand-text">
-          <div class="brand-title">Health Tracker</div>
-          <div class="brand-sub" id="subtitle">Your daily readings, simplified</div>
-        </div>
-      </div>
+<body class="app-body">
 
-      <div class="appbar-actions">
-        <button class="chip" id="whoamiChip" type="button" aria-label="User">
-          <span class="dot"></span>
-          <span id="whoamiText">Loading…</span>
-        </button>
-
-        <button class="icon-btn" type="button" onclick="logout()" aria-label="Logout">
-          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-            <path d="M10 17l1.41-1.41L8.83 13H21v-2H8.83l2.58-2.59L10 7l-7 7 7 7z"></path>
-            <path d="M3 3h8v2H5v14h6v2H3V3z"></path>
-          </svg>
-          <span class="hide-sm">Logout</span>
-        </button>
-      </div>
+<header class="topbar">
+  <div class="top-left">
+    <img src="./images/logo.png" class="logo">
+    <div>
+      <div class="app-title">Health Tracker</div>
+      <div class="app-sub" id="subtitle"></div>
     </div>
-  </header>
+  </div>
+  <button class="btn-logout" onclick="logout()">Logout</button>
+</header>
+
+<main class="container">
+
+<section class="card">
+  <div class="card-title">Add Reading</div>
+
+  <div class="form-grid">
+    <input id="glucoseValue" placeholder="Glucose (mg/dL)">
+    <input id="bpSys" placeholder="SYS">
+    <input id="bpDia" placeholder="DIA">
+  </div>
+
+  <button class="btn-primary" onclick="saveReading()">Save Reading</button>
+</section>
+
+<section class="card">
+  <div class="card-title">Today's Summary</div>
+
+  <div class="kpi-grid">
+    <div class="kpi-box">
+      <div class="kpi-label">Glucose</div>
+      <div class="kpi-value" id="kpiGlucose">—</div>
+    </div>
+
+    <div class="kpi-box">
+      <div class="kpi-label">Blood Pressure</div>
+      <div class="kpi-value" id="kpiBP">—</div>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <div class="card-title">14 Day Trend</div>
+  <div class="chart-box">
+    <svg id="chart" viewBox="0 0 1000 300" preserveAspectRatio="none"></svg>
+  </div>
+</section>
+
+</main>
+
+<script>
+function logout(){
+  localStorage.clear();
+  window.location.href="./index.html";
+}
+
+function getAuth(){
+  return localStorage.getItem("userId");
+}
+
+async function saveReading(){
+  const userId = getAuth();
+  const g = document.getElementById("glucoseValue").value.trim();
+  const sys = document.getElementById("bpSys").value.trim();
+  const dia = document.getElementById("bpDia").value.trim();
+
+  if(g){
+    await fetch("/api/readings",{
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body:JSON.stringify({ userId, type:"glucose", value:g })
+    });
+  }
+
+  if(sys && dia){
+    await fetch("/api/readings",{
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body:JSON.stringify({ userId, type:"bp", value:sys+"/"+dia })
+    });
+  }
+
+  refresh();
+}
+
+async function refresh(){
+  const userId = getAuth();
+  const res = await fetch("/api/readings/"+userId);
+  const data = await res.json();
+
+  if(!data.length) return;
+
+  const g = data.find(r=>r.type==="glucose");
+  const bp = data.find(r=>r.type==="bp");
+
+  if(g) document.getElementById("kpiGlucose").textContent=g.value;
+  if(bp) document.getElementById("kpiBP").textContent=bp.value;
+
+  renderChart(data);
+}
+
+function renderChart(data){
+  const svg=document.getElementById("chart");
+  svg.innerHTML="";
+
+  const glucose=data.filter(r=>r.type==="glucose").slice(0,14).reverse();
+  const w=1000, h=300;
+
+  glucose.forEach((r,i)=>{
+    const x=(i*(w/14))+50;
+    const y=h-(Number(r.value)*1.2);
+    const circle=document.createElementNS("http://www.w3.org/2000/svg","circle");
+    circle.setAttribute("cx",x);
+    circle.setAttribute("cy",y);
+    circle.setAttribute("r",6);
+    circle.setAttribute("fill","#2b6cb0");
+    svg.appendChild(circle);
+  });
+}
+
+refresh();
+</script>
 
-  <!-- Main -->
-  <main class="shell">
-    <!-- Tabs -->
-    <nav class="tabs" aria-label="Sections">
-      <button class="tab active" type="button" data-tab="dashboard" onclick="showTab('dashboard')">Dashboard</button>
-      <button class="tab" type="button" data-tab="history" onclick="showTab('history')">History</button>
-      <button class="tab" type="button" data-tab="insights" onclick="showTab('insights')">Insights</button>
-    </nav>
-
-    <!-- TAB: Dashboard -->
-    <section id="tab-dashboard" class="tab-panel active">
-      <div class="grid">
-        <!-- Left: Add readings -->
-        <section class="card">
-          <div class="card-head">
-            <h2>Add Reading</h2>
-            <p class="muted">Log your glucose and blood pressure in seconds.</p>
-          </div>
-
-          <div class="segmented" role="tablist" aria-label="Reading type">
-            <button class="seg active" type="button" id="seg-glucose" onclick="toggleForm('glucose')">Glucose</button>
-            <button class="seg" type="button" id="seg-bp" onclick="toggleForm('bp')">Blood Pressure</button>
-          </div>
-
-          <!-- Glucose form -->
-          <div id="form-glucose" class="form-block">
-            <label class="field">
-              <span class="label">Glucose</span>
-              <div class="input-wrap">
-                <input id="glucoseValue" inputmode="numeric" placeholder="e.g. 110" />
-                <span class="suffix">mg/dL</span>
-              </div>
-            </label>
-
-            <label class="field">
-              <span class="label">Note (optional)</span>
-              <select id="glucoseNote">
-                <option value="">Choose note</option>
-                <option>Fasting</option>
-                <option>Before meal</option>
-                <option>After meal</option>
-                <option>Bedtime</option>
-                <option>Workout</option>
-                <option>Feeling low</option>
-                <option>Feeling high</option>
-              </select>
-            </label>
-
-            <button class="btn primary" type="button" onclick="saveGlucose()">
-              <span class="btn-text">Save Glucose</span>
-              <span class="spinner" aria-hidden="true"></span>
-            </button>
-          </div>
-
-          <!-- Blood pressure form -->
-          <div id="form-bp" class="form-block hidden">
-            <div class="row">
-              <label class="field">
-                <span class="label">Systolic</span>
-                <input id="bpSys" inputmode="numeric" placeholder="e.g. 120" />
-              </label>
-
-              <label class="field">
-                <span class="label">Diastolic</span>
-                <input id="bpDia" inputmode="numeric" placeholder="e.g. 80" />
-              </label>
-            </div>
-
-            <label class="field">
-              <span class="label">Note (optional)</span>
-              <select id="bpNote">
-                <option value="">Choose note</option>
-                <option>Morning</option>
-                <option>Afternoon</option>
-                <option>Evening</option>
-                <option>After coffee</option>
-                <option>After workout</option>
-                <option>Stress</option>
-                <option>Relaxed</option>
-              </select>
-            </label>
-
-            <button class="btn primary" type="button" onclick="saveBP()">
-              <span class="btn-text">Save Blood Pressure</span>
-              <span class="spinner" aria-hidden="true"></span>
-            </button>
-          </div>
-        </section>
-
-        <!-- Right: Quick summary + chart -->
-        <section class="card">
-          <div class="card-head">
-            <h2>Today</h2>
-            <p class="muted" id="todayLine">Loading summary…</p>
-          </div>
-
-          <div class="kpis">
-            <div class="kpi">
-              <div class="kpi-label">Latest Glucose</div>
-              <div class="kpi-value" id="kpiGlucose">—</div>
-              <div class="kpi-sub" id="kpiGlucoseSub">mg/dL</div>
-            </div>
-            <div class="kpi">
-              <div class="kpi-label">Latest BP</div>
-              <div class="kpi-value" id="kpiBP">—</div>
-              <div class="kpi-sub" id="kpiBPSub">mmHg</div>
-            </div>
-          </div>
-
-          <!-- ✅ FINAL: SVG CHART (NO CANVAS, NO Chart.js) -->
-          <div class="chart-card" id="trendCard">
-            <div class="chart-head">
-              <div>
-                <div class="chart-title">Trends</div>
-                <div class="muted small">Last 14 days • Glucose & Blood Pressure</div>
-              </div>
-
-              <div class="legend-inline" aria-label="Legend">
-                <span class="lg lg-g">Glucose</span>
-                <span class="lg lg-s">SYS</span>
-                <span class="lg lg-d">DIA</span>
-              </div>
-            </div>
-
-            <div class="sv-chart-wrap" id="svWrap">
-              <div class="chart-tooltip" id="svTip"></div>
-
-              <svg class="sv-chart" id="svChart" viewBox="0 0 1000 260" preserveAspectRatio="none" aria-label="Trend chart">
-                <!-- Grid + axes drawn by JS -->
-              </svg>
-            </div>
-          </div>
-
-          <div class="card-foot">
-            <button class="btn ghost" type="button" onclick="refreshAll()">Refresh</button>
-            <span class="muted small" id="lastSync">—</span>
-          </div>
-        </section>
-      </div>
-    </section>
-
-    <!-- TAB: History -->
-    <section id="tab-history" class="tab-panel">
-      <section class="card">
-        <div class="card-head">
-          <h2>My Readings</h2>
-          <p class="muted">Browse and manage your saved readings.</p>
-        </div>
-
-        <div class="table-wrap">
-          <table class="table" aria-label="Readings table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Type</th>
-                <th>Value</th>
-                <th>Note</th>
-                <th class="th-actions">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="readingsBody">
-              <tr><td colspan="5" class="muted">Loading…</td></tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="pager">
-          <button class="btn small ghost" type="button" onclick="prevPage()" aria-label="Previous page">‹</button>
-          <div class="muted small" id="pageLabel">1</div>
-          <button class="btn small ghost" type="button" onclick="nextPage()" aria-label="Next page">›</button>
-        </div>
-      </section>
-    </section>
-
-    <!-- TAB: Insights -->
-    <section id="tab-insights" class="tab-panel">
-      <section class="card">
-        <div class="card-head">
-          <h2>Insights</h2>
-          <p class="muted">Trends and patterns will appear here as you log more readings.</p>
-        </div>
-
-        <div class="insights-grid">
-          <div class="mini-card">
-            <div class="mini-title">7-Day Average (Glucose)</div>
-            <div class="mini-value" id="avg7g">—</div>
-            <div class="mini-sub">mg/dL</div>
-          </div>
-          <div class="mini-card">
-            <div class="mini-title">7-Day Average (BP)</div>
-            <div class="mini-value" id="avg7bp">—</div>
-            <div class="mini-sub">mmHg</div>
-          </div>
-          <div class="mini-card">
-            <div class="mini-title">Most Common Note</div>
-            <div class="mini-value" id="commonNote">—</div>
-            <div class="mini-sub">based on history</div>
-          </div>
-        </div>
-
-        <div class="muted small">
-          Tip: Next we can add “Normal/High/Low” labels like real health apps.
-        </div>
-      </section>
-    </section>
-  </main>
-
-  <!-- Toast -->
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
-
-  <script>
-    // =========================
-    // Storage helpers
-    // =========================
-    function getAuth() {
-      return {
-        userId: localStorage.getItem("userId") || "",
-        name: localStorage.getItem("name") || "",
-        email: localStorage.getItem("email") || ""
-      };
-    }
-
-    function requireAuth() {
-      const { userId } = getAuth();
-      if (!userId) {
-        window.location.href = "./index.html";
-        return false;
-      }
-      return true;
-    }
-
-    function logout() {
-      localStorage.removeItem("userId");
-      localStorage.removeItem("name");
-      localStorage.removeItem("phone");
-      localStorage.removeItem("email");
-      window.location.href = "./index.html";
-    }
-
-    // =========================
-    // UI helpers
-    // =========================
-    function toast(msg, type = "ok") {
-      const t = document.getElementById("toast");
-      t.className = "toast show " + (type === "err" ? "err" : "ok");
-      t.textContent = msg;
-      clearTimeout(window.__toastTimer);
-      window.__toastTimer = setTimeout(() => t.className = "toast", 2400);
-    }
-
-    function setLoading(btn, isLoading) {
-      btn.classList.toggle("loading", !!isLoading);
-      btn.disabled = !!isLoading;
-    }
-
-    function showTab(name) {
-      document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
-      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
-      document.querySelector(`.tab[data-tab="${name}"]`).classList.add("active");
-      document.getElementById("tab-" + name).classList.add("active");
-    }
-
-    function toggleForm(which) {
-      const g = document.getElementById("form-glucose");
-      const bp = document.getElementById("form-bp");
-      const sg = document.getElementById("seg-glucose");
-      const sbp = document.getElementById("seg-bp");
-
-      if (which === "glucose") {
-        g.classList.remove("hidden"); bp.classList.add("hidden");
-        sg.classList.add("active"); sbp.classList.remove("active");
-      } else {
-        bp.classList.remove("hidden"); g.classList.add("hidden");
-        sbp.classList.add("active"); sg.classList.remove("active");
-      }
-    }
-
-    function escapeHtml(s) {
-      return String(s).replace(/[&<>"']/g, (c) => ({
-        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
-      }[c]));
-    }
-
-    // =========================
-    // API
-    // =========================
-    async function loadUserHeader() {
-      if (!requireAuth()) return;
-      const { name, email } = getAuth();
-
-      document.getElementById("whoamiText").textContent = name || email || "Signed in";
-      document.getElementById("subtitle").textContent =
-        (email ? email : "Welcome back") + " • " + new Date().toLocaleString();
-    }
-
-    async function saveGlucose() {
-      if (!requireAuth()) return;
-      const { userId } = getAuth();
-
-      const btn = document.querySelector("#form-glucose .btn.primary");
-      const value = document.getElementById("glucoseValue").value.trim();
-      const note = document.getElementById("glucoseNote").value;
-
-      if (!value || isNaN(Number(value))) return toast("Enter a valid glucose number", "err");
-
-      try {
-        setLoading(btn, true);
-        const r = await fetch("/api/readings", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId, type: "glucose", value: String(Number(value)), note })
-        });
-        const data = await r.json().catch(() => ({}));
-        if (!r.ok) throw new Error(data.error || "save failed");
-
-        document.getElementById("glucoseValue").value = "";
-        document.getElementById("glucoseNote").value = "";
-        toast("Glucose saved");
-        refreshAll();
-      } catch (e) {
-        toast("Could not save glucose", "err");
-      } finally {
-        setLoading(btn, false);
-      }
-    }
-
-    async function saveBP() {
-      if (!requireAuth()) return;
-      const { userId } = getAuth();
-
-      const btn = document.querySelector("#form-bp .btn.primary");
-      const sys = document.getElementById("bpSys").value.trim();
-      const dia = document.getElementById("bpDia").value.trim();
-      const note = document.getElementById("bpNote").value;
-
-      if (!sys || !dia || isNaN(Number(sys)) || isNaN(Number(dia)))
-        return toast("Enter valid BP numbers", "err");
-
-      try {
-        setLoading(btn, true);
-        const value = `${Number(sys)}/${Number(dia)}`;
-        const r = await fetch("/api/readings", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId, type: "bp", value, note })
-        });
-        const data = await r.json().catch(() => ({}));
-        if (!r.ok) throw new Error(data.error || "save failed");
-
-        document.getElementById("bpSys").value = "";
-        document.getElementById("bpDia").value = "";
-        document.getElementById("bpNote").value = "";
-        toast("Blood pressure saved");
-        refreshAll();
-      } catch (e) {
-        toast("Could not save blood pressure", "err");
-      } finally {
-        setLoading(btn, false);
-      }
-    }
-
-    // =========================
-    // Data + UI rendering
-    // =========================
-    let allReadings = [];
-    let page = 1;
-    const pageSize = 10;
-
-    function parseTs(ts) {
-      const d = new Date(ts);
-      return isNaN(d.getTime()) ? null : d;
-    }
-
-    function isSameDay(a, b) {
-      return a.getFullYear() === b.getFullYear()
-        && a.getMonth() === b.getMonth()
-        && a.getDate() === b.getDate();
-    }
-
-    function latestOfType(type) {
-      const list = allReadings.filter(r => String(r.type).toLowerCase() === type);
-      if (!list.length) return null;
-      return list[0]; // because we sort DESC
-    }
-
-    function computeSummary() {
-      const now = new Date();
-      const todayCount = allReadings.filter(r => {
-        const d = parseTs(r.ts);
-        return d && isSameDay(d, now);
-      }).length;
-
-      const g = latestOfType("glucose");
-      const bp = latestOfType("bp");
-
-      document.getElementById("kpiGlucose").textContent = g ? g.value : "—";
-      document.getElementById("kpiBP").textContent = bp ? bp.value : "—";
-      document.getElementById("todayLine").textContent =
-        todayCount ? `${todayCount} readings logged today` : "No readings yet today";
-    }
-
-    async function loadAllReadings() {
-      if (!requireAuth()) return;
-      const { userId } = getAuth();
-
-      const r = await fetch(`/api/readings/${encodeURIComponent(userId)}`);
-      const data = await r.json();
-      if (!r.ok) throw new Error(data?.error || "Load failed");
-
-      // Sort DESC newest first
-      allReadings = Array.isArray(data) ? data.slice().sort((a, b) => {
-        const da = parseTs(a.ts)?.getTime() || 0;
-        const db = parseTs(b.ts)?.getTime() || 0;
-        return db - da;
-      }) : [];
-    }
-
-    function renderHistoryPage() {
-      const body = document.getElementById("readingsBody");
-      const total = allReadings.length;
-      const totalPages = Math.max(1, Math.ceil(total / pageSize));
-      if (page > totalPages) page = totalPages;
-
-      const start = (page - 1) * pageSize;
-      const items = allReadings.slice(start, start + pageSize);
-
-      document.getElementById("pageLabel").textContent = `${page} / ${totalPages}`;
-
-      if (!items.length) {
-        body.innerHTML = `<tr><td colspan="5" class="muted">No readings yet.</td></tr>`;
-        return;
-      }
-
-      body.innerHTML = items.map(row => {
-        const d = parseTs(row.ts);
-        const date = d ? d.toLocaleString() : "—";
-        const type = row.type || "—";
-        const value = row.value || "—";
-        const note = row.note || "";
-        const id = row.id || "";
-        return `
-          <tr>
-            <td>${escapeHtml(date)}</td>
-            <td><span class="pill">${escapeHtml(type)}</span></td>
-            <td>${escapeHtml(String(value))}</td>
-            <td class="muted">${escapeHtml(note)}</td>
-            <td class="td-actions">
-              <button class="mini-btn" type="button" onclick="editReadingPrompt('${id}', '${escapeHtml(String(value))}', '${escapeHtml(String(note))}')">Edit</button>
-              <button class="mini-btn danger" type="button" onclick="deleteReading('${id}')">Delete</button>
-            </td>
-          </tr>
-        `;
-      }).join("");
-    }
-
-    function prevPage() { if (page > 1) { page--; renderHistoryPage(); } }
-    function nextPage() {
-      const totalPages = Math.max(1, Math.ceil(allReadings.length / pageSize));
-      if (page < totalPages) { page++; renderHistoryPage(); }
-    }
-
-    async function editReadingPrompt(id, currentValue, currentNote) {
-      if (!requireAuth()) return;
-      const { userId } = getAuth();
-
-      const newValue = prompt("Edit value:", currentValue || "");
-      if (newValue === null) return;
-
-      const newNote = prompt("Edit note (optional):", currentNote || "");
-      if (newNote === null) return;
-
-      try {
-        const r = await fetch(`/api/readings/${encodeURIComponent(id)}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId, value: String(newValue).trim(), note: String(newNote || "").trim() })
-        });
-        const data = await r.json().catch(() => ({}));
-        if (!r.ok) throw new Error(data.error || "Update failed");
-
-        toast("Updated");
-        await refreshAll();
-        showTab("history");
-      } catch {
-        toast("Update failed", "err");
-      }
-    }
-
-    async function deleteReading(id) {
-      if (!requireAuth()) return;
-      const { userId } = getAuth();
-
-      const ok = confirm("Delete this reading?");
-      if (!ok) return;
-
-      try {
-        const r = await fetch(`/api/readings/${encodeURIComponent(id)}`, {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId })
-        });
-        const data = await r.json().catch(() => ({}));
-        if (!r.ok) throw new Error(data.error || "Delete failed");
-
-        toast("Deleted");
-        await refreshAll();
-      } catch {
-        toast("Delete failed", "err");
-      }
-    }
-
-    function computeInsights() {
-      const now = new Date();
-      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-
-      const week = allReadings.filter(r => {
-        const d = parseTs(r.ts);
-        return d && d >= sevenDaysAgo && d <= now;
-      });
-
-      const gVals = week
-        .filter(r => String(r.type).toLowerCase() === "glucose")
-        .map(r => Number(r.value))
-        .filter(n => !Number.isNaN(n));
-
-      const bpVals = week
-        .filter(r => String(r.type).toLowerCase() === "bp")
-        .map(r => String(r.value).split("/").map(x => Number(x)))
-        .filter(([s, d]) => !Number.isNaN(s) && !Number.isNaN(d));
-
-      const avg = (arr) => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
-
-      const gAvg = avg(gVals);
-      const sAvg = avg(bpVals.map(x => x[0]));
-      const dAvg = avg(bpVals.map(x => x[1]));
-
-      document.getElementById("avg7g").textContent = gAvg ?? "—";
-      document.getElementById("avg7bp").textContent = (sAvg && dAvg) ? `${sAvg}/${dAvg}` : "—";
-
-      const notes = allReadings.map(r => (r.note || "").trim()).filter(Boolean);
-      if (!notes.length) {
-        document.getElementById("commonNote").textContent = "—";
-      } else {
-        const freq = {};
-        for (const n of notes) freq[n] = (freq[n] || 0) + 1;
-        const top = Object.entries(freq).sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
-        document.getElementById("commonNote").textContent = top;
-      }
-    }
-
-    // =========================
-    // ✅ SVG CHART (Dual-scale, iPhone-safe)
-    // =========================
-    const SVG_W = 1000;
-    const SVG_H = 260;
-    const PAD_L = 64, PAD_R = 64, PAD_T = 18, PAD_B = 42;
-
-    function dayKey(d) {
-      const x = new Date(d);
-      const y = x.getFullYear();
-      const m = String(x.getMonth() + 1).padStart(2, "0");
-      const da = String(x.getDate()).padStart(2, "0");
-      return `${y}-${m}-${da}`;
-    }
-
-    function lastNDays(n = 14) {
-      const out = [];
-      const now = new Date();
-      for (let i = n - 1; i >= 0; i--) {
-        out.push(new Date(now.getFullYear(), now.getMonth(), now.getDate() - i));
-      }
-      return out;
-    }
-
-    function avg(arr) {
-      return arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
-    }
-
-    function buildTrend(days = 14) {
-      const buckets = {}; // k -> {g:[], sys:[], dia:[]}
-
-      for (const r of allReadings) {
-        const d = parseTs(r.ts);
-        if (!d) continue;
-
-        const k = dayKey(d);
-        if (!buckets[k]) buckets[k] = { g: [], sys: [], dia: [] };
-
-        const t = String(r.type || "").toLowerCase();
-
-        if (t === "glucose") {
-          const v = Number(r.value);
-          if (!Number.isNaN(v)) buckets[k].g.push(v);
-        }
-
-        if (t === "bp") {
-          const parts = String(r.value || "").split("/");
-          if (parts.length === 2) {
-            const s = Number(parts[0]);
-            const di = Number(parts[1]);
-            if (!Number.isNaN(s)) buckets[k].sys.push(s);
-            if (!Number.isNaN(di)) buckets[k].dia.push(di);
-          }
-        }
-      }
-
-      const daysArr = lastNDays(days);
-      const labels = daysArr.map(d => d.toLocaleDateString(undefined, { month: "2-digit", day: "2-digit" }));
-
-      const glucose = [];
-      const sys = [];
-      const dia = [];
-
-      for (const d of daysArr) {
-        const k = dayKey(d);
-        const b = buckets[k] || { g: [], sys: [], dia: [] };
-        glucose.push(avg(b.g));
-        sys.push(avg(b.sys));
-        dia.push(avg(b.dia));
-      }
-
-      return { labels, daysArr, glucose, sys, dia };
-    }
-
-    function niceRange(min, max) {
-      if (!isFinite(min) || !isFinite(max)) return { min: 0, max: 1 };
-      if (min === max) {
-        return { min: min - 1, max: max + 1 };
-      }
-      const span = max - min;
-      const step = Math.pow(10, Math.floor(Math.log10(span)));
-      const pad = step * 0.2;
-      return {
-        min: Math.floor((min - pad) / step) * step,
-        max: Math.ceil((max + pad) / step) * step
-      };
-    }
-
-    function svgEl(name, attrs = {}) {
-      const el = document.createElementNS("http://www.w3.org/2000/svg", name);
-      for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, String(v));
-      return el;
-    }
-
-    function clearSvg(svg) {
-      while (svg.firstChild) svg.removeChild(svg.firstChild);
-    }
-
-    function xAt(i, n) {
-      const w = SVG_W - PAD_L - PAD_R;
-      if (n <= 1) return PAD_L + w / 2;
-      return PAD_L + (i * (w / (n - 1)));
-    }
-
-    function yAt(v, r) {
-      const h = SVG_H - PAD_T - PAD_B;
-      if (v === null || v === undefined || !isFinite(v)) return null;
-      const t = (v - r.min) / (r.max - r.min);
-      return (PAD_T + h) - (t * h);
-    }
-
-    function buildPath(values, n, yMap) {
-      let d = "";
-      let started = false;
-
-      for (let i = 0; i < n; i++) {
-        const y = yMap(values[i]);
-        if (y === null) { started = false; continue; }
-        const x = xAt(i, n);
-        if (!started) {
-          d += `M ${x} ${y}`;
-          started = true;
-        } else {
-          d += ` L ${x} ${y}`;
-        }
-      }
-      return d;
-    }
-
-    function renderSvgChart() {
-      const svg = document.getElementById("svChart");
-      const wrap = document.getElementById("svWrap");
-      const tip = document.getElementById("svTip");
-      if (!svg || !wrap || !tip) return;
-
-      const { labels, daysArr, glucose, sys, dia } = buildTrend(14);
-      const n = labels.length;
-
-      const gNums = glucose.filter(v => v !== null && isFinite(v));
-      const bpNums = sys.concat(dia).filter(v => v !== null && isFinite(v));
-
-      const gR = niceRange(Math.min(...(gNums.length ? gNums : [80])), Math.max(...(gNums.length ? gNums : [180])));
-      const bpR = niceRange(Math.min(...(bpNums.length ? bpNums : [60])), Math.max(...(bpNums.length ? bpNums : [140])));
-
-      clearSvg(svg);
-
-      // Background
-      svg.appendChild(svgEl("rect", { x: 0, y: 0, width: SVG_W, height: SVG_H, rx: 18, ry: 18, fill: "rgba(255,255,255,0.02)" }));
-
-      // Grid (4 lines)
-      const gridGroup = svgEl("g", { opacity: "0.55" });
-      const h = SVG_H - PAD_T - PAD_B;
-      for (let i = 0; i <= 4; i++) {
-        const y = PAD_T + (i * (h / 4));
-        gridGroup.appendChild(svgEl("line", {
-          x1: PAD_L, y1: y,
-          x2: SVG_W - PAD_R, y2: y,
-          stroke: "rgba(255,255,255,0.10)", "stroke-width": 1
-        }));
-      }
-      svg.appendChild(gridGroup);
-
-      // Axes labels (left mg/dL, right mmHg)
-      const axisGroup = svgEl("g", { opacity: "0.70" });
-      const ticks = 4;
-      for (let i = 0; i <= ticks; i++) {
-        const y = PAD_T + (i * (h / ticks));
-
-        const gVal = Math.round(gR.max - (i * (gR.max - gR.min) / ticks));
-        const bpVal = Math.round(bpR.max - (i * (bpR.max - bpR.min) / ticks));
-
-        axisGroup.appendChild(svgEl("text", {
-          x: PAD_L - 10, y: y + 4,
-          "text-anchor": "end",
-          "font-size": "12",
-          fill: "rgba(255,255,255,0.55)"
-        })).textContent = String(gVal);
-
-        axisGroup.appendChild(svgEl("text", {
-          x: SVG_W - PAD_R + 10, y: y + 4,
-          "text-anchor": "start",
-          "font-size": "12",
-          fill: "rgba(255,255,255,0.55)"
-        })).textContent = String(bpVal);
-      }
-
-      // X labels (start / middle / end)
-      const xLabelGroup = svgEl("g", { opacity: "0.70" });
-      const idxs = [0, Math.floor((n - 1) / 2), n - 1].filter((v, i, a) => a.indexOf(v) === i);
-      for (const i of idxs) {
-        xLabelGroup.appendChild(svgEl("text", {
-          x: xAt(i, n), y: SVG_H - 16,
-          "text-anchor": "middle",
-          "font-size": "12",
-          fill: "rgba(255,255,255,0.55)"
-        })).textContent = labels[i];
-      }
-      svg.appendChild(axisGroup);
-      svg.appendChild(xLabelGroup);
-
-      // Lines
-      const lineGroup = svgEl("g", { fill: "none", "stroke-linecap": "round", "stroke-linejoin": "round" });
-
-      const yG = (v) => yAt(v, gR);
-      const yBP = (v) => yAt(v, bpR);
-
-      const dG = buildPath(glucose, n, yG);
-      const dS = buildPath(sys, n, yBP);
-      const dD = buildPath(dia, n, yBP);
-
-      // Glucose
-      lineGroup.appendChild(svgEl("path", {
-        d: dG,
-        stroke: "rgba(76,125,255,0.95)",
-        "stroke-width": 4
-      }));
-      // SYS
-      lineGroup.appendChild(svgEl("path", {
-        d: dS,
-        stroke: "rgba(60,255,151,0.95)",
-        "stroke-width": 4
-      }));
-      // DIA
-      lineGroup.appendChild(svgEl("path", {
-        d: dD,
-        stroke: "rgba(255,77,109,0.95)",
-        "stroke-width": 4
-      }));
-
-      svg.appendChild(lineGroup);
-
-      // Points (last available point each series)
-      function lastPoint(values, yMap, color) {
-        for (let i = values.length - 1; i >= 0; i--) {
-          const v = values[i];
-          const y = yMap(v);
-          if (y === null) continue;
-          const x = xAt(i, n);
-
-          svg.appendChild(svgEl("circle", {
-            cx: x, cy: y, r: 7,
-            fill: "rgba(11,18,32,0.85)",
-            stroke: color,
-            "stroke-width": 4
-          }));
-          return { i, x, y, v };
-        }
-        return null;
-      }
-
-      const lpG = lastPoint(glucose, yG, "rgba(76,125,255,0.95)");
-      const lpS = lastPoint(sys, yBP, "rgba(60,255,151,0.95)");
-      const lpD = lastPoint(dia, yBP, "rgba(255,77,109,0.95)");
-
-      // Hover/Tap tooltip (nearest x)
-      function showTipAt(clientX) {
-        const rect = wrap.getBoundingClientRect();
-        const px = Math.min(Math.max(clientX - rect.left, 0), rect.width);
-
-        // map px to nearest index
-        const t = (rect.width <= 1) ? 0 : (px / rect.width);
-        const idx = Math.round(t * (n - 1));
-
-        const dateStr = daysArr[idx].toLocaleDateString(undefined, { month: "2-digit", day: "2-digit", year: "numeric" });
-        const g = glucose[idx];
-        const s = sys[idx];
-        const d = dia[idx];
-
-        tip.innerHTML =
-          `<div style="font-weight:900; margin-bottom:6px;">${dateStr}</div>` +
-          `<div>Glucose: <b>${(g ?? "—")}</b> mg/dL</div>` +
-          `<div>SYS: <b>${(s ?? "—")}</b> mmHg</div>` +
-          `<div>DIA: <b>${(d ?? "—")}</b> mmHg</div>`;
-
-        tip.classList.add("show");
-      }
-
-      function hideTip() { tip.classList.remove("show"); }
-
-      // Remove previous listeners safely
-      wrap.onpointerdown = null;
-      wrap.onpointermove = null;
-      wrap.onpointerleave = null;
-
-      wrap.onpointerdown = (e) => { showTipAt(e.clientX); };
-      wrap.onpointermove = (e) => { if (tip.classList.contains("show")) showTipAt(e.clientX); };
-      wrap.onpointerleave = () => { hideTip(); };
-
-      // If there is data, show tooltip on last day automatically (subtle)
-      if (lpG || lpS || lpD) {
-        requestAnimationFrame(() => {
-          const rect = wrap.getBoundingClientRect();
-          showTipAt(rect.left + rect.width);
-          setTimeout(() => hideTip(), 1800);
-        });
-      }
-    }
-
-    // =========================
-    // Refresh
-    // =========================
-    async function refreshAll() {
-      try {
-        await loadAllReadings();
-        computeSummary();
-        computeInsights();
-        renderHistoryPage();
-        renderSvgChart();
-        document.getElementById("lastSync").textContent = "Updated " + new Date().toLocaleTimeString();
-      } catch {
-        document.getElementById("todayLine").textContent = "Could not load readings (check DB/API).";
-        document.getElementById("readingsBody").innerHTML =
-          `<tr><td colspan="5" class="muted">Could not load history.</td></tr>`;
-      }
-    }
-
-    // Init
-    loadUserHeader();
-    if (requireAuth()) refreshAll();
-  </script>
 </body>
 </html>

@@ -245,4 +245,224 @@ app.post("/api/readings", async (req, res) => {
         return res.status(400).json({ error: "Invalid glucose value" });
       }
     } else if (normalizedType === "bp") {
-      const parts = safeValue
+      const parts = safeValue.split("/");
+      if (parts.length !== 2) {
+        return res.status(400).json({ error: "Invalid BP format (use systolic/diastolic)" });
+      }
+      const [s, d] = parts.map(Number);
+      if (isNaN(s) || isNaN(d) || s <= 0 || d <= 0) {
+        return res.status(400).json({ error: "Invalid BP numbers" });
+      }
+    }
+
+    const pool = await getPool();
+    await pool
+      .request()
+      .input("UserId", sql.UniqueIdentifier, userId)
+      .input("Type", sql.NVarChar(20), normalizedType)
+      .input("Value", sql.NVarChar(40), safeValue)
+      .input("Note", sql.NVarChar(120), safeNote)
+      .query("INSERT INTO dbo.Readings (UserId, Type, Value, Note) VALUES (@UserId, @Type, @Value, @Note)");
+
+    res.json({ message: "Reading saved successfully" });
+  } catch (err) {
+    console.error("Save reading error:", err);
+    res.status(500).json({ error: "Failed to save reading" });
+  }
+});
+
+app.get("/api/readings/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    if (!isValidGuid(userId)) {
+      return res.status(400).json({ error: "Invalid userId" });
+    }
+
+    const pool = await getPool();
+    const result = await pool
+      .request()
+      .input("UserId", sql.UniqueIdentifier, userId)
+      .query("SELECT Id, Type, Value, Note, Ts FROM dbo.Readings WHERE UserId = @UserId ORDER BY Ts DESC");
+
+    const readings = result.recordset.map(r => ({
+      id: r.Id,
+      type: r.Type,
+      value: r.Value,
+      note: r.Note || "",
+      ts: r.Ts
+    }));
+
+    res.json(readings);
+  } catch (err) {
+    console.error("Load readings error:", err);
+    res.status(500).json({ error: "Failed to load readings" });
+  }
+});
+
+app.put("/api/readings/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userId, value, note } = req.body || {};
+
+    if (!id || !userId || !value) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+    if (!isValidGuid(id) || !isValidGuid(userId)) {
+      return res.status(400).json({ error: "Invalid ID format" });
+    }
+
+    const safeValue = safeStr(value, 40);
+    const safeNote = note ? safeStr(note, 120) : null;
+
+    const pool = await getPool();
+    const result = await pool
+      .request()
+      .input("Id", sql.UniqueIdentifier, id)
+      .input("UserId", sql.UniqueIdentifier, userId)
+      .input("Value", sql.NVarChar(40), safeValue)
+      .input("Note", sql.NVarChar(120), safeNote)
+      .query("UPDATE dbo.Readings SET Value = @Value, Note = @Note WHERE Id = @Id AND UserId = @UserId");
+
+    if (!result.rowsAffected?.[0]) {
+      return res.status(404).json({ error: "Reading not found" });
+    }
+
+    res.json({ message: "Reading updated successfully" });
+  } catch (err) {
+    console.error("Update reading error:", err);
+    res.status(500).json({ error: "Failed to update reading" });
+  }
+});
+
+app.delete("/api/readings/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userId } = req.body || {};
+
+    if (!id || !userId) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+    if (!isValidGuid(id) || !isValidGuid(userId)) {
+      return res.status(400).json({ error: "Invalid ID format" });
+    }
+
+    const pool = await getPool();
+    const result = await pool
+      .request()
+      .input("Id", sql.UniqueIdentifier, id)
+      .input("UserId", sql.UniqueIdentifier, userId)
+      .query("DELETE FROM dbo.Readings WHERE Id = @Id AND UserId = @UserId");
+
+    if (!result.rowsAffected?.[0]) {
+      return res.status(404).json({ error: "Reading not found" });
+    }
+
+    res.json({ message: "Reading deleted successfully" });
+  } catch (err) {
+    console.error("Delete reading error:", err);
+    res.status(500).json({ error: "Failed to delete reading" });
+  }
+});
+
+// ===== Forgot Password (Twilio) =====
+app.post("/api/forgot-password", async (req, res) => {
+  try {
+    const phone = normalizePhone(req.body?.phone);
+    if (!phone) return res.status(400).json({ error: "Phone number required" });
+    if (!hasTwilio) return res.status(500).json({ error: "SMS service not configured" });
+
+    const pool = await getPool();
+    const userCheck = await pool
+      .request()
+      .input("Phone", sql.NVarChar(32), phone)
+      .query("SELECT TOP 1 Id FROM dbo.Users WHERE Phone = @Phone");
+
+    if (!userCheck.recordset.length) {
+      return res.status(404).json({ error: "Phone number not registered" });
+    }
+
+    await twilioClient.verify.v2.services(process.env.TWILIO_VERIFY_SERVICE_SID)
+      .verifications.create({ to: phone, channel: "sms" });
+
+    res.json({ message: "Verification code sent" });
+  } catch (err) {
+    console.error("Send code error:", err);
+    res.status(500).json({ error: "Failed to send verification code" });
+  }
+});
+
+app.post("/api/verify-reset-code", async (req, res) => {
+  try {
+    const phone = normalizePhone(req.body?.phone);
+    const code = String(req.body?.code || "").trim();
+
+    if (!phone || !code) return res.status(400).json({ error: "Phone and code required" });
+    if (!hasTwilio) return res.status(500).json({ error: "SMS service not configured" });
+
+    const verification = await twilioClient.verify.v2.services(process.env.TWILIO_VERIFY_SERVICE_SID)
+      .verificationChecks.create({ to: phone, code });
+
+    if (verification.status !== "approved") {
+      return res.status(400).json({ error: "Invalid verification code" });
+    }
+
+    const resetToken = createResetToken(phone);
+    res.json({ message: "Code verified", resetToken });
+  } catch (err) {
+    console.error("Verify code error:", err);
+    res.status(500).json({ error: "Verification failed" });
+  }
+});
+
+app.post("/api/reset-password", async (req, res) => {
+  try {
+    const phone = normalizePhone(req.body?.phone);
+    const newPassword = String(req.body?.newPassword || "");
+    const resetToken = String(req.body?.resetToken || "");
+
+    if (!phone || !newPassword) return res.status(400).json({ error: "Missing required fields" });
+    if (newPassword.length < 8) return res.status(400).json({ error: "Password must be at least 8 characters" });
+
+    if (!resetToken || !verifyResetToken(resetToken, phone)) {
+      return res.status(400).json({ error: "Invalid or expired reset token" });
+    }
+
+    const hash = await bcrypt.hash(newPassword, 10);
+    const pool = await getPool();
+
+    const result = await pool
+      .request()
+      .input("Phone", sql.NVarChar(32), phone)
+      .input("PasswordHash", sql.NVarChar(255), hash)
+      .query("UPDATE dbo.Users SET PasswordHash = @PasswordHash WHERE Phone = @Phone");
+
+    consumeResetToken(resetToken);
+
+    if (!result.rowsAffected?.[0]) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.json({ message: "Password updated successfully" });
+  } catch (err) {
+    console.error("Reset password error:", err);
+    res.status(500).json({ error: "Failed to reset password" });
+  }
+});
+
+// ===== Root =====
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+// ===== Start Server =====
+(async () => {
+  try {
+    await ensureTables();
+    app.listen(PORT, () => {
+      console.log(`✅ Server running on port ${PORT}`);
+    });
+  } catch (err) {
+    console.error("❌ Startup failed:", err);
+    process.exit(1);
+  }
+})();

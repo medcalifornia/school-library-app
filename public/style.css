@@ -1,5 +1,5 @@
 /* =========================================================
-   Health Tracker UI - مع ألوان BP خمس فئات
+   Health Tracker UI - مع ألوان BP خمس فئات وتحسينات الشارت
    ========================================================= */
 
 :root {
@@ -15,9 +15,9 @@
   --primary-glow: #6a5cff;
   --danger: #ff4d6d;
   --success: #3cff97;
-  --warning: #ffaa33; /* برتقالي */
-  --elevated: #f1c40f; /* أصفر */
-  --crisis: #8e44ad; /* بنفسجي */
+  --warning: #ffaa33;
+  --elevated: #f1c40f;
+  --crisis: #9b59b6;
 
   --radius: 18px;
   --radius-sm: 14px;
@@ -604,7 +604,7 @@ input::placeholder {
   z-index: 10;
   padding: 10px 14px;
   border-radius: 12px;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid var(--border);
@@ -615,8 +615,8 @@ input::placeholder {
   opacity: 0;
   transform: translateY(-5px);
   transition: opacity 0.15s ease, transform 0.15s ease;
-  max-width: 85%;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+  max-width: 90%;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
 }
 
 .chart-tooltip.show {
@@ -778,7 +778,7 @@ input::placeholder {
   border-color: rgba(255, 77, 109, 0.4);
 }
 
-/* ===== Login Page ===== */
+/* ===== Login Page (إذا احتجت) ===== */
 .login-page {
   min-height: 100vh;
   display: flex;

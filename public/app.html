@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -147,7 +146,7 @@
             </div>
           </div>
 
-          <!-- ✅ NEW PROFESSIONAL CHART -->
+          <!-- ✅ Professional Chart -->
           <div class="chart-card">
             <div class="chart-head">
               <div>
@@ -246,7 +245,7 @@
 
   <script>
     // =========================
-    // Storage helpers (matches your /api/login response)
+    // Storage helpers
     // =========================
     function getAuth() {
       return {
@@ -294,6 +293,14 @@
       document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
       document.querySelector(`.tab[data-tab="${name}"]`).classList.add("active");
       document.getElementById("tab-" + name).classList.add("active");
+
+      // ✅ iPhone: chart sometimes needs resize when tab becomes visible
+      if (name === "dashboard") {
+        requestAnimationFrame(() => {
+          if (healthChart) healthChart.resize();
+          else renderHealthChart();
+        });
+      }
     }
 
     function toggleForm(which) {
@@ -416,7 +423,7 @@
     function latestOfType(type) {
       const list = allReadings.filter(r => String(r.type).toLowerCase() === type);
       if (!list.length) return null;
-      return list[0]; // because we sort DESC
+      return list[0]; // sorted DESC
     }
 
     function computeSummary() {
@@ -443,7 +450,6 @@
       const data = await r.json();
       if (!r.ok) throw new Error(data?.error || "Load failed");
 
-      // Sort DESC newest first
       allReadings = Array.isArray(data) ? data.slice().sort((a, b) => {
         const da = parseTs(a.ts)?.getTime() || 0;
         const db = parseTs(b.ts)?.getTime() || 0;
@@ -474,6 +480,11 @@
         const value = row.value || "—";
         const note = row.note || "";
         const id = row.id || "";
+
+        // ✅ SAFE passing for prompt (no HTML escaping inside prompt)
+        const vEnc = encodeURIComponent(String(value));
+        const nEnc = encodeURIComponent(String(note));
+
         return `
           <tr>
             <td>${escapeHtml(date)}</td>
@@ -481,8 +492,8 @@
             <td>${escapeHtml(String(value))}</td>
             <td class="muted">${escapeHtml(note)}</td>
             <td class="td-actions">
-              <button class="mini-btn" type="button" onclick="editReadingPrompt('${id}', '${escapeHtml(String(value))}', '${escapeHtml(String(note))}')">Edit</button>
-              <button class="mini-btn danger" type="button" onclick="deleteReading('${id}')">Delete</button>
+              <button class="mini-btn" type="button" onclick="editReadingPrompt('${escapeHtml(id)}','${vEnc}','${nEnc}')">Edit</button>
+              <button class="mini-btn danger" type="button" onclick="deleteReading('${escapeHtml(id)}')">Delete</button>
             </td>
           </tr>
         `;
@@ -495,21 +506,28 @@
       if (page < totalPages) { page++; renderHistoryPage(); }
     }
 
-    async function editReadingPrompt(id, currentValue, currentNote) {
+    async function editReadingPrompt(id, valueEnc, noteEnc) {
       if (!requireAuth()) return;
       const { userId } = getAuth();
 
-      const newValue = prompt("Edit value:", currentValue || "");
+      const currentValue = decodeURIComponent(valueEnc || "");
+      const currentNote = decodeURIComponent(noteEnc || "");
+
+      const newValue = prompt("Edit value:", currentValue);
       if (newValue === null) return;
 
-      const newNote = prompt("Edit note (optional):", currentNote || "");
+      const newNote = prompt("Edit note (optional):", currentNote);
       if (newNote === null) return;
 
       try {
         const r = await fetch(`/api/readings/${encodeURIComponent(id)}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId, value: String(newValue).trim(), note: String(newNote || "").trim() })
+          body: JSON.stringify({
+            userId,
+            value: String(newValue).trim(),
+            note: String(newNote || "").trim()
+          })
         });
         const data = await r.json().catch(() => ({}));
         if (!r.ok) throw new Error(data.error || "Update failed");
@@ -585,7 +603,7 @@
     }
 
     // =========================
-    // ✅ NEW Chart (No /api/chart)
+    // Chart (FINAL iPhone SAFE + BP visible)
     // =========================
     let healthChart;
 
@@ -625,9 +643,7 @@
         if (t === "glucose") {
           const v = Number(r.value);
           if (!Number.isNaN(v)) buckets[k].g.push(v);
-        }
-
-        if (t === "bp") {
+        } else if (t === "bp") {
           const parts = String(r.value || "").split("/");
           if (parts.length === 2) {
             const s = Number(parts[0]);
@@ -648,12 +664,18 @@
       for (const d of daysArr) {
         const k = dayKey(d);
         const b = buckets[k] || { g: [], sys: [], dia: [] };
-        glucose.push(avg(b.g));
-        sys.push(avg(b.sys));
-        dia.push(avg(b.dia));
+
+        glucose.push(avg(b.g)); // can be null
+        sys.push(avg(b.sys));   // can be null
+        dia.push(avg(b.dia));   // can be null
       }
 
       return { labels, glucose, sys, dia };
+    }
+
+    function cssVar(name, fallback) {
+      const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+      return v || fallback;
     }
 
     function renderHealthChart() {
@@ -665,21 +687,56 @@
       if (healthChart) healthChart.destroy();
 
       const ctx = el.getContext("2d");
+
+      const cGlucose = cssVar("--primary", "#4c7dff");
+      const cSys = "#3cff97";
+      const cDia = cssVar("--danger", "#ff4d6d");
+
       healthChart = new Chart(ctx, {
         type: "line",
         data: {
           labels,
           datasets: [
-            { label: "Glucose", data: glucose, yAxisID: "yG", tension: 0.35, pointRadius: 2, pointHoverRadius: 4, fill: false },
-            { label: "SYS",     data: sys,     yAxisID: "yBP", tension: 0.35, pointRadius: 2, pointHoverRadius: 4, fill: false },
-            { label: "DIA",     data: dia,     yAxisID: "yBP", tension: 0.35, pointRadius: 2, pointHoverRadius: 4, fill: false }
+            {
+              label: "Glucose",
+              data: glucose,
+              yAxisID: "yG",
+              tension: 0.35,
+              pointRadius: 2,
+              pointHoverRadius: 4,
+              spanGaps: false,
+              borderColor: cGlucose,
+              borderWidth: 2
+            },
+            {
+              label: "SYS",
+              data: sys,
+              yAxisID: "yBP",
+              tension: 0.35,
+              pointRadius: 2,
+              pointHoverRadius: 4,
+              spanGaps: false,
+              borderColor: cSys,
+              borderWidth: 2
+            },
+            {
+              label: "DIA",
+              data: dia,
+              yAxisID: "yBP",
+              tension: 0.35,
+              pointRadius: 2,
+              pointHoverRadius: 4,
+              spanGaps: false,
+              borderColor: cDia,
+              borderWidth: 2
+            }
           ]
         },
         options: {
-  responsive: true,
-  maintainAspectRatio: false,
-  devicePixelRatio: 1,     // ✅ يثبت رندر iPhone ويمنع الطبقات الغريبة
+          responsive: true,
+          maintainAspectRatio: false,
           animation: false,
+          devicePixelRatio: 1, // ✅ iPhone stability
           interaction: { mode: "index", intersect: false },
           plugins: {
             legend: { display: false },
@@ -733,6 +790,10 @@
     // Init
     loadUserHeader();
     if (requireAuth()) refreshAll();
+
+    // ✅ Helps iPhone when rotating / resizing
+    window.addEventListener("orientationchange", () => setTimeout(() => healthChart?.resize(), 200));
+    window.addEventListener("resize", () => healthChart?.resize());
   </script>
 </body>
 </html>

@@ -104,7 +104,12 @@ const userId = localStorage.getItem("userId");
 if (!userId) location.href = "/index.html";
 
 hello.textContent = "Hello, " + (localStorage.getItem("name") || "");
-
+function renderNow(){
+  const d = new Date();
+  now.textContent = d.toLocaleString();
+}
+renderNow();
+setInterval(renderNow, 1000);
 // ===== Live Date/Time =====
 function updateNow(){
   const d = new Date();

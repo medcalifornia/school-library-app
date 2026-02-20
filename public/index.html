@@ -2,61 +2,79 @@
 <html>
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Health Tracker - Login</title>
 
-  <!-- ربط ملف CSS -->
-  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="./style.css">
 </head>
-<body>
 
-<div class="container">
+<body class="login-page">
 
-  <h2>Health Tracker</h2>
+  <div class="container">
+    <div class="card">
 
-  <div class="card">
-    <h3>Login</h3>
+      <div class="login-head">
+        <h2 class="login-title">Health Tracker</h2>
+        <p class="muted">Login to continue</p>
+      </div>
 
-    <input id="lEmail" placeholder="Email" />
-    <input id="lPass" placeholder="Password" type="password" />
-    <button onclick="login()">Login</button>
+      <label class="sr-only" for="email">Email</label>
+      <input id="email" type="email" placeholder="Email" autocomplete="email" />
 
-    <div class="links">
-      <a href="/register.html">Create account</a>
-      <a href="/forgot.html">Forgot password?</a>
+      <label class="sr-only" for="password">Password</label>
+      <input id="password" type="password" placeholder="Password" autocomplete="current-password" />
+
+      <button class="btn" onclick="login()">Login</button>
+
+      <div class="links links-center">
+        <a href="./register.html">Create account</a>
+        <a href="./forgot.html">Forgot password?</a>
+      </div>
+
+      <div id="msg" class="msg"></div>
+
+      <!-- Hero Image -->
+      <div class="hero-image">
+        <img src="./login.jpg" alt="Health Tracker" />
+      </div>
+
     </div>
-
-    <div class="msg" id="lMsg"></div>
   </div>
-
-  <!-- الصورة داخل نفس الـ container -->
-  <div class="hero-image">
-    <img src="/images/health-app.jpg" alt="Health App">
-  </div>
-
-</div>
 
 <script>
-async function login() {
-  lMsg.textContent = "";
+async function login(){
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
 
-  const body = { email: lEmail.value.trim(), password: lPass.value };
+  const msg = document.getElementById("msg");
+  msg.className = "msg";
+  msg.textContent = "";
 
-  const res = await fetch("/api/login", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify(body)
-  });
+  if (!email || !password){
+    msg.textContent = "Please enter email and password.";
+    return;
+  }
 
-  const data = await res.json();
+  try{
+    const res = await fetch("/api/login",{
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ email, password })
+    });
 
-  if (data.userId) {
+    const data = await res.json().catch(()=>({}));
+    if (!res.ok){
+      msg.textContent = data.error || "Login failed.";
+      return;
+    }
+
     localStorage.setItem("userId", data.userId);
     localStorage.setItem("name", data.name || "");
-    localStorage.setItem("email", body.email);
-    if (data.phone) localStorage.setItem("phone", data.phone);
-    location.href = "/app.html";
-  } else {
-    lMsg.textContent = data.error || "Login failed";
+    localStorage.setItem("email", email);
+
+    location.href = "./app.html";
+  }catch(e){
+    msg.textContent = "Network error. Please try again.";
   }
 }
 </script>

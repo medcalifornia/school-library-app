@@ -107,19 +107,12 @@
       top: 0 !important;
     }
 
-    /* ----- أيقونة تغيير اللغة (Microsoft Translator) ----- */
-    .translate-icon {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
+    /* ----- أيقونة تغيير اللغة المخصصة ----- */
+    .language-selector {
+      position: relative;
+      display: inline-block;
     }
-    /* إخفاء النص الافتراضي لـ Microsoft Translator */
-    #MicrosoftTranslatorWidget {
-      font-size: 0 !important;
-    }
-    /* تنسيق القائمة المنسدلة لتبدو كأيقونة كرة أرضية */
-    #MicrosoftTranslatorWidget select {
-      font-size: 0;
+    .language-selector .globe-icon {
       width: 40px;
       height: 40px;
       border: 1px solid var(--border);
@@ -128,17 +121,38 @@
         url('data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%23ffffff\'%3E%3Cpath d=\'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L8 14v1c0 1.1.9 2 2 2v2.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z\'/%3E%3C/svg%3E')
         no-repeat center center;
       background-size: 24px;
-      -webkit-appearance: none;
-      appearance: none;
-      padding: 0;
       cursor: pointer;
-      color: transparent; /* يخفي النص المحدد */
-      outline: none;
     }
-    #MicrosoftTranslatorWidget select option {
+    .language-selector .dropdown {
+      display: none;
+      position: absolute;
+      top: 100%;
+      right: 0;
+      background: #1e2a3a;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 8px 0;
+      margin-top: 8px;
+      z-index: 1000;
+      min-width: 150px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+    .language-selector .dropdown.show {
+      display: block;
+    }
+    .language-selector .dropdown button {
+      display: block;
+      width: 100%;
+      padding: 10px 16px;
+      background: none;
+      border: none;
+      color: var(--text);
+      text-align: left;
       font-size: 14px;
-      color: #000;
-      background: #fff;
+      cursor: pointer;
+    }
+    .language-selector .dropdown button:hover {
+      background: rgba(255,255,255,0.1);
     }
   </style>
 </head>
@@ -161,8 +175,23 @@
           <span id="whoamiText">Loading…</span>
         </button>
 
-        <!-- 👇 أيقونة تغيير اللغة (Microsoft Translator) -->
-        <div id="MicrosoftTranslatorWidget" class="translate-icon"></div>
+        <!-- 👇 أيقونة تغيير اللغة المخصصة -->
+        <div class="language-selector" id="languageSelector">
+          <div class="globe-icon" id="globeIcon"></div>
+          <div class="dropdown" id="languageDropdown">
+            <button onclick="changeLanguage('en')">English</button>
+            <button onclick="changeLanguage('fr')">Français</button>
+            <button onclick="changeLanguage('es')">Español</button>
+            <button onclick="changeLanguage('de')">Deutsch</button>
+            <button onclick="changeLanguage('it')">Italiano</button>
+            <button onclick="changeLanguage('pt')">Português</button>
+            <button onclick="changeLanguage('ru')">Русский</button>
+            <button onclick="changeLanguage('zh-CN')">中文 (简体)</button>
+            <button onclick="changeLanguage('ar')">العربية</button>
+            <button onclick="changeLanguage('hi')">हिन्दी</button>
+            <button onclick="changeLanguage('ja')">日本語</button>
+          </div>
+        </div>
 
         <button class="icon-btn" type="button" onclick="logout()" aria-label="Logout">
           <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
@@ -175,7 +204,7 @@
     </div>
   </header>
 
-  <!-- باقي المحتوى -->
+  <!-- باقي المحتوى (Tabs, Dashboard, History, Insights) - كما هو دون تغيير -->
   <main class="shell">
     <!-- Tabs -->
     <nav class="tabs" aria-label="Sections">
@@ -373,6 +402,7 @@
   <!-- Toast -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
+  <!-- كود JavaScript الأصلي (بدون تغيير) -->
   <script>
     (function() {
       "use strict";
@@ -1327,17 +1357,59 @@
     })();
   </script>
 
-  <!-- Microsoft Translator Widget Script -->
-  <script type="text/javascript">
-    function MicrosoftTranslatorInit() {
-      if (window.microsoftTranslator) return;
-      var s = document.createElement('script');
-      s.type = 'text/javascript';
-      s.charset = 'UTF-8';
-      s.src = '//www.microsofttranslator.com/ajax/v3/WidgetV3.ashx?siteData=ueOIGRSKkd965FeEGM5JtQ**&ctf=False&ui=true&settings=Manual&from=en';
-      document.getElementsByTagName('head')[0].appendChild(s);
+  <!-- كود القائمة المخصصة والترجمة (جديد) -->
+  <script>
+    // toggle dropdown
+    document.getElementById('globeIcon').addEventListener('click', function(e) {
+      e.stopPropagation();
+      document.getElementById('languageDropdown').classList.toggle('show');
+    });
+
+    // close dropdown when clicking outside
+    document.addEventListener('click', function() {
+      document.getElementById('languageDropdown').classList.remove('show');
+    });
+
+    // translation function using Google Translate API
+    function changeLanguage(langCode) {
+      // Hide dropdown
+      document.getElementById('languageDropdown').classList.remove('show');
+
+      // Load Google Translate script if not already loaded
+      if (!window.googleTranslateLoaded) {
+        var addScript = true;
+        // Check if script already exists
+        var scripts = document.getElementsByTagName('script');
+        for (var i = 0; i < scripts.length; i++) {
+          if (scripts[i].src.includes('translate_a/element.js')) {
+            addScript = false;
+            break;
+          }
+        }
+        if (addScript) {
+          var s = document.createElement('script');
+          s.src = '//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+          document.body.appendChild(s);
+        }
+        window.googleTranslateLoaded = true;
+      }
+
+      // Define the callback if not already defined
+      if (typeof window.googleTranslateElementInit !== 'function') {
+        window.googleTranslateElementInit = function() {
+          new google.translate.TranslateElement({
+            pageLanguage: 'en',
+            includedLanguages: langCode,
+            autoDisplay: false,
+            layout: google.translate.TranslateElement.InlineLayout.SIMPLE
+          }, '');
+        };
+      }
+
+      // Set cookie and reload
+      document.cookie = 'googtrans=/en/' + langCode;
+      window.location.reload();
     }
-    MicrosoftTranslatorInit();
   </script>
 </body>
 </html>

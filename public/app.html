@@ -1383,36 +1383,43 @@
         await refreshAll();
       }
 
-      // ===== Translation UI (تم إعادة بنائه بالكامل) =====
+      // ===== Translation UI - الحل النهائي =====
       const translateContainer = $('translate-container');
       const translateBtn = $('translateButton');
       const closeTranslateBtn = $('closeTranslateBtn');
 
-      // دالة لتهيئة أداة الترجمة داخل الحاوية
+      // دالة لتهيئة أداة الترجمة (تُستدعى فقط عند فتح النافذة)
       function initGoogleTranslate() {
+        const translateElement = $('google_translate_element');
+        
+        // إذا كانت الأداة موجودة بالفعل، لا تفعل شيئاً (لكننا سنعيد إنشائها لضمان الظهور)
+        // نقوم بمسح المحتوى السابق
+        translateElement.innerHTML = '';
+        
         // التأكد من أن مكتبة الترجمة محملة
         if (typeof google === 'undefined' || !google.translate) {
+          console.warn('Google Translate not ready yet');
           setTimeout(initGoogleTranslate, 200);
           return;
         }
 
-        // مسح محتوى العنصر القديم
-        const translateElement = $('google_translate_element');
-        translateElement.innerHTML = ''; // إفراغ المحتوى السابق
-
-        // إعادة إنشاء أداة الترجمة
-        new google.translate.TranslateElement({
-          pageLanguage: 'en',
-          includedLanguages: 'ar,en,fr,es,de,it,pt,ru,zh-CN,ja,hi,ur',
-          layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
-          autoDisplay: false
-        }, 'google_translate_element');
+        try {
+          new google.translate.TranslateElement({
+            pageLanguage: 'en',
+            includedLanguages: 'ar,en,fr,es,de,it,pt,ru,zh-CN,ja,hi,ur',
+            layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+            autoDisplay: false
+          }, 'google_translate_element');
+          console.log('Google Translate initialized');
+        } catch (e) {
+          console.error('Translation init error:', e);
+        }
       }
 
       function showTranslate() {
         translateContainer.classList.add('show');
-        // تهيئة الترجمة في كل مرة يتم فيها فتح النافذة
-        initGoogleTranslate();
+        // ننتظر قليلاً حتى تظهر الحاوية ثم نهيئ الأداة
+        setTimeout(initGoogleTranslate, 100);
       }
 
       function hideTranslate() {
@@ -1436,17 +1443,17 @@
         }
       });
 
-      // عند تغيير اللغة، نغلق النافذة بعد قليل
+      // مراقبة تغيير اللغة لإغلاق النافذة
       document.addEventListener('change', (e) => {
         if (e.target.classList.contains('goog-te-combo')) {
           setTimeout(hideTranslate, 600);
         }
-      }, true); // استخدام capture للتقاط الحدث قبل غيره
+      }, true);
 
-      // دالة لتهيئة الترجمة مرة واحدة عند تحميل الصفحة (اختياري، لكننا نفضل إعادة التهيئة عند الفتح)
+      // دالة التهيئة العامة لـ Google Translate (يجب أن تكون عامة)
       window.googleTranslateElementInit = function() {
-        // لا نقوم بتهيئة الأداة هنا، بل نتركها لـ initGoogleTranslate
-        console.log('Google Translate ready');
+        console.log('Google Translate callback fired - but we will init manually');
+        // لا نقوم بالتهيئة هنا، بل ننتظر حتى فتح النافذة
       };
 
       init();

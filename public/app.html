@@ -48,6 +48,16 @@
       color: #f1c40f;
       border-color: rgba(241, 196, 15, 0.3);
     }
+    .status-badge.prediabetes {
+      background-color: rgba(243, 156, 18, 0.15);
+      color: #f39c12;
+      border-color: rgba(243, 156, 18, 0.3);
+    }
+    .status-badge.high {
+      background-color: rgba(231, 76, 60, 0.15);
+      color: #e74c3c;
+      border-color: rgba(231, 76, 60, 0.3);
+    }
     .status-badge.stage1 {
       background-color: rgba(243, 156, 18, 0.15);
       color: #f39c12;
@@ -77,7 +87,7 @@
 </head>
 
 <body class="app-page">
-  <!-- Top App Bar -->
+  <!-- Top App Bar (نفس الكود السابق) -->
   <header class="appbar">
     <div class="appbar-inner">
       <div class="brand">
@@ -403,7 +413,7 @@
       // ===== Glucose Color Coding with Indicators =====
       function getGlucoseStatus(value, note = '') {
         const num = Number(value);
-        if (isNaN(num)) return { category: 'unknown', colorClass: '', text: value, warning: false, trend: null };
+        if (isNaN(num)) return { category: 'unknown', colorClass: '', text: value, warning: false, trend: null, badgeText: '' };
 
         const noteLower = String(note).toLowerCase();
         const isFasting = noteLower.includes('fasting');
@@ -413,58 +423,68 @@
         let colorClass = '';
         let warning = false;
         let trend = null;
+        let badgeText = '';
 
         if (isFasting) {
           if (num < 100) { 
             category = 'normal'; 
             colorClass = 'glucose-normal'; 
             trend = 'down';
+            badgeText = 'Normal';
           }
           else if (num >= 100 && num <= 125) { 
             category = 'prediabetes'; 
             colorClass = 'glucose-prediabetes'; 
+            badgeText = 'Prediabetes';
           }
           else if (num >= 126) { 
             category = 'diabetes'; 
             colorClass = 'glucose-diabetes'; 
             warning = true; 
             trend = 'up';
+            badgeText = 'High';
           }
         } else if (isPostprandial) {
           if (num < 140) { 
             category = 'normal'; 
             colorClass = 'glucose-normal'; 
             trend = 'down';
+            badgeText = 'Normal';
           }
           else if (num >= 140 && num <= 199) { 
             category = 'prediabetes'; 
             colorClass = 'glucose-prediabetes'; 
+            badgeText = 'Prediabetes';
           }
           else if (num >= 200) { 
             category = 'diabetes'; 
             colorClass = 'glucose-diabetes'; 
             warning = true; 
             trend = 'up';
+            badgeText = 'High';
           }
         } else {
           if (num < 100) { 
             category = 'normal'; 
             colorClass = 'glucose-normal'; 
             trend = 'down';
+            badgeText = 'Normal';
           }
           else if (num >= 100 && num <= 125) { 
             category = 'prediabetes'; 
             colorClass = 'glucose-prediabetes'; 
+            badgeText = 'Prediabetes';
           }
           else if (num >= 126) { 
             category = 'diabetes'; 
             colorClass = 'glucose-diabetes'; 
             warning = true; 
             trend = 'up';
+            badgeText = 'High';
           }
         }
 
-        return { category, colorClass, value: num, warning, trend };
+        return { category, colorClass, value: num, warning, trend, badgeText };
       }
 
       // ===== BP Color Coding with named badges =====
@@ -664,14 +684,20 @@
         const latestBP = allReadings.find(r => r.type === 'bp');
 
         if (latestGlucose) {
-          const { colorClass, value, warning, trend } = getGlucoseStatus(latestGlucose.value, latestGlucose.note);
+          const { colorClass, value, warning, trend, badgeText } = getGlucoseStatus(latestGlucose.value, latestGlucose.note);
           let html = `<span class="${colorClass}">${value}</span>`;
           if (warning && trend === 'up') {
             html += `<span class="trend-up" title="High glucose">▲</span>`;
-            html += `<span class="status-badge normal" style="background:rgba(231,76,60,0.15); color:#e74c3c; border-color:rgba(231,76,60,0.3);">⚠️ High</span>`;
           } else if (trend === 'down') {
             html += `<span class="trend-down" title="Normal glucose">▼</span>`;
-            html += `<span class="status-badge normal">✅ Normal</span>`;
+          }
+          // Add badge
+          let badgeClass = '';
+          if (badgeText === 'Normal') badgeClass = 'normal';
+          else if (badgeText === 'Prediabetes') badgeClass = 'prediabetes';
+          else if (badgeText === 'High') badgeClass = 'high';
+          if (badgeClass) {
+            html += `<span class="status-badge ${badgeClass}">${badgeText}</span>`;
           }
           $('kpiGlucose').innerHTML = html;
         } else {
@@ -682,22 +708,21 @@
           const bpStatus = getBPStatus(latestBP.value);
           let html = `<span class="${bpStatus.colorClass}">${bpStatus.display}</span>`;
           
-          // Add trend arrow
           if (bpStatus.trend === 'up') {
             html += `<span class="trend-up" title="High BP">▲</span>`;
           } else if (bpStatus.trend === 'down') {
             html += `<span class="trend-down" title="Normal BP">▼</span>`;
           }
 
-          // Add badge with status name
           let badgeClass = '';
-          if (bpStatus.badgeText.toLowerCase().includes('normal')) badgeClass = 'normal';
-          else if (bpStatus.badgeText.toLowerCase().includes('elevated')) badgeClass = 'elevated';
-          else if (bpStatus.badgeText.toLowerCase().includes('stage 1')) badgeClass = 'stage1';
-          else if (bpStatus.badgeText.toLowerCase().includes('stage 2')) badgeClass = 'stage2';
-          else if (bpStatus.badgeText.toLowerCase().includes('crisis')) badgeClass = 'crisis';
-
-          html += `<span class="status-badge ${badgeClass}">${bpStatus.badgeText}</span>`;
+          if (bpStatus.badgeText === 'Normal') badgeClass = 'normal';
+          else if (bpStatus.badgeText === 'Elevated') badgeClass = 'elevated';
+          else if (bpStatus.badgeText === 'Stage 1') badgeClass = 'stage1';
+          else if (bpStatus.badgeText === 'Stage 2') badgeClass = 'stage2';
+          else if (bpStatus.badgeText === 'Crisis') badgeClass = 'crisis';
+          if (badgeClass) {
+            html += `<span class="status-badge ${badgeClass}">${bpStatus.badgeText}</span>`;
+          }
 
           $('kpiBP').innerHTML = html;
         } else {
@@ -725,12 +750,20 @@
           const date = parseDate(r.ts)?.toLocaleString() || '—';
           let valueHtml = '';
           if (r.type === 'glucose') {
-            const { colorClass, value, warning, trend } = getGlucoseStatus(r.value, r.note);
+            const { colorClass, value, warning, trend, badgeText } = getGlucoseStatus(r.value, r.note);
             valueHtml = `<span class="${colorClass}">${value}</span>`;
             if (warning && trend === 'up') {
               valueHtml += ` <span class="trend-up" title="High glucose">▲</span>`;
             } else if (trend === 'down') {
               valueHtml += ` <span class="trend-down" title="Normal glucose">▼</span>`;
+            }
+            // Add badge
+            let badgeClass = '';
+            if (badgeText === 'Normal') badgeClass = 'normal';
+            else if (badgeText === 'Prediabetes') badgeClass = 'prediabetes';
+            else if (badgeText === 'High') badgeClass = 'high';
+            if (badgeClass) {
+              valueHtml += ` <span class="status-badge ${badgeClass}">${badgeText}</span>`;
             }
           } else if (r.type === 'bp') {
             const bpStatus = getBPStatus(r.value);
@@ -740,14 +773,15 @@
             } else if (bpStatus.trend === 'down') {
               valueHtml += ` <span class="trend-down" title="Normal BP">▼</span>`;
             }
-            // Add badge
             let badgeClass = '';
-            if (bpStatus.badgeText.toLowerCase().includes('normal')) badgeClass = 'normal';
-            else if (bpStatus.badgeText.toLowerCase().includes('elevated')) badgeClass = 'elevated';
-            else if (bpStatus.badgeText.toLowerCase().includes('stage 1')) badgeClass = 'stage1';
-            else if (bpStatus.badgeText.toLowerCase().includes('stage 2')) badgeClass = 'stage2';
-            else if (bpStatus.badgeText.toLowerCase().includes('crisis')) badgeClass = 'crisis';
-            valueHtml += ` <span class="status-badge ${badgeClass}">${bpStatus.badgeText}</span>`;
+            if (bpStatus.badgeText === 'Normal') badgeClass = 'normal';
+            else if (bpStatus.badgeText === 'Elevated') badgeClass = 'elevated';
+            else if (bpStatus.badgeText === 'Stage 1') badgeClass = 'stage1';
+            else if (bpStatus.badgeText === 'Stage 2') badgeClass = 'stage2';
+            else if (bpStatus.badgeText === 'Crisis') badgeClass = 'crisis';
+            if (badgeClass) {
+              valueHtml += ` <span class="status-badge ${badgeClass}">${bpStatus.badgeText}</span>`;
+            }
           } else {
             valueHtml = escapeHtml(r.value);
           }
@@ -826,12 +860,20 @@
         const avg = arr => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
         const gAvg = avg(glucoseVals);
         if (gAvg !== null) {
-          const { colorClass, warning, trend } = getGlucoseStatus(gAvg, '');
+          const { colorClass, warning, trend, badgeText } = getGlucoseStatus(gAvg, '');
           let html = `<span class="${colorClass}">${gAvg}</span>`;
           if (warning && trend === 'up') {
             html += ` <span class="trend-up" title="High average glucose">▲</span>`;
           } else if (trend === 'down') {
             html += ` <span class="trend-down" title="Normal average glucose">▼</span>`;
+          }
+          // Add badge
+          let badgeClass = '';
+          if (badgeText === 'Normal') badgeClass = 'normal';
+          else if (badgeText === 'Prediabetes') badgeClass = 'prediabetes';
+          else if (badgeText === 'High') badgeClass = 'high';
+          if (badgeClass) {
+            html += ` <span class="status-badge ${badgeClass}">${badgeText}</span>`;
           }
           $('avg7g').innerHTML = html;
         } else {
@@ -860,15 +902,15 @@
             } else if (bpStatus.trend === 'down') {
               html += ` <span class="trend-down" title="Normal average BP">▼</span>`;
             }
-            // Add badge
             let badgeClass = '';
-            if (bpStatus.badgeText.toLowerCase().includes('normal')) badgeClass = 'normal';
-            else if (bpStatus.badgeText.toLowerCase().includes('elevated')) badgeClass = 'elevated';
-            else if (bpStatus.badgeText.toLowerCase().includes('stage 1')) badgeClass = 'stage1';
-            else if (bpStatus.badgeText.toLowerCase().includes('stage 2')) badgeClass = 'stage2';
-            else if (bpStatus.badgeText.toLowerCase().includes('crisis')) badgeClass = 'crisis';
-            html += ` <span class="status-badge ${badgeClass}">${bpStatus.badgeText}</span>`;
-
+            if (bpStatus.badgeText === 'Normal') badgeClass = 'normal';
+            else if (bpStatus.badgeText === 'Elevated') badgeClass = 'elevated';
+            else if (bpStatus.badgeText === 'Stage 1') badgeClass = 'stage1';
+            else if (bpStatus.badgeText === 'Stage 2') badgeClass = 'stage2';
+            else if (bpStatus.badgeText === 'Crisis') badgeClass = 'crisis';
+            if (badgeClass) {
+              html += ` <span class="status-badge ${badgeClass}">${bpStatus.badgeText}</span>`;
+            }
             $('avg7bp').innerHTML = html;
           } else {
             $('avg7bp').textContent = '—';

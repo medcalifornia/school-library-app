@@ -25,7 +25,7 @@
     }
     .chart-tooltip.show { opacity: 1; }
     
-    /* أيقونات التحذير */
+    /* أيقونات التحذير والإشارات */
     .warning-icon {
       display: inline-flex;
       align-items: center;
@@ -405,7 +405,7 @@
         return d1.toDateString() === d2.toDateString();
       }
 
-      // ===== Glucose Color Coding with Warning Indicators =====
+      // ===== Glucose Color Coding with Indicators =====
       function getGlucoseStatus(value, note = '') {
         const num = Number(value);
         if (isNaN(num)) return { category: 'unknown', colorClass: '', text: value, warning: false, trend: null };
@@ -416,12 +416,19 @@
 
         let category = '';
         let colorClass = '';
-        let warning = false; // for very high values
-        let trend = null; // 'up' for high
+        let warning = false; // for high values
+        let trend = null; // 'up' for high, 'down' for normal
 
         if (isFasting) {
-          if (num < 100) { category = 'normal'; colorClass = 'glucose-normal'; }
-          else if (num >= 100 && num <= 125) { category = 'prediabetes'; colorClass = 'glucose-prediabetes'; }
+          if (num < 100) { 
+            category = 'normal'; 
+            colorClass = 'glucose-normal'; 
+            trend = 'down'; // سهم أخضر للأسفل للقيم الطبيعية
+          }
+          else if (num >= 100 && num <= 125) { 
+            category = 'prediabetes'; 
+            colorClass = 'glucose-prediabetes'; 
+          }
           else if (num >= 126) { 
             category = 'diabetes'; 
             colorClass = 'glucose-diabetes'; 
@@ -429,8 +436,15 @@
             trend = 'up';
           }
         } else if (isPostprandial) {
-          if (num < 140) { category = 'normal'; colorClass = 'glucose-normal'; }
-          else if (num >= 140 && num <= 199) { category = 'prediabetes'; colorClass = 'glucose-prediabetes'; }
+          if (num < 140) { 
+            category = 'normal'; 
+            colorClass = 'glucose-normal'; 
+            trend = 'down';
+          }
+          else if (num >= 140 && num <= 199) { 
+            category = 'prediabetes'; 
+            colorClass = 'glucose-prediabetes'; 
+          }
           else if (num >= 200) { 
             category = 'diabetes'; 
             colorClass = 'glucose-diabetes'; 
@@ -438,8 +452,15 @@
             trend = 'up';
           }
         } else {
-          if (num < 100) { category = 'normal'; colorClass = 'glucose-normal'; }
-          else if (num >= 100 && num <= 125) { category = 'prediabetes'; colorClass = 'glucose-prediabetes'; }
+          if (num < 100) { 
+            category = 'normal'; 
+            colorClass = 'glucose-normal'; 
+            trend = 'down';
+          }
+          else if (num >= 100 && num <= 125) { 
+            category = 'prediabetes'; 
+            colorClass = 'glucose-prediabetes'; 
+          }
           else if (num >= 126) { 
             category = 'diabetes'; 
             colorClass = 'glucose-diabetes'; 
@@ -448,16 +469,10 @@
           }
         }
 
-        // For extremely high values, we can also add a special class
-        if (num >= 200) {
-          warning = true;
-          trend = 'up';
-        }
-
         return { category, colorClass, value: num, warning, trend };
       }
 
-      // ===== BP Color Coding (5 categories) with warning indicators =====
+      // ===== BP Color Coding (5 categories) with indicators =====
       function getBPStatus(bpString) {
         if (!bpString || typeof bpString !== 'string') {
           return { category: 'unknown', colorClass: '', explanation: '', sys: null, dia: null, warning: false, trend: null };
@@ -473,7 +488,7 @@
         let colorClass = '';
         let explanation = '';
         let warning = false;
-        let trend = null; // 'up' for high, 'down' for normal (optional)
+        let trend = null; // 'up' for high, 'down' for normal
 
         if (sys >= 180 || dia >= 120) {
           category = 'Crisis';
@@ -504,7 +519,7 @@
           colorClass = 'bp-normal';
           explanation = 'ضغط طبيعي ممتاز';
           warning = false;
-          trend = 'down'; // سهم أخضر للأسفل اختياري
+          trend = 'down'; // سهم أخضر للأسفل للقيم الطبيعية
         } else {
           // Mixed cases
           if (sys >= 140 || dia >= 90) {
@@ -639,6 +654,9 @@
           if (warning && trend === 'up') {
             html += `<span class="trend-up" title="Glucose above normal level">▲</span>`;
             html += `<span class="alert-badge" title="High glucose alert">⚠️ High</span>`;
+          } else if (trend === 'down') {
+            html += `<span class="trend-down" title="Glucose normal">▼</span>`;
+            html += `<span class="normal-badge" title="Normal glucose">✅ Normal</span>`;
           }
           $('kpiGlucose').innerHTML = html;
         } else {
@@ -685,6 +703,8 @@
             valueHtml = `<span class="${colorClass}">${value}</span>`;
             if (warning && trend === 'up') {
               valueHtml += ` <span class="trend-up" title="High glucose">▲</span>`;
+            } else if (trend === 'down') {
+              valueHtml += ` <span class="trend-down" title="Normal glucose">▼</span>`;
             }
           } else if (r.type === 'bp') {
             const bpStatus = getBPStatus(r.value);
@@ -776,6 +796,8 @@
           let html = `<span class="${colorClass}">${gAvg}</span>`;
           if (warning && trend === 'up') {
             html += ` <span class="trend-up" title="High average glucose">▲</span>`;
+          } else if (trend === 'down') {
+            html += ` <span class="trend-down" title="Normal average glucose">▼</span>`;
           }
           $('avg7g').innerHTML = html;
         } else {

@@ -96,33 +96,29 @@
     .icon-btn {
       padding: 6px 10px;
     }
-    /* إخفاء شريط Google Translate الافتراضي (للتأكد من عدم ظهوره) */
-    .goog-te-banner-frame.skiptranslate { display: none !important; }
-    body { top: 0 !important; }
-    .goog-tooltip { display: none !important; }
-    .goog-tooltip:hover { display: none !important; }
-    .goog-text-highlight { background-color: transparent !important; border: none !important; box-shadow: none !important; }
-    .goog-te-spinner-pos { display: none !important; }
-    iframe.goog-te-banner-frame { display: none !important; }
-    div.skiptranslate { display: none !important; }
+    /* إخفاء أي بقايا لخدمات الترجمة القديمة */
+    .goog-te-banner-frame.skiptranslate,
+    .goog-te-spinner-pos,
+    iframe.goog-te-banner-frame,
+    div.skiptranslate {
+      display: none !important;
+    }
+    body {
+      top: 0 !important;
+    }
 
-    /* ----- أيقونة تغيير اللغة (Google Translate) ----- */
+    /* ----- أيقونة تغيير اللغة (Microsoft Translator) ----- */
     .translate-icon {
       display: inline-flex;
       align-items: center;
       justify-content: center;
     }
-    .goog-te-gadget {
-      display: inline-block;
-      vertical-align: middle;
-      font-size: 0;
-      margin: 0;
-      padding: 0;
+    /* إخفاء النص الافتراضي لـ Microsoft Translator */
+    #MicrosoftTranslatorWidget {
+      font-size: 0 !important;
     }
-    .goog-te-gadget span {
-      display: none; /* إخفاء كلمة "Translate" */
-    }
-    .goog-te-combo {
+    /* تنسيق القائمة المنسدلة لتبدو كأيقونة كرة أرضية */
+    #MicrosoftTranslatorWidget select {
       font-size: 0;
       width: 40px;
       height: 40px;
@@ -136,10 +132,10 @@
       appearance: none;
       padding: 0;
       cursor: pointer;
-      color: transparent; /* يخفي النص الذي يظهر من القائمة */
+      color: transparent; /* يخفي النص المحدد */
       outline: none;
     }
-    .goog-te-combo option {
+    #MicrosoftTranslatorWidget select option {
       font-size: 14px;
       color: #000;
       background: #fff;
@@ -165,8 +161,8 @@
           <span id="whoamiText">Loading…</span>
         </button>
 
-        <!-- 👇 أيقونة تغيير اللغة -->
-        <div id="google_translate_element" class="translate-icon"></div>
+        <!-- 👇 أيقونة تغيير اللغة (Microsoft Translator) -->
+        <div id="MicrosoftTranslatorWidget" class="translate-icon"></div>
 
         <button class="icon-btn" type="button" onclick="logout()" aria-label="Logout">
           <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
@@ -1331,14 +1327,17 @@
     })();
   </script>
 
-  <!-- Google Translate Scripts -->
-  <script>
-    function googleTranslateElementInit() {
-      new google.translate.TranslateElement({
-        pageLanguage: 'en'
-      }, 'google_translate_element');
+  <!-- Microsoft Translator Widget Script -->
+  <script type="text/javascript">
+    function MicrosoftTranslatorInit() {
+      if (window.microsoftTranslator) return;
+      var s = document.createElement('script');
+      s.type = 'text/javascript';
+      s.charset = 'UTF-8';
+      s.src = '//www.microsofttranslator.com/ajax/v3/WidgetV3.ashx?siteData=ueOIGRSKkd965FeEGM5JtQ**&ctf=False&ui=true&settings=Manual&from=en';
+      document.getElementsByTagName('head')[0].appendChild(s);
     }
+    MicrosoftTranslatorInit();
   </script>
-  <script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 </body>
 </html>

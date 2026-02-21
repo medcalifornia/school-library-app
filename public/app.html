@@ -84,7 +84,7 @@
       margin-right: 2px;
     }
 
-    /* زر الترجمة */
+    /* زر الترجمة - مصغر ومناسب للآيفون */
     .translate-btn {
       background: rgba(255,255,255,0.1);
       border: 1px solid var(--border);
@@ -97,12 +97,23 @@
       align-items: center;
       gap: 6px;
       transition: all 0.2s;
+      white-space: nowrap;
     }
     .translate-btn:hover {
       background: rgba(255,255,255,0.2);
     }
     .translate-btn .globe-icon {
       font-size: 18px;
+    }
+    /* على الشاشات الصغيرة، نظهر الأيقونة فقط ونخفي النص */
+    @media (max-width: 600px) {
+      .translate-btn span:not(.globe-icon) {
+        display: none;
+      }
+      .translate-btn {
+        padding: 6px 10px;
+        border-radius: 50%;
+      }
     }
     /* إخفاء شريط Google Translate الافتراضي */
     .goog-te-banner-frame.skiptranslate { display: none !important; }
@@ -126,7 +137,7 @@
       </div>
 
       <div class="appbar-actions">
-        <!-- زر الترجمة الجديد -->
+        <!-- زر الترجمة -->
         <div id="google_translate_element" style="display: none;"></div>
         <button class="translate-btn" id="translateButton" onclick="openGoogleTranslate()">
           <span class="globe-icon">🌐</span>
@@ -149,7 +160,6 @@
     </div>
   </header>
 
-  <!-- باقي المحتوى (نفس الكود السابق) -->
   <main class="shell">
     <!-- Tabs -->
     <nav class="tabs" aria-label="Sections">

@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -191,11 +191,9 @@
     .goog-te-spinner-pos { display: none !important; }
     iframe.goog-te-banner-frame { display: none !important; }
     div.skiptranslate { display: none !important; }
-    /* إزالة التأثيرات الأخرى */
     #goog-gt-tt { display: none !important; }
   </style>
 </head>
-
 <body class="app-page">
   <!-- Top App Bar -->
   <header class="appbar">
@@ -435,7 +433,7 @@
   <!-- Toast -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <!-- سكريبت Google Translate -->
+  <!-- سكريبت Google Translate - يتم تحميله أولاً -->
   <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
   <script>
@@ -1385,17 +1383,24 @@
         await refreshAll();
       }
 
-      // ===== Translation UI (تم إعادة بنائه) =====
+      // ===== Translation UI (تم إعادة بنائه بالكامل) =====
       const translateContainer = $('translate-container');
       const translateBtn = $('translateButton');
       const closeTranslateBtn = $('closeTranslateBtn');
 
-      // دالة لتهيئة أداة الترجمة (تُستدعى عند عرض النافذة)
+      // دالة لتهيئة أداة الترجمة داخل الحاوية
       function initGoogleTranslate() {
-        // إذا كانت الأداة موجودة بالفعل، لا نفعل شيئاً
-        if (document.querySelector('#google_translate_element .goog-te-combo')) return;
+        // التأكد من أن مكتبة الترجمة محملة
+        if (typeof google === 'undefined' || !google.translate) {
+          setTimeout(initGoogleTranslate, 200);
+          return;
+        }
 
-        // إنشاء عنصر الترجمة إذا لم يكن موجوداً
+        // مسح محتوى العنصر القديم
+        const translateElement = $('google_translate_element');
+        translateElement.innerHTML = ''; // إفراغ المحتوى السابق
+
+        // إعادة إنشاء أداة الترجمة
         new google.translate.TranslateElement({
           pageLanguage: 'en',
           includedLanguages: 'ar,en,fr,es,de,it,pt,ru,zh-CN,ja,hi,ur',
@@ -1406,18 +1411,8 @@
 
       function showTranslate() {
         translateContainer.classList.add('show');
-        // ننتظر قليلاً ثم نهيئ الترجمة إذا لزم الأمر
-        if (typeof google !== 'undefined' && google.translate) {
-          setTimeout(initGoogleTranslate, 100);
-        } else {
-          // إذا لم يتم تحميل المكتبة بعد، ننتظر
-          const checkGoogle = setInterval(() => {
-            if (typeof google !== 'undefined' && google.translate) {
-              clearInterval(checkGoogle);
-              initGoogleTranslate();
-            }
-          }, 200);
-        }
+        // تهيئة الترجمة في كل مرة يتم فيها فتح النافذة
+        initGoogleTranslate();
       }
 
       function hideTranslate() {
@@ -1447,6 +1442,12 @@
           setTimeout(hideTranslate, 600);
         }
       }, true); // استخدام capture للتقاط الحدث قبل غيره
+
+      // دالة لتهيئة الترجمة مرة واحدة عند تحميل الصفحة (اختياري، لكننا نفضل إعادة التهيئة عند الفتح)
+      window.googleTranslateElementInit = function() {
+        // لا نقوم بتهيئة الأداة هنا، بل نتركها لـ initGoogleTranslate
+        console.log('Google Translate ready');
+      };
 
       init();
     })();

@@ -121,6 +121,20 @@
     .goog-tooltip { display: none !important; }
     .goog-tooltip:hover { display: none !important; }
     .goog-text-highlight { background-color: transparent !important; border: none !important; box-shadow: none !important; }
+    /* تخصيص عنصر الترجمة */
+    #google_translate_element {
+      position: absolute;
+      left: -9999px;
+      top: -9999px;
+    }
+    .goog-te-combo {
+      background: #1e2a3a;
+      color: white;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 5px 10px;
+      font-size: 14px;
+    }
   </style>
 </head>
 
@@ -368,17 +382,37 @@
     }
 
     function openGoogleTranslate() {
-      // فتح القائمة المنسدلة للترجمة
       var select = document.querySelector('.goog-te-combo');
       if (select) {
-        // إذا كانت القائمة موجودة، نفتحها
+        // محاولة فتح القائمة بعدة طرق
         select.focus();
-        select.click(); // محاولة فتح القائمة
+        select.click();
+        // في حالة عدم فتح القائمة، نعرض رسالة للمستخدم
+        setTimeout(function() {
+          if (!select.value) {
+            alert('Please select a language from the dropdown that appears at the top of the page.');
+          }
+        }, 500);
       } else {
-        // إذا لم تكن محملة بعد، نعيد المحاولة بعد قليل
-        setTimeout(openGoogleTranslate, 500);
+        // إذا لم يتم تحميل السكريبت بعد، نعيد المحاولة
+        setTimeout(openGoogleTranslate, 1000);
       }
     }
+
+    // إظهار القائمة المنسدلة عند تحميل الصفحة (مخفية)
+    window.onload = function() {
+      setTimeout(function() {
+        var select = document.querySelector('.goog-te-combo');
+        if (select) {
+          select.style.position = 'fixed';
+          select.style.top = '10px';
+          select.style.right = '10px';
+          select.style.zIndex = '9999';
+          select.style.opacity = '0.01';
+          select.style.pointerEvents = 'none';
+        }
+      }, 2000);
+    };
   </script>
   <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 

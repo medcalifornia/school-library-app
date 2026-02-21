@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -85,37 +85,6 @@
       margin-right: 2px;
     }
 
-    /* زر الترجمة - مصغر ومناسب للآيفون */
-    .translate-btn {
-      background: rgba(255,255,255,0.1);
-      border: 1px solid var(--border);
-      border-radius: 30px;
-      padding: 4px 8px;
-      color: white;
-      font-size: 12px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      transition: all 0.2s;
-      white-space: nowrap;
-    }
-    .translate-btn:hover {
-      background: rgba(255,255,255,0.2);
-    }
-    .translate-btn .globe-icon {
-      font-size: 16px;
-    }
-    /* على الشاشات الصغيرة جداً (أقل من 500px)، نظهر الأيقونة فقط ونخفي النص */
-    @media (max-width: 500px) {
-      .translate-btn span:not(.globe-icon) {
-        display: none;
-      }
-      .translate-btn {
-        padding: 4px 8px;
-        border-radius: 50%;
-      }
-    }
     /* تقليل المسافات بين عناصر الـ appbar */
     .appbar-actions {
       gap: 6px;
@@ -127,62 +96,7 @@
     .icon-btn {
       padding: 6px 10px;
     }
-    /* حاوية الترجمة - تظهر عند الطلب */
-    #translate-container {
-      position: fixed;
-      top: 60px;
-      right: 16px;
-      z-index: 9999;
-      background: rgba(20, 30, 45, 0.95);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 16px;
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(10px);
-      display: none;
-      min-width: 220px;
-    }
-    #translate-container.show {
-      display: block;
-    }
-    /* تنسيق قائمة اللغات التي سيضيفها Google Translate */
-    .goog-te-combo {
-      background: rgba(255,255,255,0.1);
-      color: white;
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 10px 12px;
-      font-size: 14px;
-      width: 100%;
-      margin-bottom: 12px;
-      cursor: pointer;
-      appearance: none;
-      -webkit-appearance: none;
-      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
-      background-repeat: no-repeat;
-      background-position: right 12px center;
-      background-size: 16px;
-    }
-    .goog-te-combo option {
-      background: #1e2a3a;
-      color: white;
-    }
-    .close-translate {
-      background: rgba(255,255,255,0.1);
-      border: 1px solid var(--border);
-      color: white;
-      border-radius: 20px;
-      padding: 8px 12px;
-      font-size: 13px;
-      cursor: pointer;
-      width: 100%;
-      transition: all 0.2s;
-      font-weight: 500;
-    }
-    .close-translate:hover {
-      background: rgba(255,255,255,0.2);
-    }
-    /* إخفاء شريط Google Translate الافتراضي */
+    /* إخفاء شريط Google Translate الافتراضي (للتأكد من عدم ظهوره) */
     .goog-te-banner-frame.skiptranslate { display: none !important; }
     body { top: 0 !important; }
     .goog-tooltip { display: none !important; }
@@ -191,9 +105,9 @@
     .goog-te-spinner-pos { display: none !important; }
     iframe.goog-te-banner-frame { display: none !important; }
     div.skiptranslate { display: none !important; }
-    #goog-gt-tt { display: none !important; }
   </style>
 </head>
+
 <body class="app-page">
   <!-- Top App Bar -->
   <header class="appbar">
@@ -207,12 +121,6 @@
       </div>
 
       <div class="appbar-actions">
-        <!-- زر الترجمة -->
-        <button class="translate-btn" id="translateButton">
-          <span class="globe-icon">🌐</span>
-          <span>Translate</span>
-        </button>
-
         <button class="chip" id="whoamiChip" type="button" aria-label="User">
           <span class="dot"></span>
           <span id="whoamiText">Loading…</span>
@@ -228,12 +136,6 @@
       </div>
     </div>
   </header>
-
-  <!-- حاوية الترجمة (مخفية في البداية) -->
-  <div id="translate-container">
-    <div id="google_translate_element"></div>
-    <button class="close-translate" id="closeTranslateBtn">Close</button>
-  </div>
 
   <!-- باقي المحتوى -->
   <main class="shell">
@@ -432,9 +334,6 @@
 
   <!-- Toast -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-
-  <!-- سكريبت Google Translate - يتم تحميله أولاً -->
-  <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
   <script>
     (function() {
@@ -823,6 +722,7 @@
           if (!res.ok) throw new Error();
           const data = await res.json();
           allReadings = Array.isArray(data) ? data.sort((a, b) => new Date(b.ts) - new Date(a.ts)) : [];
+          console.log('Readings loaded:', allReadings);
         } catch {
           toast('Failed to load readings', 'err');
           allReadings = [];
@@ -1177,6 +1077,7 @@
         let displayDia = dia;
 
         if (!hasData) {
+          console.warn('⚠️ No real data, using sample data for chart display');
           displayGlucose = [120, 135, 110, 150, 140, 130, 125, 145, 135, 155, 140, 130, 120, 115];
           displaySys = [130, 125, 135, 140, 130, 125, 135, 145, 140, 150, 135, 125, 130, 120];
           displayDia = [85, 80, 90, 95, 85, 80, 85, 95, 90, 100, 85, 80, 85, 75];
@@ -1368,6 +1269,7 @@
 
       // ===== Refresh All =====
       window.refreshAll = async () => {
+        console.log('🔄 Refreshing...');
         await loadReadings();
         updateSummary();
         renderHistory();
@@ -1382,79 +1284,6 @@
         updateHeader();
         await refreshAll();
       }
-
-      // ===== Translation UI - الحل النهائي =====
-      const translateContainer = $('translate-container');
-      const translateBtn = $('translateButton');
-      const closeTranslateBtn = $('closeTranslateBtn');
-
-      // دالة لتهيئة أداة الترجمة (تُستدعى فقط عند فتح النافذة)
-      function initGoogleTranslate() {
-        const translateElement = $('google_translate_element');
-        
-        // إذا كانت الأداة موجودة بالفعل، لا تفعل شيئاً (لكننا سنعيد إنشائها لضمان الظهور)
-        // نقوم بمسح المحتوى السابق
-        translateElement.innerHTML = '';
-        
-        // التأكد من أن مكتبة الترجمة محملة
-        if (typeof google === 'undefined' || !google.translate) {
-          console.warn('Google Translate not ready yet');
-          setTimeout(initGoogleTranslate, 200);
-          return;
-        }
-
-        try {
-          new google.translate.TranslateElement({
-            pageLanguage: 'en',
-            includedLanguages: 'ar,en,fr,es,de,it,pt,ru,zh-CN,ja,hi,ur',
-            layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
-            autoDisplay: false
-          }, 'google_translate_element');
-          console.log('Google Translate initialized');
-        } catch (e) {
-          console.error('Translation init error:', e);
-        }
-      }
-
-      function showTranslate() {
-        translateContainer.classList.add('show');
-        // ننتظر قليلاً حتى تظهر الحاوية ثم نهيئ الأداة
-        setTimeout(initGoogleTranslate, 100);
-      }
-
-      function hideTranslate() {
-        translateContainer.classList.remove('show');
-      }
-
-      translateBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (translateContainer.classList.contains('show')) {
-          hideTranslate();
-        } else {
-          showTranslate();
-        }
-      });
-
-      closeTranslateBtn.addEventListener('click', hideTranslate);
-
-      document.addEventListener('click', (e) => {
-        if (!translateContainer.contains(e.target) && !translateBtn.contains(e.target)) {
-          hideTranslate();
-        }
-      });
-
-      // مراقبة تغيير اللغة لإغلاق النافذة
-      document.addEventListener('change', (e) => {
-        if (e.target.classList.contains('goog-te-combo')) {
-          setTimeout(hideTranslate, 600);
-        }
-      }, true);
-
-      // دالة التهيئة العامة لـ Google Translate (يجب أن تكون عامة)
-      window.googleTranslateElementInit = function() {
-        console.log('Google Translate callback fired - but we will init manually');
-        // لا نقوم بالتهيئة هنا، بل ننتظر حتى فتح النافذة
-      };
 
       init();
     })();

@@ -635,6 +635,7 @@ input::placeholder {
 .table {
   width: 100%;
   border-collapse: collapse;
+  /* إزالة min-width الثابت */
   font-size: 13px;
 }
 
@@ -1028,4 +1029,15 @@ input::placeholder {
   .mini-btn {
     margin-left: 0;
   }
+}
+
+/* إخفاء أي بقايا لـ Google Translate (للتأكد من عدم ظهورها) */
+.goog-te-banner-frame.skiptranslate,
+.goog-te-spinner-pos,
+iframe.goog-te-banner-frame,
+div.skiptranslate {
+  display: none !important;
+}
+body {
+  top: 0 !important;
 }

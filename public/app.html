@@ -184,13 +184,6 @@
     .goog-te-spinner-pos { display: none !important; }
     iframe.goog-te-banner-frame { display: none !important; }
     div.skiptranslate { display: none !important; }
-    /* ضبط عرض القيم في الجدول */
-    .table td {
-      white-space: nowrap;
-    }
-    .td-actions {
-      white-space: nowrap;
-    }
   </style>
 </head>
 
@@ -918,15 +911,20 @@
             valueHtml = escapeHtml(r.value);
           }
 
+          // إضافة data-label لكل خلية لتحويل الجدول إلى بطاقات على الشاشات الصغيرة
           return `
             <tr>
-              <td>${escapeHtml(date)}</td>
-              <td><span class="pill">${escapeHtml(r.type === 'bp' ? 'Blood Pressure' : r.type)}</span></td>  <!-- تغيير BP إلى Blood Pressure -->
-              <td>${valueHtml}</td>
-              <td class="muted">${escapeHtml(r.note || '')}</td>
-              <td class="td-actions">
-                <button class="mini-btn" onclick="editReading('${r.id}', '${escapeHtml(r.value)}', '${escapeHtml(r.note || '')}')">Edit</button>
-                <button class="mini-btn danger" onclick="deleteReading('${r.id}')">Delete</button>
+              <td data-label="Date">${escapeHtml(date)}</td>
+              <td data-label="Type"><span class="pill">${escapeHtml(r.type === 'bp' ? 'Blood Pressure' : r.type)}</span></td>
+              <td data-label="Value">${valueHtml}</td>
+              <td data-label="Note" class="muted">${escapeHtml(r.note || '')}</td>
+              <td data-label="Actions" class="td-actions">
+                <button class="mini-btn" onclick="editReading('${r.id}', '${escapeHtml(r.value)}', '${escapeHtml(r.note || '')}')" aria-label="Edit">
+                  <span class="btn-text">Edit</span>
+                </button>
+                <button class="mini-btn danger" onclick="deleteReading('${r.id}')" aria-label="Delete">
+                  <span class="btn-text">Delete</span>
+                </button>
               </td>
             </tr>
           `;

@@ -964,7 +964,7 @@
               <td data-label="Type"><span class="pill">${escapeHtml(r.type === 'bp' ? 'Blood Pressure' : r.type)}</span></td>
               <td data-label="Value">${valueHtml}</td>
               <td data-label="Description" class="description-cell">${escapeHtml(description)}</td>
-              <td data-label="Note" class="muted">${escapeHtml(r.note || '')}</td>
+              <td data-label="Note" class="note-cell">${escapeHtml(r.note || '')}</td>
               <td data-label="Actions" class="td-actions">
                 <button class="mini-btn" onclick="editReading('${r.id}', '${escapeHtml(r.value)}', '${escapeHtml(r.note || '')}')" aria-label="Edit">
                   <span class="btn-text">Edit</span>

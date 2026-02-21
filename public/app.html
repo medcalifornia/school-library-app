@@ -37,7 +37,6 @@
       margin-left: 8px;
       vertical-align: middle;
       border: 1px solid transparent;
-      white-space: nowrap;
     }
     .status-badge.normal {
       background-color: rgba(46, 204, 113, 0.15);
@@ -85,94 +84,25 @@
       margin-right: 2px;
     }
 
-    /* زر الترجمة - مصغر ومناسب للآيفون */
+    /* زر الترجمة */
     .translate-btn {
       background: rgba(255,255,255,0.1);
       border: 1px solid var(--border);
       border-radius: 30px;
-      padding: 4px 8px;
+      padding: 6px 12px;
       color: white;
-      font-size: 12px;
+      font-size: 14px;
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
       transition: all 0.2s;
-      white-space: nowrap;
     }
     .translate-btn:hover {
       background: rgba(255,255,255,0.2);
     }
     .translate-btn .globe-icon {
-      font-size: 16px;
-    }
-    /* على الشاشات الصغيرة جداً (أقل من 500px)، نظهر الأيقونة فقط ونخفي النص */
-    @media (max-width: 500px) {
-      .translate-btn span:not(.globe-icon) {
-        display: none;
-      }
-      .translate-btn {
-        padding: 4px 8px;
-        border-radius: 50%;
-      }
-    }
-    /* تقليل المسافات بين عناصر الـ appbar */
-    .appbar-actions {
-      gap: 6px;
-    }
-    .chip {
-      padding: 6px 10px;
-      font-size: 12px;
-    }
-    .icon-btn {
-      padding: 6px 10px;
-    }
-    /* حاوية الترجمة - تظهر عند الطلب */
-    #translate-container {
-      position: fixed;
-      top: 60px;
-      right: 16px;
-      z-index: 9999;
-      background: rgba(20, 30, 45, 0.95);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 12px;
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(10px);
-      display: none;
-      min-width: 200px;
-    }
-    #translate-container.show {
-      display: block;
-    }
-    .goog-te-combo {
-      background: rgba(255,255,255,0.1);
-      color: white;
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 8px 12px;
-      font-size: 14px;
-      width: 100%;
-      margin-bottom: 8px;
-      cursor: pointer;
-    }
-    .goog-te-combo option {
-      background: #1e2a3a;
-      color: white;
-    }
-    .close-translate {
-      background: rgba(255,255,255,0.1);
-      border: 1px solid var(--border);
-      color: white;
-      border-radius: 20px;
-      padding: 6px 12px;
-      font-size: 12px;
-      cursor: pointer;
-      width: 100%;
-      transition: all 0.2s;
-    }
-    .close-translate:hover {
-      background: rgba(255,255,255,0.2);
+      font-size: 18px;
     }
     /* إخفاء شريط Google Translate الافتراضي */
     .goog-te-banner-frame.skiptranslate { display: none !important; }
@@ -180,10 +110,6 @@
     .goog-tooltip { display: none !important; }
     .goog-tooltip:hover { display: none !important; }
     .goog-text-highlight { background-color: transparent !important; border: none !important; box-shadow: none !important; }
-    /* منع ظهور عناصر Google Translate المنبثقة */
-    .goog-te-spinner-pos { display: none !important; }
-    iframe.goog-te-banner-frame { display: none !important; }
-    div.skiptranslate { display: none !important; }
   </style>
 </head>
 
@@ -200,8 +126,9 @@
       </div>
 
       <div class="appbar-actions">
-        <!-- زر الترجمة -->
-        <button class="translate-btn" id="translateButton">
+        <!-- زر الترجمة الجديد -->
+        <div id="google_translate_element" style="display: none;"></div>
+        <button class="translate-btn" id="translateButton" onclick="openGoogleTranslate()">
           <span class="globe-icon">🌐</span>
           <span>Translate</span>
         </button>
@@ -212,7 +139,7 @@
         </button>
 
         <button class="icon-btn" type="button" onclick="logout()" aria-label="Logout">
-          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
             <path d="M10 17l1.41-1.41L8.83 13H21v-2H8.83l2.58-2.59L10 7l-7 7 7 7z"></path>
             <path d="M3 3h8v2H5v14h6v2H3V3z"></path>
           </svg>
@@ -222,13 +149,7 @@
     </div>
   </header>
 
-  <!-- حاوية الترجمة (مخفية في البداية) -->
-  <div id="translate-container">
-    <div id="google_translate_element"></div>
-    <button class="close-translate" id="closeTranslateBtn">Close</button>
-  </div>
-
-  <!-- باقي المحتوى -->
+  <!-- باقي المحتوى (نفس الكود السابق) -->
   <main class="shell">
     <!-- Tabs -->
     <nav class="tabs" aria-label="Sections">
@@ -326,7 +247,7 @@
               <div class="kpi-sub">mg/dL</div>
             </div>
             <div class="kpi">
-              <div class="kpi-label">Latest Blood Pressure</div>
+              <div class="kpi-label">Latest BP</div>
               <div class="kpi-value" id="kpiBP">—</div>
               <div class="kpi-sub">mmHg</div>
             </div>
@@ -375,13 +296,12 @@
                 <th>Date</th>
                 <th>Type</th>
                 <th>Value</th>
-                <th>Description</th>
                 <th>Note</th>
                 <th class="th-actions">Actions</th>
               </tr>
             </thead>
             <tbody id="readingsBody">
-              <tr><td colspan="6" class="muted">Loading…</td></tr>
+              <tr><td colspan="5" class="muted">Loading…</td></tr>
             </tbody>
           </table>
         </div>
@@ -409,7 +329,7 @@
             <div class="mini-sub">mg/dL</div>
           </div>
           <div class="mini-card">
-            <div class="mini-title">7-Day Avg (Blood Pressure)</div>
+            <div class="mini-title">7-Day Avg (BP)</div>
             <div class="mini-value" id="avg7bp">—</div>
             <div class="mini-sub">mmHg</div>
           </div>
@@ -435,6 +355,19 @@
         layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
         autoDisplay: false
       }, 'google_translate_element');
+    }
+
+    function openGoogleTranslate() {
+      // فتح القائمة المنسدلة للترجمة
+      var select = document.querySelector('.goog-te-combo');
+      if (select) {
+        // إذا كانت القائمة موجودة، نفتحها
+        select.focus();
+        select.click(); // محاولة فتح القائمة
+      } else {
+        // إذا لم تكن محملة بعد، نعيد المحاولة بعد قليل
+        setTimeout(openGoogleTranslate, 500);
+      }
     }
   </script>
   <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
@@ -538,48 +471,6 @@
         return d1.toDateString() === d2.toDateString();
       }
 
-      // ===== وصف الحالات بالإنجليزية =====
-      function getGlucoseDescription(value, note) {
-        const num = Number(value);
-        if (isNaN(num)) return '';
-        const noteLower = String(note).toLowerCase();
-        const isFasting = noteLower.includes('fasting');
-        const isPostprandial = noteLower.includes('after meal') || noteLower.includes('aftermeal');
-        
-        if (isFasting) {
-          if (num < 70) return '🔴 Dangerous low (Hypoglycemia) - May cause dizziness, sweating, shaking, loss of consciousness.';
-          if (num >= 70 && num <= 99) return '🟢 Normal - Healthy level for non-diabetic.';
-          if (num >= 100 && num <= 125) return '🟡 Prediabetes - Warning sign, needs lifestyle changes.';
-          if (num >= 126) return '🔴 Diabetes - Official diagnosis if repeated.';
-        } else if (isPostprandial) {
-          if (num < 140) return '🟢 Normal - 2 hours after meal.';
-          if (num >= 140 && num <= 199) return '🟡 Prediabetes - After meal.';
-          if (num >= 200) return '🔴 Likely Diabetes - After meal.';
-        } else {
-          // غير محدد (نفس تصنيف fasting)
-          if (num < 70) return '🔴 Dangerous low (Hypoglycemia)';
-          if (num >= 70 && num <= 99) return '🟢 Normal';
-          if (num >= 100 && num <= 125) return '🟡 Prediabetes';
-          if (num >= 126) return '🔴 Diabetes';
-        }
-        return '';
-      }
-
-      function getBPDescription(bpString) {
-        const parts = bpString.split('/').map(Number);
-        if (parts.length !== 2 || isNaN(parts[0]) || isNaN(parts[1])) return '';
-        const sys = parts[0];
-        const dia = parts[1];
-        
-        if (sys >= 180 || dia >= 120) return '🚨 Hypertensive Crisis - Danger to brain, heart, kidneys. If severe headache, chest pain, shortness of breath → ER immediately.';
-        if (sys >= 140 || dia >= 90) return '🔴 Stage 2 Hypertension - Clearly high, usually needs medication + lifestyle changes.';
-        if (sys >= 130 || dia >= 80) return '🟠 Stage 1 Hypertension - Early high BP, may need monitoring or treatment depending on risk factors.';
-        if (sys >= 120 && sys <= 129 && dia < 80) return '🟡 Elevated - Not yet hypertension, but early warning. Needs lifestyle changes (less salt, exercise, healthy weight).';
-        if (sys < 120 && dia < 80) return '🟢 Normal - Healthy BP, no current risk if no other factors.';
-        if (sys < 90 || dia < 60) return '⚠️ Low Blood Pressure - Not always dangerous. If accompanied by dizziness or fainting → needs evaluation.';
-        return '';
-      }
-
       // ===== Glucose Color Coding with Indicators =====
       function getGlucoseStatus(value, note = '') {
         const num = Number(value);
@@ -679,35 +570,35 @@
         if (sys >= 180 || dia >= 120) {
           category = 'Crisis';
           colorClass = 'bp-crisis';
-          explanation = 'Hypertensive crisis - seek emergency immediately';
+          explanation = 'أزمة ارتفاع ضغط - توجه للطوارئ فوراً';
           warning = true;
           trend = 'up';
           badgeText = 'Crisis';
         } else if (sys >= 140 || dia >= 90) {
           category = 'Stage 2';
           colorClass = 'bp-stage2';
-          explanation = 'Stage 2 hypertension - may need medication';
+          explanation = 'ارتفاع المرحلة الثانية - يحتاج علاج دوائي';
           warning = true;
           trend = 'up';
           badgeText = 'Stage 2';
         } else if (sys >= 130 || dia >= 80) {
           category = 'Stage 1';
           colorClass = 'bp-stage1';
-          explanation = 'Stage 1 hypertension - monitor & lifestyle changes';
+          explanation = 'ارتفاع المرحلة الأولى - متابعة وتعديل نمط حياة';
           warning = false;
           trend = null;
           badgeText = 'Stage 1';
         } else if (sys >= 120 && sys <= 129 && dia < 80) {
           category = 'Elevated';
           colorClass = 'bp-elevated';
-          explanation = 'Elevated (early warning)';
+          explanation = 'مرتفع بسيط (إنذار مبكر)';
           warning = false;
           trend = null;
           badgeText = 'Elevated';
         } else if (sys < 120 && dia < 80) {
           category = 'Normal';
           colorClass = 'bp-normal';
-          explanation = 'Excellent normal pressure';
+          explanation = 'ضغط طبيعي ممتاز';
           warning = false;
           trend = 'down';
           badgeText = 'Normal';
@@ -716,28 +607,28 @@
           if (sys >= 140 || dia >= 90) {
             category = 'Stage 2';
             colorClass = 'bp-stage2';
-            explanation = 'Stage 2 hypertension - may need medication';
+            explanation = 'ارتفاع المرحلة الثانية - يحتاج علاج دوائي';
             warning = true;
             trend = 'up';
             badgeText = 'Stage 2';
           } else if (sys >= 130 || dia >= 80) {
             category = 'Stage 1';
             colorClass = 'bp-stage1';
-            explanation = 'Stage 1 hypertension - monitor & lifestyle changes';
+            explanation = 'ارتفاع المرحلة الأولى - متابعة وتعديل نمط حياة';
             warning = false;
             trend = null;
             badgeText = 'Stage 1';
           } else if (sys >= 120 && dia < 80) {
             category = 'Elevated';
             colorClass = 'bp-elevated';
-            explanation = 'Elevated (early warning)';
+            explanation = 'مرتفع بسيط (إنذار مبكر)';
             warning = false;
             trend = null;
             badgeText = 'Elevated';
           } else {
             category = 'Normal';
             colorClass = 'bp-normal';
-            explanation = 'Excellent normal pressure';
+            explanation = 'ضغط طبيعي ممتاز';
             warning = false;
             trend = 'down';
             badgeText = 'Normal';
@@ -861,6 +752,7 @@
           } else if (trend === 'down') {
             html += `<span class="trend-down" title="Normal glucose">▼</span>`;
           }
+          // Add badge
           let badgeClass = '';
           if (badgeText === 'Normal') badgeClass = 'normal';
           else if (badgeText === 'Prediabetes') badgeClass = 'prediabetes';
@@ -911,15 +803,13 @@
         $('pageLabel').textContent = `${currentPage} / ${totalPages}`;
 
         if (!pageItems.length) {
-          tbody.innerHTML = '<tr><td colspan="6" class="muted">No readings yet.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="5" class="muted">No readings yet.</td></tr>';
           return;
         }
 
         tbody.innerHTML = pageItems.map(r => {
           const date = parseDate(r.ts)?.toLocaleString() || '—';
           let valueHtml = '';
-          let description = '';
-
           if (r.type === 'glucose') {
             const { colorClass, value, warning, trend, badgeText } = getGlucoseStatus(r.value, r.note);
             valueHtml = `<span class="${colorClass}">${value}</span>`;
@@ -928,6 +818,7 @@
             } else if (trend === 'down') {
               valueHtml += ` <span class="trend-down" title="Normal glucose">▼</span>`;
             }
+            // Add badge
             let badgeClass = '';
             if (badgeText === 'Normal') badgeClass = 'normal';
             else if (badgeText === 'Prediabetes') badgeClass = 'prediabetes';
@@ -935,7 +826,6 @@
             if (badgeClass) {
               valueHtml += ` <span class="status-badge ${badgeClass}">${badgeText}</span>`;
             }
-            description = getGlucoseDescription(r.value, r.note);
           } else if (r.type === 'bp') {
             const bpStatus = getBPStatus(r.value);
             valueHtml = `<span class="${bpStatus.colorClass}">${bpStatus.display}</span>`;
@@ -953,25 +843,19 @@
             if (badgeClass) {
               valueHtml += ` <span class="status-badge ${badgeClass}">${bpStatus.badgeText}</span>`;
             }
-            description = getBPDescription(r.value);
           } else {
             valueHtml = escapeHtml(r.value);
           }
 
           return `
             <tr>
-              <td data-label="Date">${escapeHtml(date)}</td>
-              <td data-label="Type"><span class="pill">${escapeHtml(r.type === 'bp' ? 'Blood Pressure' : r.type)}</span></td>
-              <td data-label="Value">${valueHtml}</td>
-              <td data-label="Description" class="description-cell">${escapeHtml(description)}</td>
-              <td data-label="Note" class="note-cell">${escapeHtml(r.note || '')}</td>
-              <td data-label="Actions" class="td-actions">
-                <button class="mini-btn" onclick="editReading('${r.id}', '${escapeHtml(r.value)}', '${escapeHtml(r.note || '')}')" aria-label="Edit">
-                  <span class="btn-text">Edit</span>
-                </button>
-                <button class="mini-btn danger" onclick="deleteReading('${r.id}')" aria-label="Delete">
-                  <span class="btn-text">Delete</span>
-                </button>
+              <td>${escapeHtml(date)}</td>
+              <td><span class="pill">${escapeHtml(r.type)}</span></td>
+              <td>${valueHtml}</td>
+              <td class="muted">${escapeHtml(r.note || '')}</td>
+              <td class="td-actions">
+                <button class="mini-btn" onclick="editReading('${r.id}', '${escapeHtml(r.value)}', '${escapeHtml(r.note || '')}')">Edit</button>
+                <button class="mini-btn danger" onclick="deleteReading('${r.id}')">Delete</button>
               </td>
             </tr>
           `;
@@ -1044,6 +928,7 @@
           } else if (trend === 'down') {
             html += ` <span class="trend-down" title="Normal average glucose">▼</span>`;
           }
+          // Add badge
           let badgeClass = '';
           if (badgeText === 'Normal') badgeClass = 'normal';
           else if (badgeText === 'Prediabetes') badgeClass = 'prediabetes';
@@ -1104,7 +989,7 @@
         }
       }
 
-      // ========== CHART RENDERING ==========
+      // ========== CHART RENDERING (محسّن) ==========
       const SVG_W = 1000, SVG_H = 280;
       const PAD = { l: 70, r: 50, t: 30, b: 50 };
 
@@ -1177,6 +1062,7 @@
         const n = labels.length;
         if (n === 0) return;
 
+        // إذا لم توجد بيانات حقيقية، استخدم بيانات تجريبية للعرض
         const hasData = glucose.some(v => v != null) || sys.some(v => v != null) || dia.some(v => v != null);
         let displayGlucose = glucose;
         let displaySys = sys;
@@ -1184,6 +1070,7 @@
 
         if (!hasData) {
           console.warn('⚠️ No real data, using sample data for chart display');
+          // بيانات تجريبية مشابهة
           displayGlucose = [120, 135, 110, 150, 140, 130, 125, 145, 135, 155, 140, 130, 120, 115];
           displaySys = [130, 125, 135, 140, 130, 125, 135, 145, 140, 150, 135, 125, 130, 120];
           displayDia = [85, 80, 90, 95, 85, 80, 85, 95, 90, 100, 85, 80, 85, 75];
@@ -1228,6 +1115,7 @@
 
         while (svg.firstChild) svg.removeChild(svg.firstChild);
 
+        // خلفية داكنة
         const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         bg.setAttribute('x', '0'); bg.setAttribute('y', '0');
         bg.setAttribute('width', SVG_W); bg.setAttribute('height', SVG_H);
@@ -1235,6 +1123,7 @@
         bg.setAttribute('rx', '12'); bg.setAttribute('ry', '12');
         svg.appendChild(bg);
 
+        // شبكة أفقية
         const gridGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         gridGroup.setAttribute('opacity', '0.2');
         for (let i = 0; i <= 5; i++) {
@@ -1249,6 +1138,7 @@
         }
         svg.appendChild(gridGroup);
 
+        // شبكة رأسية خفيفة
         const vGridGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         vGridGroup.setAttribute('opacity', '0.1');
         for (let i = 0; i < n; i += 2) {
@@ -1263,6 +1153,7 @@
         }
         svg.appendChild(vGridGroup);
 
+        // تسميات Y (يسار)
         const yLabelsLeft = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         yLabelsLeft.setAttribute('fill', 'rgba(255,255,255,0.7)');
         yLabelsLeft.setAttribute('font-size', '11');
@@ -1279,6 +1170,7 @@
         }
         svg.appendChild(yLabelsLeft);
 
+        // تسميات X
         const xLabels = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         xLabels.setAttribute('fill', 'rgba(255,255,255,0.7)');
         xLabels.setAttribute('font-size', '10');
@@ -1301,6 +1193,7 @@
         }
         svg.appendChild(xLabels);
 
+        // رسم الخطوط
         const lineGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         lineGroup.setAttribute('fill', 'none');
         lineGroup.setAttribute('stroke-width', '3');
@@ -1308,9 +1201,9 @@
         lineGroup.setAttribute('stroke-linejoin', 'round');
 
         const datasets = [
-          { data: displayGlucose, color: '#4c7dff' },
-          { data: displaySys, color: '#3cff97' },
-          { data: displayDia, color: '#ff4d6d' }
+          { data: displayGlucose, color: '#4c7dff', name: 'Glucose' },
+          { data: displaySys, color: '#3cff97', name: 'SYS' },
+          { data: displayDia, color: '#ff4d6d', name: 'DIA' }
         ];
 
         datasets.forEach(ds => {
@@ -1321,6 +1214,7 @@
         });
         svg.appendChild(lineGroup);
 
+        // نقاط البيانات
         const pointsGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         datasets.forEach(ds => {
           for (let i = 0; i < n; i++) {
@@ -1339,6 +1233,7 @@
         });
         svg.appendChild(pointsGroup);
 
+        // Tooltip
         function showTooltip(e) {
           const rect = wrap.getBoundingClientRect();
           const mouseX = e.clientX - rect.left;
@@ -1384,59 +1279,12 @@
         $('lastSync').textContent = `Updated ${new Date().toLocaleTimeString()}`;
       };
 
-      // ===== Initialize =====
+      // ===== Initialization =====
       async function init() {
         if (!requireAuth()) return;
         updateHeader();
         await refreshAll();
       }
-
-      // ===== Translation UI =====
-      const translateContainer = $('translate-container');
-      const translateBtn = $('translateButton');
-      const closeTranslateBtn = $('closeTranslateBtn');
-
-      function showTranslate() {
-        translateContainer.classList.add('show');
-      }
-
-      function hideTranslate() {
-        translateContainer.classList.remove('show');
-      }
-
-      translateBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        if (translateContainer.classList.contains('show')) {
-          hideTranslate();
-        } else {
-          showTranslate();
-        }
-      });
-
-      closeTranslateBtn.addEventListener('click', function() {
-        hideTranslate();
-      });
-
-      document.addEventListener('click', function(e) {
-        if (!translateContainer.contains(e.target) && !translateBtn.contains(e.target)) {
-          hideTranslate();
-        }
-      });
-
-      // الاستماع لتغيير اللغة في Google Translate لإغلاق النافذة تلقائياً
-      function waitForTranslateSelect() {
-        const checkExist = setInterval(function() {
-          const select = document.querySelector('.goog-te-combo');
-          if (select) {
-            clearInterval(checkExist);
-            select.addEventListener('change', function() {
-              // بعد اختيار اللغة، نغلق النافذة بعد قليل
-              setTimeout(hideTranslate, 500);
-            });
-          }
-        }, 500);
-      }
-      waitForTranslateSelect();
 
       init();
     })();

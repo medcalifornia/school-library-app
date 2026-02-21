@@ -116,14 +116,21 @@
         <img src="./images/logo.png" alt="DahniTech Solutions" class="brand-logo" />
         <div class="brand-text">
           <div class="brand-title">Health Tracker</div>
-          <div class="brand-sub" id="subtitle">Your daily readings, simplified</div>
+          <div class="brand-sub" id="subtitle" data-i18n="subtitle">Your daily readings, simplified</div>
         </div>
       </div>
 
       <div class="appbar-actions">
+        <!-- Language toggle (globe icon) -->
+        <button class="icon-btn" id="langToggle" type="button" aria-label="Change language">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <path d="M12.87 15.07l-2.54-2.51.03-.03c1.74-1.94 2.98-4.17 3.71-6.53H17V4h-7V2H8v2H1v1.99h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z"></path>
+          </svg>
+        </button>
+
         <button class="chip" id="whoamiChip" type="button" aria-label="User">
           <span class="dot"></span>
-          <span id="whoamiText">Loading…</span>
+          <span id="whoamiText" data-i18n="userLoading">Loading…</span>
         </button>
 
         <button class="icon-btn" type="button" onclick="logout()" aria-label="Logout">
@@ -131,7 +138,7 @@
             <path d="M10 17l1.41-1.41L8.83 13H21v-2H8.83l2.58-2.59L10 7l-7 7 7 7z"></path>
             <path d="M3 3h8v2H5v14h6v2H3V3z"></path>
           </svg>
-          <span class="hide-sm">Logout</span>
+          <span class="hide-sm" data-i18n="logout">Logout</span>
         </button>
       </div>
     </div>
@@ -141,9 +148,9 @@
   <main class="shell">
     <!-- Tabs -->
     <nav class="tabs" aria-label="Sections">
-      <button class="tab active" type="button" data-tab="dashboard" onclick="showTab('dashboard')">Dashboard</button>
-      <button class="tab" type="button" data-tab="history" onclick="showTab('history')">History</button>
-      <button class="tab" type="button" data-tab="insights" onclick="showTab('insights')">Insights</button>
+      <button class="tab active" type="button" data-tab="dashboard" onclick="showTab('dashboard')" data-i18n="tab_dashboard">Dashboard</button>
+      <button class="tab" type="button" data-tab="history" onclick="showTab('history')" data-i18n="tab_history">History</button>
+      <button class="tab" type="button" data-tab="insights" onclick="showTab('insights')" data-i18n="tab_insights">Insights</button>
     </nav>
 
     <!-- TAB: Dashboard -->
@@ -152,39 +159,30 @@
         <!-- Left: Add readings -->
         <section class="card">
           <div class="card-head">
-            <h2>Add Reading</h2>
-            <p class="muted">Log your glucose and blood pressure.</p>
+            <h2 data-i18n="add_reading_title">Add Reading</h2>
+            <p class="muted" data-i18n="add_reading_sub">Log your glucose and blood pressure.</p>
           </div>
 
           <div class="segmented" role="tablist" aria-label="Reading type">
-            <button class="seg active" type="button" id="seg-glucose" onclick="toggleForm('glucose')">Glucose</button>
-            <button class="seg" type="button" id="seg-bp" onclick="toggleForm('bp')">Blood Pressure</button>
+            <button class="seg active" type="button" id="seg-glucose" onclick="toggleForm('glucose')" data-i18n="glucose">Glucose</button>
+            <button class="seg" type="button" id="seg-bp" onclick="toggleForm('bp')" data-i18n="bp">Blood Pressure</button>
           </div>
 
           <!-- Glucose form -->
           <div id="form-glucose" class="form-block">
             <label class="field">
-              <span class="label">Glucose</span>
+              <span class="label" data-i18n="glucose">Glucose</span>
               <div class="input-wrap">
-                <input id="glucoseValue" inputmode="numeric" placeholder="e.g. 110" />
-                <span class="suffix">mg/dL</span>
+                <input id="glucoseValue" inputmode="numeric" data-i18n-placeholder="glucose_placeholder" placeholder="e.g. 110" />
+                <span class="suffix" data-i18n="mgdl">mg/dL</span>
               </div>
             </label>
             <label class="field">
-              <span class="label">Note (optional)</span>
-              <select id="glucoseNote">
-                <option value="">Choose note</option>
-                <option>Fasting</option>
-                <option>Before meal</option>
-                <option>After meal</option>
-                <option>Bedtime</option>
-                <option>Workout</option>
-                <option>Feeling low</option>
-                <option>Feeling high</option>
-              </select>
+              <span class="label" data-i18n="note_optional">Note (optional)</span>
+              <select id="glucoseNote"></select>
             </label>
             <button class="btn primary" type="button" onclick="saveGlucose()">
-              <span class="btn-text">Save Glucose</span>
+              <span class="btn-text" data-i18n="save_glucose">Save Glucose</span>
               <span class="spinner" aria-hidden="true"></span>
             </button>
           </div>
@@ -193,29 +191,20 @@
           <div id="form-bp" class="form-block hidden">
             <div class="row">
               <label class="field">
-                <span class="label">Systolic</span>
-                <input id="bpSys" inputmode="numeric" placeholder="120" />
+                <span class="label" data-i18n="sys">Systolic</span>
+                <input id="bpSys" inputmode="numeric" data-i18n-placeholder="sys_placeholder" placeholder="120" />
               </label>
               <label class="field">
-                <span class="label">Diastolic</span>
-                <input id="bpDia" inputmode="numeric" placeholder="80" />
+                <span class="label" data-i18n="dia">Diastolic</span>
+                <input id="bpDia" inputmode="numeric" data-i18n-placeholder="dia_placeholder" placeholder="80" />
               </label>
             </div>
             <label class="field">
-              <span class="label">Note (optional)</span>
-              <select id="bpNote">
-                <option value="">Choose note</option>
-                <option>Morning</option>
-                <option>Afternoon</option>
-                <option>Evening</option>
-                <option>After coffee</option>
-                <option>After workout</option>
-                <option>Stress</option>
-                <option>Relaxed</option>
-              </select>
+              <span class="label" data-i18n="note_optional">Note (optional)</span>
+              <select id="bpNote"></select>
             </label>
             <button class="btn primary" type="button" onclick="saveBP()">
-              <span class="btn-text">Save Blood Pressure</span>
+              <span class="btn-text" data-i18n="save_bp">Save Blood Pressure</span>
               <span class="spinner" aria-hidden="true"></span>
             </button>
           </div>
@@ -224,20 +213,20 @@
         <!-- Right: Quick summary + chart -->
         <section class="card">
           <div class="card-head">
-            <h2>Today</h2>
+            <h2 data-i18n="today_title">Today</h2>
             <p class="muted" id="todayLine">Loading summary…</p>
           </div>
 
           <div class="kpis">
             <div class="kpi">
-              <div class="kpi-label">Latest Glucose</div>
+              <div class="kpi-label" data-i18n="latest_glucose">Latest Glucose</div>
               <div class="kpi-value" id="kpiGlucose">—</div>
-              <div class="kpi-sub">mg/dL</div>
+              <div class="kpi-sub" data-i18n="mgdl">mg/dL</div>
             </div>
             <div class="kpi">
-              <div class="kpi-label">Latest Blood Pressure</div>
+              <div class="kpi-label" data-i18n="latest_bp">Latest Blood Pressure</div>
               <div class="kpi-value" id="kpiBP">—</div>
-              <div class="kpi-sub">mmHg</div>
+              <div class="kpi-sub" data-i18n="mmhg">mmHg</div>
             </div>
           </div>
 
@@ -245,13 +234,13 @@
           <div class="chart-card" id="trendCard">
             <div class="chart-head">
               <div>
-                <div class="chart-title">Trends</div>
-                <div class="muted small">Last 14 days • Glucose & Blood Pressure</div>
+                <div class="chart-title" data-i18n="trends_title">Trends</div>
+                <div class="muted small" data-i18n="trends_sub">Last 14 days • Glucose & Blood Pressure</div>
               </div>
               <div class="legend-inline">
-                <span class="lg lg-g">Glucose</span>
-                <span class="lg lg-s">SYS</span>
-                <span class="lg lg-d">DIA</span>
+                <span class="lg lg-g" data-i18n="glucose_legend">Glucose</span>
+                <span class="lg lg-s" data-i18n="sys_legend">SYS</span>
+                <span class="lg lg-d" data-i18n="dia_legend">DIA</span>
               </div>
             </div>
 
@@ -262,7 +251,7 @@
           </div>
 
           <div class="card-foot">
-            <button class="btn ghost" type="button" onclick="refreshAll()">Refresh</button>
+            <button class="btn ghost" type="button" onclick="refreshAll()" data-i18n="refresh">Refresh</button>
             <span class="muted small" id="lastSync">—</span>
           </div>
         </section>
@@ -273,24 +262,24 @@
     <section id="tab-history" class="tab-panel">
       <section class="card">
         <div class="card-head">
-          <h2>My Readings</h2>
-          <p class="muted">Browse and manage your saved readings.</p>
+          <h2 data-i18n="my_readings">My Readings</h2>
+          <p class="muted" data-i18n="history_sub">Browse and manage your saved readings.</p>
         </div>
 
         <div class="table-wrap">
           <table class="table" aria-label="Readings table">
             <thead>
               <tr>
-                <th>Date</th>
-                <th>Type</th>
-                <th>Value</th>
-                <th>Description</th>
-                <th>Note</th>
-                <th class="th-actions">Actions</th>
+                <th data-i18n="table_date">Date</th>
+                <th data-i18n="table_type">Type</th>
+                <th data-i18n="table_value">Value</th>
+                <th data-i18n="table_description">Description</th>
+                <th data-i18n="table_note">Note</th>
+                <th class="th-actions" data-i18n="table_actions">Actions</th>
               </tr>
             </thead>
             <tbody id="readingsBody">
-              <tr><td colspan="6" class="muted">Loading…</td></tr>
+              <tr><td colspan="6" class="muted" data-i18n="loading">Loading…</td></tr>
             </tbody>
           </table>
         </div>
@@ -307,30 +296,43 @@
     <section id="tab-insights" class="tab-panel">
       <section class="card">
         <div class="card-head">
-          <h2>Insights</h2>
-          <p class="muted">Trends and patterns from your readings.</p>
+          <h2 data-i18n="insights_title">Insights</h2>
+          <p class="muted" data-i18n="insights_sub">Trends and patterns from your readings.</p>
         </div>
 
         <div class="insights-grid">
           <div class="mini-card">
-            <div class="mini-title">7-Day Avg (Glucose)</div>
+            <div class="mini-title" data-i18n="avg_glucose_7d">7-Day Avg (Glucose)</div>
             <div class="mini-value" id="avg7g">—</div>
-            <div class="mini-sub">mg/dL</div>
+            <div class="mini-sub" data-i18n="mgdl">mg/dL</div>
           </div>
           <div class="mini-card">
-            <div class="mini-title">7-Day Avg (Blood Pressure)</div>
+            <div class="mini-title" data-i18n="avg_bp_7d">7-Day Avg (Blood Pressure)</div>
             <div class="mini-value" id="avg7bp">—</div>
-            <div class="mini-sub">mmHg</div>
+            <div class="mini-sub" data-i18n="mmhg">mmHg</div>
           </div>
           <div class="mini-card">
-            <div class="mini-title">Most Common Note</div>
+            <div class="mini-title" data-i18n="common_note">Most Common Note</div>
             <div class="mini-value" id="commonNote">—</div>
-            <div class="mini-sub">based on history</div>
+            <div class="mini-sub" data-i18n="based_on_history">based on history</div>
           </div>
         </div>
       </section>
     </section>
   </main>
+
+  <!-- Language Modal -->
+  <div id="langModal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 data-i18n="select_language">Select Language</h3>
+        <button class="modal-close" id="closeLangModal">&times;</button>
+      </div>
+      <div class="modal-body" id="langList">
+        <!-- languages will be injected here by JavaScript -->
+      </div>
+    </div>
+  </div>
 
   <!-- Toast -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -792,7 +794,7 @@
           $('kpiBP').textContent = '—';
         }
 
-        $('todayLine').textContent = todayCount ? `${todayCount} reading(s) logged today` : 'No readings yet today';
+        $('todayLine').textContent = todayCount ? t('today_line', { count: todayCount }) : t('today_line_zero');
       }
 
       function renderHistory() {
@@ -805,7 +807,7 @@
         $('pageLabel').textContent = `${currentPage} / ${totalPages}`;
 
         if (!pageItems.length) {
-          tbody.innerHTML = '<tr><td colspan="6" class="muted">No readings yet.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="6" class="muted">' + t('no_readings') + '</td></tr>';
           return;
         }
 
@@ -854,17 +856,17 @@
 
           return `
             <tr>
-              <td data-label="Date">${escapeHtml(date)}</td>
-              <td data-label="Type"><span class="pill">${escapeHtml(r.type === 'bp' ? 'Blood Pressure' : r.type)}</span></td>
-              <td data-label="Value">${valueHtml}</td>
-              <td data-label="Description" class="description-cell">${escapeHtml(description)}</td>
-              <td data-label="Note" class="note-cell">${escapeHtml(r.note || '')}</td>
-              <td data-label="Actions" class="td-actions">
-                <button class="mini-btn" onclick="editReading('${r.id}', '${escapeHtml(r.value)}', '${escapeHtml(r.note || '')}')" aria-label="Edit">
-                  <span class="btn-text">Edit</span>
+              <td data-label="${t('table_date')}">${escapeHtml(date)}</td>
+              <td data-label="${t('table_type')}"><span class="pill">${escapeHtml(r.type === 'bp' ? t('bp') : r.type)}</span></td>
+              <td data-label="${t('table_value')}">${valueHtml}</td>
+              <td data-label="${t('table_description')}" class="description-cell">${escapeHtml(description)}</td>
+              <td data-label="${t('table_note')}" class="note-cell">${escapeHtml(r.note || '')}</td>
+              <td data-label="${t('table_actions')}" class="td-actions">
+                <button class="mini-btn" onclick="editReading('${r.id}', '${escapeHtml(r.value)}', '${escapeHtml(r.note || '')}')" aria-label="${t('edit')}">
+                  <span class="btn-text">${t('edit')}</span>
                 </button>
-                <button class="mini-btn danger" onclick="deleteReading('${r.id}')" aria-label="Delete">
-                  <span class="btn-text">Delete</span>
+                <button class="mini-btn danger" onclick="deleteReading('${r.id}')" aria-label="${t('delete')}">
+                  <span class="btn-text">${t('delete')}</span>
                 </button>
               </td>
             </tr>
@@ -1246,9 +1248,9 @@
 
           tip.innerHTML = `
             <div style="font-weight:700; margin-bottom:4px;">${dateStr}</div>
-            <div><span style="color:#4c7dff;">●</span> Glucose: <b>${g}</b> mg/dL</div>
-            <div><span style="color:#3cff97;">●</span> SYS: <b>${s}</b> mmHg</div>
-            <div><span style="color:#ff4d6d;">●</span> DIA: <b>${d}</b> mmHg</div>
+            <div><span style="color:#4c7dff;">●</span> ${t('glucose_legend')}: <b>${g}</b> mg/dL</div>
+            <div><span style="color:#3cff97;">●</span> ${t('sys_legend')}: <b>${s}</b> mmHg</div>
+            <div><span style="color:#ff4d6d;">●</span> ${t('dia_legend')}: <b>${d}</b> mmHg</div>
           `;
           tip.classList.add('show');
         }
@@ -1275,14 +1277,277 @@
         renderHistory();
         updateInsights();
         renderChart();
-        $('lastSync').textContent = `Updated ${new Date().toLocaleTimeString()}`;
+        $('lastSync').textContent = t('updated_at', { time: new Date().toLocaleTimeString() });
       };
+
+      // ==================== i18n ====================
+      const translations = {
+        en: {
+          subtitle: "Your daily readings, simplified",
+          userLoading: "Loading…",
+          logout: "Logout",
+          tab_dashboard: "Dashboard",
+          tab_history: "History",
+          tab_insights: "Insights",
+          add_reading_title: "Add Reading",
+          add_reading_sub: "Log your glucose and blood pressure.",
+          glucose: "Glucose",
+          bp: "Blood Pressure",
+          glucose_placeholder: "e.g. 110",
+          mgdl: "mg/dL",
+          mmhg: "mmHg",
+          note_optional: "Note (optional)",
+          choose_note: "Choose note",
+          glucose_note_options: ["Fasting","Before meal","After meal","Bedtime","Workout","Feeling low","Feeling high"],
+          bp_note_options: ["Morning","Afternoon","Evening","After coffee","After workout","Stress","Relaxed"],
+          save_glucose: "Save Glucose",
+          save_bp: "Save Blood Pressure",
+          sys: "Systolic",
+          dia: "Diastolic",
+          sys_placeholder: "120",
+          dia_placeholder: "80",
+          today_title: "Today",
+          today_line_zero: "No readings yet today",
+          today_line: "{count} reading(s) logged today",
+          latest_glucose: "Latest Glucose",
+          latest_bp: "Latest Blood Pressure",
+          trends_title: "Trends",
+          trends_sub: "Last 14 days • Glucose & Blood Pressure",
+          glucose_legend: "Glucose",
+          sys_legend: "SYS",
+          dia_legend: "DIA",
+          refresh: "Refresh",
+          updated_at: "Updated {time}",
+          my_readings: "My Readings",
+          history_sub: "Browse and manage your saved readings.",
+          table_date: "Date",
+          table_type: "Type",
+          table_value: "Value",
+          table_description: "Description",
+          table_note: "Note",
+          table_actions: "Actions",
+          loading: "Loading…",
+          no_readings: "No readings yet.",
+          edit: "Edit",
+          delete: "Delete",
+          insights_title: "Insights",
+          insights_sub: "Trends and patterns from your readings.",
+          avg_glucose_7d: "7-Day Avg (Glucose)",
+          avg_bp_7d: "7-Day Avg (Blood Pressure)",
+          common_note: "Most Common Note",
+          based_on_history: "based on history",
+          select_language: "Select Language",
+        },
+        fr: {
+          subtitle: "Vos relevés quotidiens, simplifiés",
+          userLoading: "Chargement…",
+          logout: "Déconnexion",
+          tab_dashboard: "Tableau de bord",
+          tab_history: "Historique",
+          tab_insights: "Aperçus",
+          add_reading_title: "Ajouter une mesure",
+          add_reading_sub: "Enregistrez votre glycémie et tension.",
+          glucose: "Glycémie",
+          bp: "Tension artérielle",
+          glucose_placeholder: "ex. 110",
+          mgdl: "mg/dL",
+          mmhg: "mmHg",
+          note_optional: "Note (optionnelle)",
+          choose_note: "Choisir une note",
+          glucose_note_options: ["À jeun","Avant repas","Après repas","Au coucher","Entraînement","Sensation basse","Sensation haute"],
+          bp_note_options: ["Matin","Après-midi","Soir","Après café","Après entraînement","Stress","Détendu"],
+          save_glucose: "Enregistrer glycémie",
+          save_bp: "Enregistrer tension",
+          sys: "Systolique",
+          dia: "Diastolique",
+          sys_placeholder: "120",
+          dia_placeholder: "80",
+          today_title: "Aujourd'hui",
+          today_line_zero: "Aucune mesure aujourd'hui",
+          today_line: "{count} mesure(s) aujourd'hui",
+          latest_glucose: "Dernière glycémie",
+          latest_bp: "Dernière tension",
+          trends_title: "Tendances",
+          trends_sub: "14 derniers jours • Glycémie & Tension",
+          glucose_legend: "Glycémie",
+          sys_legend: "SYS",
+          dia_legend: "DIA",
+          refresh: "Actualiser",
+          updated_at: "Mis à jour {time}",
+          my_readings: "Mes mesures",
+          history_sub: "Parcourez et gérez vos mesures.",
+          table_date: "Date",
+          table_type: "Type",
+          table_value: "Valeur",
+          table_description: "Description",
+          table_note: "Note",
+          table_actions: "Actions",
+          loading: "Chargement…",
+          no_readings: "Aucune mesure.",
+          edit: "Modifier",
+          delete: "Supprimer",
+          insights_title: "Aperçus",
+          insights_sub: "Tendances et modèles de vos mesures.",
+          avg_glucose_7d: "Moyenne 7j (Glycémie)",
+          avg_bp_7d: "Moyenne 7j (Tension)",
+          common_note: "Note la plus fréquente",
+          based_on_history: "basé sur l'historique",
+          select_language: "Choisir la langue",
+        },
+        // Add more languages here following the same structure
+      };
+
+      let currentLang = localStorage.getItem('appLang') || 'en';
+
+      function t(key, params = {}) {
+        let text = translations[currentLang]?.[key] || translations.en[key] || key;
+        for (let [k, v] of Object.entries(params)) {
+          text = text.replace(`{${k}}`, v);
+        }
+        return text;
+      }
+
+      // Populate select dropdowns with translated options
+      function populateSelects() {
+        const glucoseNote = $('#glucoseNote');
+        const bpNote = $('#bpNote');
+        if (!glucoseNote || !bpNote) return;
+
+        glucoseNote.innerHTML = '';
+        bpNote.innerHTML = '';
+
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = t('choose_note');
+        glucoseNote.appendChild(defaultOption.cloneNode(true));
+        bpNote.appendChild(defaultOption);
+
+        const glucoseOptions = translations[currentLang]?.glucose_note_options || translations.en.glucose_note_options;
+        glucoseOptions.forEach(opt => {
+          const option = document.createElement('option');
+          option.value = opt;
+          option.textContent = opt;
+          glucoseNote.appendChild(option);
+        });
+
+        const bpOptions = translations[currentLang]?.bp_note_options || translations.en.bp_note_options;
+        bpOptions.forEach(opt => {
+          const option = document.createElement('option');
+          option.value = opt;
+          option.textContent = opt;
+          bpNote.appendChild(option);
+        });
+      }
+
+      function applyLanguage() {
+        // Update all elements with data-i18n
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+          const key = el.getAttribute('data-i18n');
+          el.textContent = t(key);
+        });
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+          const key = el.getAttribute('data-i18n-placeholder');
+          el.placeholder = t(key);
+        });
+
+        populateSelects();
+        refreshAll(); // This will update dynamic texts (todayLine, table, chart tooltip, lastSync)
+      }
+
+      // --- Language modal ---
+      const languages = [
+        { code: 'en', name: 'English' },
+        { code: 'fr', name: 'Français' },
+        { code: 'es', name: 'Español' },
+        { code: 'de', name: 'Deutsch' },
+        { code: 'it', name: 'Italiano' },
+        { code: 'pt', name: 'Português' },
+        { code: 'ru', name: 'Русский' },
+        { code: 'zh', name: '中文' },
+        { code: 'ja', name: '日本語' },
+        { code: 'ar', name: 'العربية' },
+        { code: 'hi', name: 'हिन्दी' },
+        { code: 'bn', name: 'বাংলা' },
+        { code: 'pa', name: 'ਪੰਜਾਬੀ' },
+        { code: 'jv', name: 'Basa Jawa' },
+        { code: 'ko', name: '한국어' },
+        { code: 'vi', name: 'Tiếng Việt' },
+        { code: 'tr', name: 'Türkçe' },
+        { code: 'pl', name: 'Polski' },
+        { code: 'uk', name: 'Українська' },
+        { code: 'nl', name: 'Nederlands' },
+        { code: 'el', name: 'Ελληνικά' },
+        { code: 'he', name: 'עברית' },
+        { code: 'th', name: 'ไทย' },
+        { code: 'cs', name: 'Čeština' },
+        { code: 'sv', name: 'Svenska' },
+        { code: 'da', name: 'Dansk' },
+        { code: 'fi', name: 'Suomi' },
+        { code: 'no', name: 'Norsk' },
+      ];
+
+      function populateLanguageModal() {
+        const container = $('#langList');
+        if (!container) return;
+        container.innerHTML = '';
+        languages.forEach(lang => {
+          const btn = document.createElement('button');
+          btn.className = 'lang-btn';
+          btn.textContent = lang.name;
+          btn.dataset.langCode = lang.code;
+          btn.addEventListener('click', () => {
+            if (translations[lang.code]) {
+              currentLang = lang.code;
+            } else {
+              // Fallback to English if translations missing
+              currentLang = 'en';
+              console.warn(`No translations for ${lang.code}, falling back to English`);
+            }
+            localStorage.setItem('appLang', currentLang);
+            applyLanguage();
+            hideLanguageModal();
+          });
+          container.appendChild(btn);
+        });
+      }
+
+      function showLanguageModal() {
+        const modal = $('#langModal');
+        if (modal) {
+          modal.style.display = 'flex';
+          modal.offsetHeight; // force reflow
+          modal.classList.add('show');
+        }
+      }
+
+      function hideLanguageModal() {
+        const modal = $('#langModal');
+        if (modal) {
+          modal.classList.remove('show');
+          setTimeout(() => {
+            if (!modal.classList.contains('show')) {
+              modal.style.display = 'none';
+            }
+          }, 200);
+        }
+      }
+
+      // Attach event listeners
+      document.getElementById('langToggle')?.addEventListener('click', showLanguageModal);
+      document.getElementById('closeLangModal')?.addEventListener('click', hideLanguageModal);
+      document.getElementById('langModal')?.addEventListener('click', (e) => {
+        if (e.target === $('#langModal')) {
+          hideLanguageModal();
+        }
+      });
 
       // ===== Initialize =====
       async function init() {
         if (!requireAuth()) return;
         updateHeader();
-        await refreshAll();
+        populateLanguageModal();
+        currentLang = localStorage.getItem('appLang') || 'en';
+        applyLanguage(); // This will set texts and refresh all data
       }
 
       init();

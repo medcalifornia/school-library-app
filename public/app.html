@@ -24,11 +24,41 @@
       z-index: 100;
     }
     .chart-tooltip.show { opacity: 1; }
+    
+    /* أيقونات التحذير */
+    .warning-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-left: 6px;
+      font-size: 14px;
+      vertical-align: middle;
+    }
+    .trend-up {
+      color: #ff4d6d;
+      font-size: 16px;
+      margin-left: 4px;
+      vertical-align: middle;
+    }
+    .alert-badge {
+      background-color: rgba(255, 77, 109, 0.2);
+      border: 1px solid #ff4d6d;
+      border-radius: 16px;
+      padding: 2px 8px;
+      font-size: 10px;
+      color: #ff4d6d;
+      margin-left: 8px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
   </style>
 </head>
 
 <body class="app-page">
-  <!-- Top App Bar -->
+  <!-- Top App Bar (نفس الكود السابق) -->
   <header class="appbar">
     <div class="appbar-inner">
       <div class="brand">
@@ -163,7 +193,7 @@
             </div>
           </div>
 
-          <!-- Chart Section (محسّن بشكل احترافي) -->
+          <!-- Chart Section -->
           <div class="chart-card" id="trendCard">
             <div class="chart-head">
               <div>
@@ -355,10 +385,10 @@
         return d1.toDateString() === d2.toDateString();
       }
 
-      // ===== Glucose Color Coding =====
+      // ===== Glucose Color Coding with Warning Indicators =====
       function getGlucoseStatus(value, note = '') {
         const num = Number(value);
-        if (isNaN(num)) return { category: 'unknown', colorClass: '', text: value };
+        if (isNaN(num)) return { category: 'unknown', colorClass: '', text: value, warning: false, trend: null };
 
         const noteLower = String(note).toLowerCase();
         const isFasting = noteLower.includes('fasting');
@@ -366,22 +396,45 @@
 
         let category = '';
         let colorClass = '';
+        let warning = false; // for very high values
+        let trend = null; // 'up' or 'down' (we'll use 'up' for high)
 
         if (isFasting) {
           if (num < 100) { category = 'normal'; colorClass = 'glucose-normal'; }
           else if (num >= 100 && num <= 125) { category = 'prediabetes'; colorClass = 'glucose-prediabetes'; }
-          else if (num >= 126) { category = 'diabetes'; colorClass = 'glucose-diabetes'; }
+          else if (num >= 126) { 
+            category = 'diabetes'; 
+            colorClass = 'glucose-diabetes'; 
+            warning = true; 
+            trend = 'up';
+          }
         } else if (isPostprandial) {
           if (num < 140) { category = 'normal'; colorClass = 'glucose-normal'; }
           else if (num >= 140 && num <= 199) { category = 'prediabetes'; colorClass = 'glucose-prediabetes'; }
-          else if (num >= 200) { category = 'diabetes'; colorClass = 'glucose-diabetes'; }
+          else if (num >= 200) { 
+            category = 'diabetes'; 
+            colorClass = 'glucose-diabetes'; 
+            warning = true; 
+            trend = 'up';
+          }
         } else {
           if (num < 100) { category = 'normal'; colorClass = 'glucose-normal'; }
           else if (num >= 100 && num <= 125) { category = 'prediabetes'; colorClass = 'glucose-prediabetes'; }
-          else if (num >= 126) { category = 'diabetes'; colorClass = 'glucose-diabetes'; }
+          else if (num >= 126) { 
+            category = 'diabetes'; 
+            colorClass = 'glucose-diabetes'; 
+            warning = true; 
+            trend = 'up';
+          }
         }
 
-        return { category, colorClass, value: num };
+        // For extremely high values, we can also add a special class
+        if (num >= 200) {
+          warning = true;
+          trend = 'up';
+        }
+
+        return { category, colorClass, value: num, warning, trend };
       }
 
       // ===== BP Color Coding (5 categories) =====
@@ -403,7 +456,7 @@
         if (sys >= 180 || dia >= 120) {
           category = 'Crisis';
           colorClass = 'bp-crisis';
-          explanation = 'أزمة ارتفاع ضغط (Hypertensive Crisis) - توجه للطوارئ فوراً';
+          explanation = 'أزمة ارتفاع ضغط - توجه للطوارئ فوراً';
         } else if (sys >= 140 || dia >= 90) {
           category = 'Stage 2';
           colorClass = 'bp-stage2';
@@ -541,8 +594,13 @@
         const latestBP = allReadings.find(r => r.type === 'bp');
 
         if (latestGlucose) {
-          const { colorClass, value } = getGlucoseStatus(latestGlucose.value, latestGlucose.note);
-          $('kpiGlucose').innerHTML = `<span class="${colorClass}">${value}</span>`;
+          const { colorClass, value, warning, trend } = getGlucoseStatus(latestGlucose.value, latestGlucose.note);
+          let html = `<span class="${colorClass}">${value}</span>`;
+          if (warning && trend === 'up') {
+            html += `<span class="trend-up" title="Glucose above normal level">▲</span>`;
+            html += `<span class="alert-badge" title="High glucose alert">⚠️ High</span>`;
+          }
+          $('kpiGlucose').innerHTML = html;
         } else {
           $('kpiGlucose').textContent = '—';
         }
@@ -573,13 +631,18 @@
 
         tbody.innerHTML = pageItems.map(r => {
           const date = parseDate(r.ts)?.toLocaleString() || '—';
-          let valueHtml = escapeHtml(r.value);
+          let valueHtml = '';
           if (r.type === 'glucose') {
-            const { colorClass, value } = getGlucoseStatus(r.value, r.note);
+            const { colorClass, value, warning, trend } = getGlucoseStatus(r.value, r.note);
             valueHtml = `<span class="${colorClass}">${value}</span>`;
+            if (warning && trend === 'up') {
+              valueHtml += ` <span class="trend-up" title="High glucose">▲</span>`;
+            }
           } else if (r.type === 'bp') {
             const bpStatus = getBPStatus(r.value);
             valueHtml = `<span class="${bpStatus.colorClass}" title="${bpStatus.explanation}">${bpStatus.display}</span>`;
+          } else {
+            valueHtml = escapeHtml(r.value);
           }
 
           return `
@@ -656,8 +719,12 @@
         const avg = arr => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
         const gAvg = avg(glucoseVals);
         if (gAvg !== null) {
-          const { colorClass } = getGlucoseStatus(gAvg, '');
-          $('avg7g').innerHTML = `<span class="${colorClass}">${gAvg}</span>`;
+          const { colorClass, warning, trend } = getGlucoseStatus(gAvg, '');
+          let html = `<span class="${colorClass}">${gAvg}</span>`;
+          if (warning && trend === 'up') {
+            html += ` <span class="trend-up" title="High average glucose">▲</span>`;
+          }
+          $('avg7g').innerHTML = html;
         } else {
           $('avg7g').textContent = '—';
         }
@@ -695,11 +762,10 @@
         }
       }
 
-      // ========== CHART RENDERING (محسّن بشكل احترافي) ==========
+      // ========== CHART RENDERING (محسّن) ==========
       const SVG_W = 1000, SVG_H = 280;
       const PAD = { l: 70, r: 50, t: 30, b: 50 };
 
-      // إنشاء قائمة بآخر 14 يوم
       function getLastNDays(n = 14) {
         const days = [];
         const today = new Date();
@@ -719,7 +785,6 @@
         return `${y}-${m}-${d}`;
       }
 
-      // بناء بيانات الشارت
       function buildChartData() {
         const days = getLastNDays(14);
         const labels = days.map(d => d.toLocaleDateString(undefined, { month: '2-digit', day: '2-digit' }));
@@ -751,7 +816,6 @@
         return { labels, glucose, sys, dia };
       }
 
-      // حساب النطاق (min, max) مع هامش
       function getRange(values) {
         const valid = values.filter(v => v != null && isFinite(v));
         if (valid.length === 0) return { min: 70, max: 150 };
@@ -779,13 +843,12 @@
 
         if (!hasData) {
           console.warn('⚠️ No real data, using sample data for chart display');
-          // بيانات تجريبية مشابهة للصورة
+          // بيانات تجريبية مشابهة
           displayGlucose = [120, 135, 110, 150, 140, 130, 125, 145, 135, 155, 140, 130, 120, 115];
           displaySys = [130, 125, 135, 140, 130, 125, 135, 145, 140, 150, 135, 125, 130, 120];
           displayDia = [85, 80, 90, 95, 85, 80, 85, 95, 90, 100, 85, 80, 85, 75];
         }
 
-        // إيجاد النطاق الأقصى للقيم
         const allValues = [...displayGlucose, ...displaySys, ...displayDia].filter(v => v != null);
         const minVal = allValues.length ? Math.min(...allValues) : 70;
         const maxVal = allValues.length ? Math.max(...allValues) : 150;
@@ -823,10 +886,9 @@
           return d;
         }
 
-        // مسح المحتوى السابق
         while (svg.firstChild) svg.removeChild(svg.firstChild);
 
-        // خلفية داكنة (كما في الصورة)
+        // خلفية داكنة
         const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         bg.setAttribute('x', '0'); bg.setAttribute('y', '0');
         bg.setAttribute('width', SVG_W); bg.setAttribute('height', SVG_H);
@@ -834,7 +896,7 @@
         bg.setAttribute('rx', '12'); bg.setAttribute('ry', '12');
         svg.appendChild(bg);
 
-        // شبكة أفقية (5 خطوط)
+        // شبكة أفقية
         const gridGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         gridGroup.setAttribute('opacity', '0.2');
         for (let i = 0; i <= 5; i++) {
@@ -849,7 +911,7 @@
         }
         svg.appendChild(gridGroup);
 
-        // شبكة رأسية (خفيفة)
+        // شبكة رأسية خفيفة
         const vGridGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         vGridGroup.setAttribute('opacity', '0.1');
         for (let i = 0; i < n; i += 2) {
@@ -864,7 +926,7 @@
         }
         svg.appendChild(vGridGroup);
 
-        // تسميات المحور Y (يسار)
+        // تسميات Y (يسار)
         const yLabelsLeft = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         yLabelsLeft.setAttribute('fill', 'rgba(255,255,255,0.7)');
         yLabelsLeft.setAttribute('font-size', '11');
@@ -881,7 +943,7 @@
         }
         svg.appendChild(yLabelsLeft);
 
-        // تسميات المحور X (كل 2-3 أيام)
+        // تسميات X
         const xLabels = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         xLabels.setAttribute('fill', 'rgba(255,255,255,0.7)');
         xLabels.setAttribute('font-size', '10');
@@ -904,7 +966,7 @@
         }
         svg.appendChild(xLabels);
 
-        // رسم الخطوط (بألوان زاهية)
+        // رسم الخطوط
         const lineGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         lineGroup.setAttribute('fill', 'none');
         lineGroup.setAttribute('stroke-width', '3');

@@ -326,7 +326,7 @@
               <div class="kpi-sub">mg/dL</div>
             </div>
             <div class="kpi">
-              <div class="kpi-label">Latest Blood Pressure</div>  <!-- تم التغيير هنا -->
+              <div class="kpi-label">Latest Blood Pressure</div>
               <div class="kpi-value" id="kpiBP">—</div>
               <div class="kpi-sub">mmHg</div>
             </div>
@@ -375,12 +375,13 @@
                 <th>Date</th>
                 <th>Type</th>
                 <th>Value</th>
+                <th>Description</th>   <!-- عمود جديد -->
                 <th>Note</th>
                 <th class="th-actions">Actions</th>
               </tr>
             </thead>
             <tbody id="readingsBody">
-              <tr><td colspan="5" class="muted">Loading…</td></tr>
+              <tr><td colspan="6" class="muted">Loading…</td></tr>
             </tbody>
           </table>
         </div>
@@ -408,7 +409,7 @@
             <div class="mini-sub">mg/dL</div>
           </div>
           <div class="mini-card">
-            <div class="mini-title">7-Day Avg (Blood Pressure)</div>  <!-- تم التغيير هنا -->
+            <div class="mini-title">7-Day Avg (Blood Pressure)</div>
             <div class="mini-value" id="avg7bp">—</div>
             <div class="mini-sub">mmHg</div>
           </div>
@@ -537,7 +538,49 @@
         return d1.toDateString() === d2.toDateString();
       }
 
-      // ===== Glucose Color Coding with Indicators =====
+      // ===== وصف الحالات =====
+      function getGlucoseDescription(value, note) {
+        const num = Number(value);
+        if (isNaN(num)) return '';
+        const noteLower = String(note).toLowerCase();
+        const isFasting = noteLower.includes('fasting');
+        const isPostprandial = noteLower.includes('after meal') || noteLower.includes('aftermeal');
+        
+        if (isFasting) {
+          if (num < 70) return '🔴 انخفاض خطير (Hypoglycemia) - قد يسبب دوخة، تعرّق، ارتعاش، فقدان وعي.';
+          if (num >= 70 && num <= 99) return '🟢 طبيعي - مستوى سليم عند شخص غير مصاب بالسكري.';
+          if (num >= 100 && num <= 125) return '🟡 مرحلة ما قبل السكري - مؤشر خطر، يحتاج متابعة وتغيير نمط حياة.';
+          if (num >= 126) return '🔴 سكري - يُعتبر تشخيصًا رسميًا إذا تكرر.';
+        } else if (isPostprandial) {
+          if (num < 140) return '🟢 طبيعي - بعد الأكل بساعتين.';
+          if (num >= 140 && num <= 199) return '🟡 مرحلة ما قبل السكري - بعد الأكل.';
+          if (num >= 200) return '🔴 سكري محتمل - بعد الأكل.';
+        } else {
+          // حالة غير محددة: نستخدم التصنيف العام (نفس fasting للأمان)
+          if (num < 70) return '🔴 انخفاض خطير (Hypoglycemia)';
+          if (num >= 70 && num <= 99) return '🟢 طبيعي';
+          if (num >= 100 && num <= 125) return '🟡 مرحلة ما قبل السكري';
+          if (num >= 126) return '🔴 سكري';
+        }
+        return '';
+      }
+
+      function getBPDescription(bpString) {
+        const parts = bpString.split('/').map(Number);
+        if (parts.length !== 2 || isNaN(parts[0]) || isNaN(parts[1])) return '';
+        const sys = parts[0];
+        const dia = parts[1];
+        
+        if (sys >= 180 || dia >= 120) return '🚨 حالة طارئة (أزمة ضغط) - خطر على الدماغ والقلب والكلى. إذا وُجد صداع شديد، ألم صدر، ضيق نفس → طوارئ فورًا.';
+        if (sys >= 140 || dia >= 90) return '🔴 ارتفاع ضغط – المرحلة الثانية - ضغط مرتفع واضح. غالبًا يحتاج علاج دوائي بالإضافة لتغيير نمط الحياة.';
+        if (sys >= 130 || dia >= 80) return '🟠 ارتفاع ضغط – المرحلة الأولى - ارتفاع فعلي. قد يحتاج متابعة دقيقة، وأحيانًا علاج حسب العمر وعوامل الخطر.';
+        if (sys >= 120 && sys <= 129 && dia < 80) return '🟡 مرتفع قليلاً (Elevated) - ليس مرض ضغط بعد، لكنه تحذير مبكر. يحتاج تعديل نمط الحياة (ملح أقل، رياضة، وزن صحي).';
+        if (sys < 120 && dia < 80) return '🟢 طبيعي - ضغط صحي، لا يوجد خطر حالي إذا لم توجد عوامل أخرى.';
+        if (sys < 90 || dia < 60) return '⚠️ انخفاض ضغط الدم - ليس دائمًا خطير. لكن إذا صاحبه دوخة أو إغماء → يحتاج تقييم.';
+        return '';
+      }
+
+      // ===== Glucose Color Coding with Indicators (بدون تغيير) =====
       function getGlucoseStatus(value, note = '') {
         const num = Number(value);
         if (isNaN(num)) return { category: 'unknown', colorClass: '', text: value, warning: false, trend: null, badgeText: '' };
@@ -614,7 +657,7 @@
         return { category, colorClass, value: num, warning, trend, badgeText };
       }
 
-      // ===== BP Color Coding with named badges =====
+      // ===== BP Color Coding with named badges (بدون تغيير) =====
       function getBPStatus(bpString) {
         if (!bpString || typeof bpString !== 'string') {
           return { category: 'unknown', colorClass: '', explanation: '', sys: null, dia: null, warning: false, trend: null, badgeText: '' };
@@ -714,7 +757,7 @@
         };
       }
 
-      // ===== API calls =====
+      // ===== API calls (بدون تغيير) =====
       window.saveGlucose = async () => {
         if (!requireAuth()) return;
         const { userId } = getAuth();
@@ -868,13 +911,15 @@
         $('pageLabel').textContent = `${currentPage} / ${totalPages}`;
 
         if (!pageItems.length) {
-          tbody.innerHTML = '<tr><td colspan="5" class="muted">No readings yet.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="6" class="muted">No readings yet.</td></tr>';
           return;
         }
 
         tbody.innerHTML = pageItems.map(r => {
           const date = parseDate(r.ts)?.toLocaleString() || '—';
           let valueHtml = '';
+          let description = '';
+
           if (r.type === 'glucose') {
             const { colorClass, value, warning, trend, badgeText } = getGlucoseStatus(r.value, r.note);
             valueHtml = `<span class="${colorClass}">${value}</span>`;
@@ -890,6 +935,7 @@
             if (badgeClass) {
               valueHtml += ` <span class="status-badge ${badgeClass}">${badgeText}</span>`;
             }
+            description = getGlucoseDescription(r.value, r.note);
           } else if (r.type === 'bp') {
             const bpStatus = getBPStatus(r.value);
             valueHtml = `<span class="${bpStatus.colorClass}">${bpStatus.display}</span>`;
@@ -907,16 +953,17 @@
             if (badgeClass) {
               valueHtml += ` <span class="status-badge ${badgeClass}">${bpStatus.badgeText}</span>`;
             }
+            description = getBPDescription(r.value);
           } else {
             valueHtml = escapeHtml(r.value);
           }
 
-          // إضافة data-label لكل خلية لتحويل الجدول إلى بطاقات على الشاشات الصغيرة
           return `
             <tr>
               <td data-label="Date">${escapeHtml(date)}</td>
               <td data-label="Type"><span class="pill">${escapeHtml(r.type === 'bp' ? 'Blood Pressure' : r.type)}</span></td>
               <td data-label="Value">${valueHtml}</td>
+              <td data-label="Description" class="description-cell">${escapeHtml(description)}</td>
               <td data-label="Note" class="muted">${escapeHtml(r.note || '')}</td>
               <td data-label="Actions" class="td-actions">
                 <button class="mini-btn" onclick="editReading('${r.id}', '${escapeHtml(r.value)}', '${escapeHtml(r.note || '')}')" aria-label="Edit">
@@ -1057,7 +1104,7 @@
         }
       }
 
-      // ========== CHART RENDERING ==========
+      // ========== CHART RENDERING (بدون تغيير) ==========
       const SVG_W = 1000, SVG_H = 280;
       const PAD = { l: 70, r: 50, t: 30, b: 50 };
 

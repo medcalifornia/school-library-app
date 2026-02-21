@@ -640,11 +640,12 @@ input::placeholder {
 }
 
 /* تحديد عرض تقريبي للأعمدة لتحسين التوزيع */
-.table th:nth-child(1) { width: 18%; } /* التاريخ */
-.table th:nth-child(2) { width: 12%; } /* النوع */
-.table th:nth-child(3) { width: 20%; } /* القيمة */
-.table th:nth-child(4) { width: 30%; } /* الملاحظة */
-.table th:nth-child(5) { width: 20%; } /* الإجراءات */
+.table th:nth-child(1) { width: 15%; } /* التاريخ */
+.table th:nth-child(2) { width: 10%; } /* النوع */
+.table th:nth-child(3) { width: 12%; } /* القيمة */
+.table th:nth-child(4) { width: 30%; } /* الوصف */
+.table th:nth-child(5) { width: 18%; } /* الملاحظة */
+.table th:nth-child(6) { width: 15%; } /* الإجراءات */
 
 .table th {
   background: rgba(255, 255, 255, 0.04);
@@ -662,6 +663,16 @@ input::placeholder {
   padding: 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   font-size: 13px;
+}
+
+/* خلية الوصف */
+.description-cell {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.4;
+  max-width: 250px;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .th-actions, .td-actions {
@@ -898,16 +909,26 @@ input::placeholder {
 }
 
 /* ===== تحسينات الجدول المتجاوب ===== */
-@media (max-width: 600px) {
-  /* على الشاشات المتوسطة: تقليص عرض الملاحظة وإخفاء النص في الأزرار */
+@media (max-width: 700px) {
+  /* على الشاشات المتوسطة: تقليص عرض الوصف والملاحظة */
   .table th:nth-child(4),
   .table td:nth-child(4) {
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .table th:nth-child(5),
+  .table td:nth-child(5) {
     max-width: 120px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+}
 
+@media (max-width: 600px) {
+  /* على الشاشات المتوسطة: الأزرار تتحول إلى أيقونات */
   .mini-btn {
     width: 36px;
     height: 36px;
@@ -937,8 +958,8 @@ input::placeholder {
   }
 }
 
-/* على الشاشات الصغيرة جداً (أقل من 500px) نحول الجدول إلى بطاقات */
-@media (max-width: 500px) {
+/* على الشاشات الصغيرة جداً (أقل من 550px) نحول الجدول إلى بطاقات */
+@media (max-width: 550px) {
   .table,
   .table thead,
   .table tbody,
@@ -962,7 +983,7 @@ input::placeholder {
 
   .table td {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     padding: 8px 0;
     border-bottom: 1px dashed var(--border);
     white-space: normal;
@@ -993,5 +1014,11 @@ input::placeholder {
 
   .mini-btn {
     margin-left: 0;
+  }
+
+  /* إلغاء التقصير في الوصف */
+  .table td.description-cell {
+    white-space: normal;
+    max-width: none;
   }
 }

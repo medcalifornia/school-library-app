@@ -6,7 +6,7 @@
   <title>Health Tracker · Dashboard</title>
   <link rel="stylesheet" href="./style.css" />
   <style>
-    /* تحسينات إضافية للشارت */
+    /* تحسينات إضافية للشارت والشارات */
     .sv-chart { display: block; width: 100%; height: 100%; }
     .sv-chart-wrap { touch-action: pan-y; user-select: none; }
     .chart-tooltip { 
@@ -25,60 +25,59 @@
     }
     .chart-tooltip.show { opacity: 1; }
     
-    /* أيقونات التحذير والإشارات */
-    .warning-icon {
+    /* شارات الحالات */
+    .status-badge {
       display: inline-flex;
       align-items: center;
-      justify-content: center;
-      margin-left: 6px;
-      font-size: 14px;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 600;
+      margin-left: 8px;
       vertical-align: middle;
+      border: 1px solid transparent;
+    }
+    .status-badge.normal {
+      background-color: rgba(46, 204, 113, 0.15);
+      color: #2ecc71;
+      border-color: rgba(46, 204, 113, 0.3);
+    }
+    .status-badge.elevated {
+      background-color: rgba(241, 196, 15, 0.15);
+      color: #f1c40f;
+      border-color: rgba(241, 196, 15, 0.3);
+    }
+    .status-badge.stage1 {
+      background-color: rgba(243, 156, 18, 0.15);
+      color: #f39c12;
+      border-color: rgba(243, 156, 18, 0.3);
+    }
+    .status-badge.stage2 {
+      background-color: rgba(231, 76, 60, 0.15);
+      color: #e74c3c;
+      border-color: rgba(231, 76, 60, 0.3);
+    }
+    .status-badge.crisis {
+      background-color: rgba(155, 89, 182, 0.15);
+      color: #9b59b6;
+      border-color: rgba(155, 89, 182, 0.3);
     }
     .trend-up {
-      color: #ff4d6d;
-      font-size: 16px;
-      margin-left: 4px;
-      vertical-align: middle;
+      color: #e74c3c;
+      font-size: 12px;
+      margin-right: 2px;
     }
     .trend-down {
       color: #2ecc71;
-      font-size: 16px;
-      margin-left: 4px;
-      vertical-align: middle;
-    }
-    .alert-badge {
-      background-color: rgba(255, 77, 109, 0.2);
-      border: 1px solid #ff4d6d;
-      border-radius: 16px;
-      padding: 2px 8px;
-      font-size: 10px;
-      color: #ff4d6d;
-      margin-left: 8px;
-      font-weight: 600;
-      letter-spacing: 0.3px;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .normal-badge {
-      background-color: rgba(46, 204, 113, 0.2);
-      border: 1px solid #2ecc71;
-      border-radius: 16px;
-      padding: 2px 8px;
-      font-size: 10px;
-      color: #2ecc71;
-      margin-left: 8px;
-      font-weight: 600;
-      letter-spacing: 0.3px;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
+      font-size: 12px;
+      margin-right: 2px;
     }
   </style>
 </head>
 
 <body class="app-page">
-  <!-- Top App Bar (نفس الكود السابق) -->
+  <!-- Top App Bar -->
   <header class="appbar">
     <div class="appbar-inner">
       <div class="brand">
@@ -138,7 +137,6 @@
                 <span class="suffix">mg/dL</span>
               </div>
             </label>
-
             <label class="field">
               <span class="label">Note (optional)</span>
               <select id="glucoseNote">
@@ -152,7 +150,6 @@
                 <option>Feeling high</option>
               </select>
             </label>
-
             <button class="btn primary" type="button" onclick="saveGlucose()">
               <span class="btn-text">Save Glucose</span>
               <span class="spinner" aria-hidden="true"></span>
@@ -171,7 +168,6 @@
                 <input id="bpDia" inputmode="numeric" placeholder="80" />
               </label>
             </div>
-
             <label class="field">
               <span class="label">Note (optional)</span>
               <select id="bpNote">
@@ -185,7 +181,6 @@
                 <option>Relaxed</option>
               </select>
             </label>
-
             <button class="btn primary" type="button" onclick="saveBP()">
               <span class="btn-text">Save Blood Pressure</span>
               <span class="spinner" aria-hidden="true"></span>
@@ -416,14 +411,14 @@
 
         let category = '';
         let colorClass = '';
-        let warning = false; // for high values
-        let trend = null; // 'up' for high, 'down' for normal
+        let warning = false;
+        let trend = null;
 
         if (isFasting) {
           if (num < 100) { 
             category = 'normal'; 
             colorClass = 'glucose-normal'; 
-            trend = 'down'; // سهم أخضر للأسفل للقيم الطبيعية
+            trend = 'down';
           }
           else if (num >= 100 && num <= 125) { 
             category = 'prediabetes'; 
@@ -472,14 +467,14 @@
         return { category, colorClass, value: num, warning, trend };
       }
 
-      // ===== BP Color Coding (5 categories) with indicators =====
+      // ===== BP Color Coding with named badges =====
       function getBPStatus(bpString) {
         if (!bpString || typeof bpString !== 'string') {
-          return { category: 'unknown', colorClass: '', explanation: '', sys: null, dia: null, warning: false, trend: null };
+          return { category: 'unknown', colorClass: '', explanation: '', sys: null, dia: null, warning: false, trend: null, badgeText: '' };
         }
         const parts = bpString.split('/').map(Number);
         if (parts.length !== 2 || isNaN(parts[0]) || isNaN(parts[1])) {
-          return { category: 'unknown', colorClass: '', explanation: '', sys: null, dia: null, warning: false, trend: null };
+          return { category: 'unknown', colorClass: '', explanation: '', sys: null, dia: null, warning: false, trend: null, badgeText: '' };
         }
         const sys = parts[0];
         const dia = parts[1];
@@ -488,7 +483,8 @@
         let colorClass = '';
         let explanation = '';
         let warning = false;
-        let trend = null; // 'up' for high, 'down' for normal
+        let trend = null;
+        let badgeText = '';
 
         if (sys >= 180 || dia >= 120) {
           category = 'Crisis';
@@ -496,60 +492,79 @@
           explanation = 'أزمة ارتفاع ضغط - توجه للطوارئ فوراً';
           warning = true;
           trend = 'up';
+          badgeText = 'Crisis';
         } else if (sys >= 140 || dia >= 90) {
           category = 'Stage 2';
           colorClass = 'bp-stage2';
           explanation = 'ارتفاع المرحلة الثانية - يحتاج علاج دوائي';
           warning = true;
           trend = 'up';
+          badgeText = 'Stage 2';
         } else if (sys >= 130 || dia >= 80) {
           category = 'Stage 1';
           colorClass = 'bp-stage1';
           explanation = 'ارتفاع المرحلة الأولى - متابعة وتعديل نمط حياة';
           warning = false;
           trend = null;
+          badgeText = 'Stage 1';
         } else if (sys >= 120 && sys <= 129 && dia < 80) {
           category = 'Elevated';
           colorClass = 'bp-elevated';
           explanation = 'مرتفع بسيط (إنذار مبكر)';
           warning = false;
           trend = null;
+          badgeText = 'Elevated';
         } else if (sys < 120 && dia < 80) {
           category = 'Normal';
           colorClass = 'bp-normal';
           explanation = 'ضغط طبيعي ممتاز';
           warning = false;
-          trend = 'down'; // سهم أخضر للأسفل للقيم الطبيعية
+          trend = 'down';
+          badgeText = 'Normal';
         } else {
-          // Mixed cases
+          // Mixed cases: take higher stage
           if (sys >= 140 || dia >= 90) {
             category = 'Stage 2';
             colorClass = 'bp-stage2';
             explanation = 'ارتفاع المرحلة الثانية - يحتاج علاج دوائي';
             warning = true;
             trend = 'up';
+            badgeText = 'Stage 2';
           } else if (sys >= 130 || dia >= 80) {
             category = 'Stage 1';
             colorClass = 'bp-stage1';
             explanation = 'ارتفاع المرحلة الأولى - متابعة وتعديل نمط حياة';
             warning = false;
             trend = null;
+            badgeText = 'Stage 1';
           } else if (sys >= 120 && dia < 80) {
             category = 'Elevated';
             colorClass = 'bp-elevated';
             explanation = 'مرتفع بسيط (إنذار مبكر)';
             warning = false;
             trend = null;
+            badgeText = 'Elevated';
           } else {
             category = 'Normal';
             colorClass = 'bp-normal';
             explanation = 'ضغط طبيعي ممتاز';
             warning = false;
             trend = 'down';
+            badgeText = 'Normal';
           }
         }
 
-        return { category, colorClass, explanation, sys, dia, display: bpString, warning, trend };
+        return { 
+          category, 
+          colorClass, 
+          explanation, 
+          sys, 
+          dia, 
+          display: bpString, 
+          warning, 
+          trend, 
+          badgeText 
+        };
       }
 
       // ===== API calls =====
@@ -652,11 +667,11 @@
           const { colorClass, value, warning, trend } = getGlucoseStatus(latestGlucose.value, latestGlucose.note);
           let html = `<span class="${colorClass}">${value}</span>`;
           if (warning && trend === 'up') {
-            html += `<span class="trend-up" title="Glucose above normal level">▲</span>`;
-            html += `<span class="alert-badge" title="High glucose alert">⚠️ High</span>`;
+            html += `<span class="trend-up" title="High glucose">▲</span>`;
+            html += `<span class="status-badge normal" style="background:rgba(231,76,60,0.15); color:#e74c3c; border-color:rgba(231,76,60,0.3);">⚠️ High</span>`;
           } else if (trend === 'down') {
-            html += `<span class="trend-down" title="Glucose normal">▼</span>`;
-            html += `<span class="normal-badge" title="Normal glucose">✅ Normal</span>`;
+            html += `<span class="trend-down" title="Normal glucose">▼</span>`;
+            html += `<span class="status-badge normal">✅ Normal</span>`;
           }
           $('kpiGlucose').innerHTML = html;
         } else {
@@ -665,14 +680,25 @@
 
         if (latestBP) {
           const bpStatus = getBPStatus(latestBP.value);
-          let html = `<span class="${bpStatus.colorClass}" title="${bpStatus.explanation}">${bpStatus.display}</span>`;
-          if (bpStatus.warning && bpStatus.trend === 'up') {
-            html += `<span class="trend-up" title="High blood pressure">▲</span>`;
-            html += `<span class="alert-badge" title="High BP alert">⚠️ High</span>`;
+          let html = `<span class="${bpStatus.colorClass}">${bpStatus.display}</span>`;
+          
+          // Add trend arrow
+          if (bpStatus.trend === 'up') {
+            html += `<span class="trend-up" title="High BP">▲</span>`;
           } else if (bpStatus.trend === 'down') {
-            html += `<span class="trend-down" title="Normal blood pressure">▼</span>`;
-            html += `<span class="normal-badge" title="Normal BP">✅ Normal</span>`;
+            html += `<span class="trend-down" title="Normal BP">▼</span>`;
           }
+
+          // Add badge with status name
+          let badgeClass = '';
+          if (bpStatus.badgeText.toLowerCase().includes('normal')) badgeClass = 'normal';
+          else if (bpStatus.badgeText.toLowerCase().includes('elevated')) badgeClass = 'elevated';
+          else if (bpStatus.badgeText.toLowerCase().includes('stage 1')) badgeClass = 'stage1';
+          else if (bpStatus.badgeText.toLowerCase().includes('stage 2')) badgeClass = 'stage2';
+          else if (bpStatus.badgeText.toLowerCase().includes('crisis')) badgeClass = 'crisis';
+
+          html += `<span class="status-badge ${badgeClass}">${bpStatus.badgeText}</span>`;
+
           $('kpiBP').innerHTML = html;
         } else {
           $('kpiBP').textContent = '—';
@@ -708,12 +734,20 @@
             }
           } else if (r.type === 'bp') {
             const bpStatus = getBPStatus(r.value);
-            valueHtml = `<span class="${bpStatus.colorClass}" title="${bpStatus.explanation}">${bpStatus.display}</span>`;
-            if (bpStatus.warning && bpStatus.trend === 'up') {
+            valueHtml = `<span class="${bpStatus.colorClass}">${bpStatus.display}</span>`;
+            if (bpStatus.trend === 'up') {
               valueHtml += ` <span class="trend-up" title="High BP">▲</span>`;
             } else if (bpStatus.trend === 'down') {
               valueHtml += ` <span class="trend-down" title="Normal BP">▼</span>`;
             }
+            // Add badge
+            let badgeClass = '';
+            if (bpStatus.badgeText.toLowerCase().includes('normal')) badgeClass = 'normal';
+            else if (bpStatus.badgeText.toLowerCase().includes('elevated')) badgeClass = 'elevated';
+            else if (bpStatus.badgeText.toLowerCase().includes('stage 1')) badgeClass = 'stage1';
+            else if (bpStatus.badgeText.toLowerCase().includes('stage 2')) badgeClass = 'stage2';
+            else if (bpStatus.badgeText.toLowerCase().includes('crisis')) badgeClass = 'crisis';
+            valueHtml += ` <span class="status-badge ${badgeClass}">${bpStatus.badgeText}</span>`;
           } else {
             valueHtml = escapeHtml(r.value);
           }
@@ -820,12 +854,21 @@
             const avgDia = Math.round(totalDia / count);
             const avgString = `${avgSys}/${avgDia}`;
             const bpStatus = getBPStatus(avgString);
-            let html = `<span class="${bpStatus.colorClass}" title="${bpStatus.explanation}">${avgString}</span>`;
-            if (bpStatus.warning && bpStatus.trend === 'up') {
+            let html = `<span class="${bpStatus.colorClass}">${avgString}</span>`;
+            if (bpStatus.trend === 'up') {
               html += ` <span class="trend-up" title="High average BP">▲</span>`;
             } else if (bpStatus.trend === 'down') {
               html += ` <span class="trend-down" title="Normal average BP">▼</span>`;
             }
+            // Add badge
+            let badgeClass = '';
+            if (bpStatus.badgeText.toLowerCase().includes('normal')) badgeClass = 'normal';
+            else if (bpStatus.badgeText.toLowerCase().includes('elevated')) badgeClass = 'elevated';
+            else if (bpStatus.badgeText.toLowerCase().includes('stage 1')) badgeClass = 'stage1';
+            else if (bpStatus.badgeText.toLowerCase().includes('stage 2')) badgeClass = 'stage2';
+            else if (bpStatus.badgeText.toLowerCase().includes('crisis')) badgeClass = 'crisis';
+            html += ` <span class="status-badge ${badgeClass}">${bpStatus.badgeText}</span>`;
+
             $('avg7bp').innerHTML = html;
           } else {
             $('avg7bp').textContent = '—';

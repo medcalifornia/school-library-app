@@ -427,16 +427,6 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <!-- سكريبت Google Translate -->
-  <script type="text/javascript">
-    function googleTranslateElementInit() {
-      new google.translate.TranslateElement({
-        pageLanguage: 'en',
-        includedLanguages: 'ar,en,fr,es,de,it,pt,ru,zh-CN,ja,hi,ur',
-        layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
-        autoDisplay: false
-      }, 'google_translate_element');
-    }
-  </script>
   <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
   <script>
@@ -1384,20 +1374,34 @@
         $('lastSync').textContent = `Updated ${new Date().toLocaleTimeString()}`;
       };
 
-      // ===== Initialize =====
-      async function init() {
-        if (!requireAuth()) return;
-        updateHeader();
-        await refreshAll();
-      }
-
       // ===== Translation UI =====
       const translateContainer = $('translate-container');
       const translateBtn = $('translateButton');
       const closeTranslateBtn = $('closeTranslateBtn');
 
+      // متغير لتتبع إذا تم تهيئة Google Translate
+      let googleTranslateInitialized = false;
+
+      function initGoogleTranslate() {
+        if (typeof google !== 'undefined' && google.translate && !googleTranslateInitialized) {
+          new google.translate.TranslateElement({
+            pageLanguage: 'en',
+            includedLanguages: 'ar,en,fr,es,de,it,pt,ru,zh-CN,ja,hi,ur',
+            layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+            autoDisplay: false
+          }, 'google_translate_element');
+          googleTranslateInitialized = true;
+        }
+      }
+
       function showTranslate() {
+        // إظهار الحاوية أولاً
         translateContainer.classList.add('show');
+        // ثم تهيئة Google Translate إذا لم تكن مهيأة مسبقاً
+        if (!googleTranslateInitialized) {
+          // تأخير بسيط لضمان ظهور الحاوية قبل التهيئة
+          setTimeout(initGoogleTranslate, 100);
+        }
       }
 
       function hideTranslate() {
@@ -1437,6 +1441,13 @@
         }, 500);
       }
       waitForTranslateSelect();
+
+      // ===== Initialize =====
+      async function init() {
+        if (!requireAuth()) return;
+        updateHeader();
+        await refreshAll();
+      }
 
       init();
     })();

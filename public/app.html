@@ -37,6 +37,7 @@
       margin-left: 8px;
       vertical-align: middle;
       border: 1px solid transparent;
+      white-space: nowrap;
     }
     .status-badge.normal {
       background-color: rgba(46, 204, 113, 0.15);
@@ -179,6 +180,17 @@
     .goog-tooltip { display: none !important; }
     .goog-tooltip:hover { display: none !important; }
     .goog-text-highlight { background-color: transparent !important; border: none !important; box-shadow: none !important; }
+    /* منع ظهور عناصر Google Translate المنبثقة */
+    .goog-te-spinner-pos { display: none !important; }
+    iframe.goog-te-banner-frame { display: none !important; }
+    div.skiptranslate { display: none !important; }
+    /* ضبط عرض القيم في الجدول */
+    .table td {
+      white-space: nowrap;
+    }
+    .td-actions {
+      white-space: nowrap;
+    }
   </style>
 </head>
 
@@ -321,7 +333,7 @@
               <div class="kpi-sub">mg/dL</div>
             </div>
             <div class="kpi">
-              <div class="kpi-label">Latest BP</div>
+              <div class="kpi-label">Latest Blood Pressure</div>  <!-- تم التغيير هنا -->
               <div class="kpi-value" id="kpiBP">—</div>
               <div class="kpi-sub">mmHg</div>
             </div>
@@ -403,7 +415,7 @@
             <div class="mini-sub">mg/dL</div>
           </div>
           <div class="mini-card">
-            <div class="mini-title">7-Day Avg (BP)</div>
+            <div class="mini-title">7-Day Avg (Blood Pressure)</div>  <!-- تم التغيير هنا -->
             <div class="mini-value" id="avg7bp">—</div>
             <div class="mini-sub">mmHg</div>
           </div>
@@ -909,7 +921,7 @@
           return `
             <tr>
               <td>${escapeHtml(date)}</td>
-              <td><span class="pill">${escapeHtml(r.type)}</span></td>
+              <td><span class="pill">${escapeHtml(r.type === 'bp' ? 'Blood Pressure' : r.type)}</span></td>  <!-- تغيير BP إلى Blood Pressure -->
               <td>${valueHtml}</td>
               <td class="muted">${escapeHtml(r.note || '')}</td>
               <td class="td-actions">
@@ -1365,6 +1377,21 @@
           hideTranslate();
         }
       });
+
+      // الاستماع لتغيير اللغة في Google Translate لإغلاق النافذة تلقائياً
+      function waitForTranslateSelect() {
+        const checkExist = setInterval(function() {
+          const select = document.querySelector('.goog-te-combo');
+          if (select) {
+            clearInterval(checkExist);
+            select.addEventListener('change', function() {
+              // بعد اختيار اللغة، نغلق النافذة بعد قليل
+              setTimeout(hideTranslate, 500);
+            });
+          }
+        }, 500);
+      }
+      waitForTranslateSelect();
 
       init();
     })();

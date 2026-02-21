@@ -40,6 +40,12 @@
       margin-left: 4px;
       vertical-align: middle;
     }
+    .trend-down {
+      color: #2ecc71;
+      font-size: 16px;
+      margin-left: 4px;
+      vertical-align: middle;
+    }
     .alert-badge {
       background-color: rgba(255, 77, 109, 0.2);
       border: 1px solid #ff4d6d;
@@ -47,6 +53,20 @@
       padding: 2px 8px;
       font-size: 10px;
       color: #ff4d6d;
+      margin-left: 8px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .normal-badge {
+      background-color: rgba(46, 204, 113, 0.2);
+      border: 1px solid #2ecc71;
+      border-radius: 16px;
+      padding: 2px 8px;
+      font-size: 10px;
+      color: #2ecc71;
       margin-left: 8px;
       font-weight: 600;
       letter-spacing: 0.3px;
@@ -397,7 +417,7 @@
         let category = '';
         let colorClass = '';
         let warning = false; // for very high values
-        let trend = null; // 'up' or 'down' (we'll use 'up' for high)
+        let trend = null; // 'up' for high
 
         if (isFasting) {
           if (num < 100) { category = 'normal'; colorClass = 'glucose-normal'; }
@@ -437,14 +457,14 @@
         return { category, colorClass, value: num, warning, trend };
       }
 
-      // ===== BP Color Coding (5 categories) =====
+      // ===== BP Color Coding (5 categories) with warning indicators =====
       function getBPStatus(bpString) {
         if (!bpString || typeof bpString !== 'string') {
-          return { category: 'unknown', colorClass: '', explanation: '', sys: null, dia: null };
+          return { category: 'unknown', colorClass: '', explanation: '', sys: null, dia: null, warning: false, trend: null };
         }
         const parts = bpString.split('/').map(Number);
         if (parts.length !== 2 || isNaN(parts[0]) || isNaN(parts[1])) {
-          return { category: 'unknown', colorClass: '', explanation: '', sys: null, dia: null };
+          return { category: 'unknown', colorClass: '', explanation: '', sys: null, dia: null, warning: false, trend: null };
         }
         const sys = parts[0];
         const dia = parts[1];
@@ -452,49 +472,69 @@
         let category = '';
         let colorClass = '';
         let explanation = '';
+        let warning = false;
+        let trend = null; // 'up' for high, 'down' for normal (optional)
 
         if (sys >= 180 || dia >= 120) {
           category = 'Crisis';
           colorClass = 'bp-crisis';
           explanation = 'أزمة ارتفاع ضغط - توجه للطوارئ فوراً';
+          warning = true;
+          trend = 'up';
         } else if (sys >= 140 || dia >= 90) {
           category = 'Stage 2';
           colorClass = 'bp-stage2';
           explanation = 'ارتفاع المرحلة الثانية - يحتاج علاج دوائي';
+          warning = true;
+          trend = 'up';
         } else if (sys >= 130 || dia >= 80) {
           category = 'Stage 1';
           colorClass = 'bp-stage1';
           explanation = 'ارتفاع المرحلة الأولى - متابعة وتعديل نمط حياة';
+          warning = false;
+          trend = null;
         } else if (sys >= 120 && sys <= 129 && dia < 80) {
           category = 'Elevated';
           colorClass = 'bp-elevated';
           explanation = 'مرتفع بسيط (إنذار مبكر)';
+          warning = false;
+          trend = null;
         } else if (sys < 120 && dia < 80) {
           category = 'Normal';
           colorClass = 'bp-normal';
           explanation = 'ضغط طبيعي ممتاز';
+          warning = false;
+          trend = 'down'; // سهم أخضر للأسفل اختياري
         } else {
           // Mixed cases
           if (sys >= 140 || dia >= 90) {
             category = 'Stage 2';
             colorClass = 'bp-stage2';
             explanation = 'ارتفاع المرحلة الثانية - يحتاج علاج دوائي';
+            warning = true;
+            trend = 'up';
           } else if (sys >= 130 || dia >= 80) {
             category = 'Stage 1';
             colorClass = 'bp-stage1';
             explanation = 'ارتفاع المرحلة الأولى - متابعة وتعديل نمط حياة';
+            warning = false;
+            trend = null;
           } else if (sys >= 120 && dia < 80) {
             category = 'Elevated';
             colorClass = 'bp-elevated';
             explanation = 'مرتفع بسيط (إنذار مبكر)';
+            warning = false;
+            trend = null;
           } else {
             category = 'Normal';
             colorClass = 'bp-normal';
             explanation = 'ضغط طبيعي ممتاز';
+            warning = false;
+            trend = 'down';
           }
         }
 
-        return { category, colorClass, explanation, sys, dia, display: bpString };
+        return { category, colorClass, explanation, sys, dia, display: bpString, warning, trend };
       }
 
       // ===== API calls =====
@@ -607,7 +647,15 @@
 
         if (latestBP) {
           const bpStatus = getBPStatus(latestBP.value);
-          $('kpiBP').innerHTML = `<span class="${bpStatus.colorClass}" title="${bpStatus.explanation}">${bpStatus.display}</span>`;
+          let html = `<span class="${bpStatus.colorClass}" title="${bpStatus.explanation}">${bpStatus.display}</span>`;
+          if (bpStatus.warning && bpStatus.trend === 'up') {
+            html += `<span class="trend-up" title="High blood pressure">▲</span>`;
+            html += `<span class="alert-badge" title="High BP alert">⚠️ High</span>`;
+          } else if (bpStatus.trend === 'down') {
+            html += `<span class="trend-down" title="Normal blood pressure">▼</span>`;
+            html += `<span class="normal-badge" title="Normal BP">✅ Normal</span>`;
+          }
+          $('kpiBP').innerHTML = html;
         } else {
           $('kpiBP').textContent = '—';
         }
@@ -641,6 +689,11 @@
           } else if (r.type === 'bp') {
             const bpStatus = getBPStatus(r.value);
             valueHtml = `<span class="${bpStatus.colorClass}" title="${bpStatus.explanation}">${bpStatus.display}</span>`;
+            if (bpStatus.warning && bpStatus.trend === 'up') {
+              valueHtml += ` <span class="trend-up" title="High BP">▲</span>`;
+            } else if (bpStatus.trend === 'down') {
+              valueHtml += ` <span class="trend-down" title="Normal BP">▼</span>`;
+            }
           } else {
             valueHtml = escapeHtml(r.value);
           }
@@ -745,7 +798,13 @@
             const avgDia = Math.round(totalDia / count);
             const avgString = `${avgSys}/${avgDia}`;
             const bpStatus = getBPStatus(avgString);
-            $('avg7bp').innerHTML = `<span class="${bpStatus.colorClass}" title="${bpStatus.explanation}">${avgString}</span>`;
+            let html = `<span class="${bpStatus.colorClass}" title="${bpStatus.explanation}">${avgString}</span>`;
+            if (bpStatus.warning && bpStatus.trend === 'up') {
+              html += ` <span class="trend-up" title="High average BP">▲</span>`;
+            } else if (bpStatus.trend === 'down') {
+              html += ` <span class="trend-down" title="Normal average BP">▼</span>`;
+            }
+            $('avg7bp').innerHTML = html;
           } else {
             $('avg7bp').textContent = '—';
           }

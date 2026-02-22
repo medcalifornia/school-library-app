@@ -96,7 +96,7 @@
     .icon-btn {
       padding: 6px 10px;
     }
-    /* إخفاء شريط Google Translate الافتراضي (للتأكد من عدم ظهوره) */
+    /* إخفاء شريط Google Translate الافتراضي */
     .goog-te-banner-frame.skiptranslate { display: none !important; }
     body { top: 0 !important; }
     .goog-tooltip { display: none !important; }
@@ -106,49 +106,71 @@
     iframe.goog-te-banner-frame { display: none !important; }
     div.skiptranslate { display: none !important; }
 
-    /* Report tab styles */
-    .report-grid {
+    /* ========== Report Tab Professional Design ========== */
+    .report-header {
+      margin-bottom: 24px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid rgba(255,255,255,0.2);
+    }
+    .report-header h1 {
+      font-size: 28px;
+      font-weight: 600;
+      margin: 0 0 8px 0;
+      color: white;
+    }
+    .report-meta {
       display: flex;
-      flex-direction: column;
-      gap: 24px;
-      margin-top: 16px;
+      justify-content: space-between;
+      font-size: 14px;
+      color: #aaa;
     }
     .report-section {
       background: rgba(255,255,255,0.05);
-      border-radius: 12px;
-      padding: 16px;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 24px;
+      border: 1px solid rgba(255,255,255,0.1);
     }
-    .report-section h3 {
-      margin: 0 0 12px 0;
-      font-size: 16px;
+    .report-section h2 {
+      margin: 0 0 20px 0;
+      font-size: 20px;
       font-weight: 600;
       color: #ddd;
+      border-left: 4px solid #4c7dff;
+      padding-left: 12px;
     }
     .report-row {
-      margin-bottom: 16px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px dashed rgba(255,255,255,0.1);
     }
     .report-row:last-child {
       border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
     }
-    .report-label {
-      font-weight: 500;
-      margin-right: 8px;
-      color: #aaa;
+    .report-period {
+      font-weight: 600;
+      font-size: 16px;
+      color: #ccc;
+      margin-bottom: 6px;
     }
     .report-value {
+      font-size: 24px;
       font-weight: 700;
-      font-size: 18px;
+      margin-right: 8px;
     }
     .report-suggestion {
-      font-size: 12px;
+      font-size: 13px;
       color: #aaa;
-      margin-top: 4px;
-      line-height: 1.4;
+      margin-top: 8px;
+      line-height: 1.5;
+      background: rgba(0,0,0,0.2);
+      padding: 10px 12px;
+      border-radius: 10px;
     }
 
-    /* Print styles – only the report is visible */
+    /* Print styles – only the report is visible and looks crisp */
     @media print {
       body * {
         visibility: hidden;
@@ -163,19 +185,41 @@
         width: 100%;
         background: white;
         color: black;
+        padding: 20px;
       }
       .appbar, .tabs, .toast, .card-head button, .footer, .pager {
         display: none !important;
       }
-      .report-grid {
+      .report-header h1 {
         color: black;
+      }
+      .report-meta {
+        color: #333;
       }
       .report-section {
-        background: #f5f5f5;
+        background: #f9f9f9;
+        border: 1px solid #ddd;
         color: black;
       }
+      .report-section h2 {
+        color: #111;
+        border-left-color: #2c3e50;
+      }
+      .report-period {
+        color: #222;
+      }
       .report-suggestion {
-        color: #333;
+        background: #f0f0f0;
+        color: #222;
+        border: 1px solid #ccc;
+      }
+      .status-badge {
+        border: 1px solid currentColor !important;
+        background: transparent !important;
+        color: black !important;
+      }
+      .trend-up, .trend-down {
+        color: black !important;
       }
     }
   </style>
@@ -212,7 +256,7 @@
     </div>
   </header>
 
-  <!-- باقي المحتوى (بدون تغيير) -->
+  <!-- باقي المحتوى -->
   <main class="shell">
     <!-- Tabs (Report tab added) -->
     <nav class="tabs" aria-label="Sections">
@@ -407,16 +451,15 @@
       </section>
     </section>
 
-    <!-- TAB: Report (new) -->
+    <!-- TAB: Report (redesigned) -->
     <section id="tab-report" class="tab-panel">
       <section class="card">
         <div class="card-head" style="display: flex; justify-content: space-between; align-items: center;">
           <h2>Health Report</h2>
           <button class="btn primary" onclick="printReport()">🖨️ Print</button>
         </div>
-        <p class="muted">Average readings with suggestions</p>
         <div id="reportContent" class="report-grid">
-          <!-- populated by JS -->
+          <!-- dynamically populated by renderReport() -->
         </div>
       </section>
     </section>
@@ -1374,28 +1417,34 @@
         wrap.addEventListener('touchend', hideTooltip);
       }
 
-      // ===== Report rendering =====
+      // ===== Professional Report Rendering =====
+      function getFormattedDateTime() {
+        const d = new Date();
+        return d.toLocaleDateString() + ' ' + d.toLocaleTimeString();
+      }
+
       function renderReport() {
         const container = $('reportContent');
         if (!container) return;
+
+        const { name } = getAuth();
+        const clientName = name ? name : 'Guest';
+        const printTime = getFormattedDateTime();
 
         const now = new Date();
         const oneWeekAgo = new Date(now.getTime() - 7 * 86400000);
         const oneMonthAgo = new Date(now.getTime() - 30 * 86400000);
         const oneYearAgo = new Date(now.getTime() - 365 * 86400000);
 
-        // Filter readings
         const weekReadings = allReadings.filter(r => parseDate(r.ts) >= oneWeekAgo);
         const monthReadings = allReadings.filter(r => parseDate(r.ts) >= oneMonthAgo);
         const yearReadings = allReadings.filter(r => parseDate(r.ts) >= oneYearAgo);
 
-        // Helper to average glucose
         function avgGlucose(arr) {
           const vals = arr.filter(r => r.type === 'glucose').map(r => Number(r.value)).filter(n => !isNaN(n));
           return vals.length ? Math.round(vals.reduce((a,b) => a+b, 0) / vals.length) : null;
         }
 
-        // Helper to average BP
         function avgBP(arr) {
           const bpReadings = arr.filter(r => r.type === 'bp');
           let totalSys = 0, totalDia = 0, count = 0;
@@ -1419,35 +1468,42 @@
         const monthlyBP = avgBP(monthReadings);
         const yearlyBP = avgBP(yearReadings);
 
-        // Build HTML
-        let html = '<div class="report-section"><h3>Glucose (mg/dL)</h3>';
-
-        // Helper to create a glucose row
-        function glucoseRow(label, value) {
-          if (value === null) return `<div class="report-row"><span class="report-label">${label}:</span> <span class="report-value">—</span></div>`;
+        // Helper to create glucose row
+        function glucoseRow(period, value) {
+          if (value === null) {
+            return `
+              <div class="report-row">
+                <div class="report-period">${period}</div>
+                <span class="report-value">—</span>
+              </div>
+            `;
+          }
           const status = getGlucoseStatus(value, '');
           const badgeClass = status.badgeText.toLowerCase().replace(' ', '');
           const arrow = status.warning ? '<span class="trend-up">▲</span>' : (status.trend === 'down' ? '<span class="trend-down">▼</span>' : '');
           const suggestion = getGlucoseDescription(value, '');
           return `
             <div class="report-row">
-              <span class="report-label">${label}:</span>
-              <span class="report-value ${status.colorClass}">${value}</span>
-              ${arrow}
-              <span class="status-badge ${badgeClass}">${status.badgeText}</span>
+              <div class="report-period">${period}</div>
+              <div>
+                <span class="report-value ${status.colorClass}">${value}</span>
+                ${arrow}
+                <span class="status-badge ${badgeClass}">${status.badgeText}</span>
+              </div>
               <div class="report-suggestion">${suggestion}</div>
             </div>
           `;
         }
 
-        html += glucoseRow('Weekly', weeklyGlucose);
-        html += glucoseRow('Monthly', monthlyGlucose);
-        html += glucoseRow('Yearly', yearlyGlucose);
-
-        html += '</div><div class="report-section"><h3>Blood Pressure (mmHg)</h3>';
-
-        function bpRow(label, bpAvg) {
-          if (!bpAvg) return `<div class="report-row"><span class="report-label">${label}:</span> <span class="report-value">—</span></div>`;
+        function bpRow(period, bpAvg) {
+          if (!bpAvg) {
+            return `
+              <div class="report-row">
+                <div class="report-period">${period}</div>
+                <span class="report-value">—</span>
+              </div>
+            `;
+          }
           const bpString = `${bpAvg.sys}/${bpAvg.dia}`;
           const status = getBPStatus(bpString);
           const badgeClass = status.badgeText.toLowerCase().replace(' ', '');
@@ -1455,20 +1511,38 @@
           const suggestion = getBPDescription(bpString);
           return `
             <div class="report-row">
-              <span class="report-label">${label}:</span>
-              <span class="report-value ${status.colorClass}">${bpString}</span>
-              ${arrow}
-              <span class="status-badge ${badgeClass}">${status.badgeText}</span>
+              <div class="report-period">${period}</div>
+              <div>
+                <span class="report-value ${status.colorClass}">${bpString}</span>
+                ${arrow}
+                <span class="status-badge ${badgeClass}">${status.badgeText}</span>
+              </div>
               <div class="report-suggestion">${suggestion}</div>
             </div>
           `;
         }
 
-        html += bpRow('Weekly', weeklyBP);
-        html += bpRow('Monthly', monthlyBP);
-        html += bpRow('Yearly', yearlyBP);
-
-        html += '</div>';
+        const html = `
+          <div class="report-header">
+            <h1>Health Report</h1>
+            <div class="report-meta">
+              <span class="client-name">Patient: ${escapeHtml(clientName)}</span>
+              <span class="print-date">Printed: ${escapeHtml(printTime)}</span>
+            </div>
+          </div>
+          <div class="report-section">
+            <h2>Glucose (mg/dL)</h2>
+            ${glucoseRow('Weekly', weeklyGlucose)}
+            ${glucoseRow('Monthly', monthlyGlucose)}
+            ${glucoseRow('Yearly', yearlyGlucose)}
+          </div>
+          <div class="report-section">
+            <h2>Blood Pressure (mmHg)</h2>
+            ${bpRow('Weekly', weeklyBP)}
+            ${bpRow('Monthly', monthlyBP)}
+            ${bpRow('Yearly', yearlyBP)}
+          </div>
+        `;
 
         container.innerHTML = html;
       }
@@ -1493,7 +1567,7 @@
       // ===== Initialize =====
       async function init() {
         if (!requireAuth()) return;
-        updateHeader();   // تحديث التحية والزر (بالإنجليزية)
+        updateHeader();
         await refreshAll();
       }
 

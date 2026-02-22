@@ -1,199 +1,12 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Health Tracker · Dashboard</title>
   <link rel="stylesheet" href="./style.css" />
-  <style>
-    /* تحسينات إضافية للشارت والشارات */
-    .sv-chart { display: block; width: 100%; height: 100%; }
-    .sv-chart-wrap { touch-action: pan-y; user-select: none; }
-    .chart-tooltip { 
-      position: absolute; 
-      background: rgba(0,0,0,0.8); 
-      color: white; 
-      padding: 8px 12px; 
-      border-radius: 8px; 
-      font-size: 12px; 
-      pointer-events: none; 
-      opacity: 0; 
-      transition: opacity 0.2s; 
-      border: 1px solid rgba(255,255,255,0.2);
-      backdrop-filter: blur(4px);
-      z-index: 100;
-    }
-    .chart-tooltip.show { opacity: 1; }
-    
-    /* شارات الحالات */
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 2px 8px;
-      border-radius: 20px;
-      font-size: 10px;
-      font-weight: 600;
-      margin-left: 8px;
-      vertical-align: middle;
-      border: 1px solid transparent;
-      white-space: nowrap;
-    }
-    .status-badge.normal {
-      background-color: rgba(46, 204, 113, 0.15);
-      color: #2ecc71;
-      border-color: rgba(46, 204, 113, 0.3);
-    }
-    .status-badge.elevated {
-      background-color: rgba(241, 196, 15, 0.15);
-      color: #f1c40f;
-      border-color: rgba(241, 196, 15, 0.3);
-    }
-    .status-badge.prediabetes {
-      background-color: rgba(243, 156, 18, 0.15);
-      color: #f39c12;
-      border-color: rgba(243, 156, 18, 0.3);
-    }
-    .status-badge.high {
-      background-color: rgba(231, 76, 60, 0.15);
-      color: #e74c3c;
-      border-color: rgba(231, 76, 60, 0.3);
-    }
-    .status-badge.stage1 {
-      background-color: rgba(243, 156, 18, 0.15);
-      color: #f39c12;
-      border-color: rgba(243, 156, 18, 0.3);
-    }
-    .status-badge.stage2 {
-      background-color: rgba(231, 76, 60, 0.15);
-      color: #e74c3c;
-      border-color: rgba(231, 76, 60, 0.3);
-    }
-    .status-badge.crisis {
-      background-color: rgba(155, 89, 182, 0.15);
-      color: #9b59b6;
-      border-color: rgba(155, 89, 182, 0.3);
-    }
-    .trend-up {
-      color: #e74c3c;
-      font-size: 12px;
-      margin-right: 2px;
-    }
-    .trend-down {
-      color: #2ecc71;
-      font-size: 12px;
-      margin-right: 2px;
-    }
-
-    /* زر الترجمة - مصغر ومناسب للآيفون */
-    .translate-btn {
-      background: rgba(255,255,255,0.1);
-      border: 1px solid var(--border);
-      border-radius: 30px;
-      padding: 4px 8px;
-      color: white;
-      font-size: 12px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      transition: all 0.2s;
-      white-space: nowrap;
-    }
-    .translate-btn:hover {
-      background: rgba(255,255,255,0.2);
-    }
-    .translate-btn .globe-icon {
-      font-size: 16px;
-    }
-    /* على الشاشات الصغيرة جداً (أقل من 500px)، نظهر الأيقونة فقط ونخفي النص */
-    @media (max-width: 500px) {
-      .translate-btn span:not(.globe-icon) {
-        display: none;
-      }
-      .translate-btn {
-        padding: 4px 8px;
-        border-radius: 50%;
-      }
-    }
-    /* تقليل المسافات بين عناصر الـ appbar */
-    .appbar-actions {
-      gap: 6px;
-    }
-    .chip {
-      padding: 6px 10px;
-      font-size: 12px;
-    }
-    .icon-btn {
-      padding: 6px 10px;
-    }
-    /* حاوية الترجمة - تظهر عند الطلب */
-    #translate-container {
-      position: fixed;
-      top: 60px;
-      right: 16px;
-      z-index: 9999;
-      background: rgba(20, 30, 45, 0.95);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 16px;
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(10px);
-      display: none;
-      min-width: 220px;
-    }
-    #translate-container.show {
-      display: block;
-    }
-    /* تنسيق قائمة اللغات التي سيضيفها Google Translate */
-    .goog-te-combo {
-      background: rgba(255,255,255,0.1);
-      color: white;
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 10px 12px;
-      font-size: 14px;
-      width: 100%;
-      margin-bottom: 12px;
-      cursor: pointer;
-      appearance: none;
-      -webkit-appearance: none;
-      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
-      background-repeat: no-repeat;
-      background-position: right 12px center;
-      background-size: 16px;
-    }
-    .goog-te-combo option {
-      background: #1e2a3a;
-      color: white;
-    }
-    .close-translate {
-      background: rgba(255,255,255,0.1);
-      border: 1px solid var(--border);
-      color: white;
-      border-radius: 20px;
-      padding: 8px 12px;
-      font-size: 13px;
-      cursor: pointer;
-      width: 100%;
-      transition: all 0.2s;
-      font-weight: 500;
-    }
-    .close-translate:hover {
-      background: rgba(255,255,255,0.2);
-    }
-    /* إخفاء شريط Google Translate الافتراضي */
-    .goog-te-banner-frame.skiptranslate { display: none !important; }
-    body { top: 0 !important; }
-    .goog-tooltip { display: none !important; }
-    .goog-tooltip:hover { display: none !important; }
-    .goog-text-highlight { background-color: transparent !important; border: none !important; box-shadow: none !important; }
-    .goog-te-spinner-pos { display: none !important; }
-    iframe.goog-te-banner-frame { display: none !important; }
-    div.skiptranslate { display: none !important; }
-    #goog-gt-tt { display: none !important; }
-  </style>
 </head>
+
 <body class="app-page">
   <!-- Top App Bar -->
   <header class="appbar">
@@ -207,16 +20,13 @@
       </div>
 
       <div class="appbar-actions">
-        <!-- زر الترجمة -->
-        <button class="translate-btn" id="translateButton">
-          <span class="globe-icon">🌐</span>
-          <span>Translate</span>
-        </button>
-
         <button class="chip" id="whoamiChip" type="button" aria-label="User">
           <span class="dot"></span>
           <span id="whoamiText">Loading…</span>
         </button>
+
+        <!-- 👇 أيقونة تغيير اللغة -->
+        <div id="google_translate_element" class="translate-icon"></div>
 
         <button class="icon-btn" type="button" onclick="logout()" aria-label="Logout">
           <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
@@ -228,12 +38,6 @@
       </div>
     </div>
   </header>
-
-  <!-- حاوية الترجمة (مخفية في البداية) -->
-  <div id="translate-container">
-    <div id="google_translate_element"></div>
-    <button class="close-translate" id="closeTranslateBtn">Close</button>
-  </div>
 
   <!-- باقي المحتوى -->
   <main class="shell">
@@ -432,9 +236,6 @@
 
   <!-- Toast -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-
-  <!-- سكريبت Google Translate - يتم تحميله أولاً -->
-  <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
   <script>
     (function() {
@@ -823,6 +624,7 @@
           if (!res.ok) throw new Error();
           const data = await res.json();
           allReadings = Array.isArray(data) ? data.sort((a, b) => new Date(b.ts) - new Date(a.ts)) : [];
+          console.log('Readings loaded:', allReadings);
         } catch {
           toast('Failed to load readings', 'err');
           allReadings = [];
@@ -1177,6 +979,7 @@
         let displayDia = dia;
 
         if (!hasData) {
+          console.warn('⚠️ No real data, using sample data for chart display');
           displayGlucose = [120, 135, 110, 150, 140, 130, 125, 145, 135, 155, 140, 130, 120, 115];
           displaySys = [130, 125, 135, 140, 130, 125, 135, 145, 140, 150, 135, 125, 130, 120];
           displayDia = [85, 80, 90, 95, 85, 80, 85, 95, 90, 100, 85, 80, 85, 75];
@@ -1368,6 +1171,7 @@
 
       // ===== Refresh All =====
       window.refreshAll = async () => {
+        console.log('🔄 Refreshing...');
         await loadReadings();
         updateSummary();
         renderHistory();
@@ -1383,74 +1187,18 @@
         await refreshAll();
       }
 
-      // ===== Translation UI (تم إعادة بنائه بالكامل) =====
-      const translateContainer = $('translate-container');
-      const translateBtn = $('translateButton');
-      const closeTranslateBtn = $('closeTranslateBtn');
-
-      // دالة لتهيئة أداة الترجمة داخل الحاوية
-      function initGoogleTranslate() {
-        // التأكد من أن مكتبة الترجمة محملة
-        if (typeof google === 'undefined' || !google.translate) {
-          setTimeout(initGoogleTranslate, 200);
-          return;
-        }
-
-        // مسح محتوى العنصر القديم
-        const translateElement = $('google_translate_element');
-        translateElement.innerHTML = ''; // إفراغ المحتوى السابق
-
-        // إعادة إنشاء أداة الترجمة
-        new google.translate.TranslateElement({
-          pageLanguage: 'en',
-          includedLanguages: 'ar,en,fr,es,de,it,pt,ru,zh-CN,ja,hi,ur',
-          layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
-          autoDisplay: false
-        }, 'google_translate_element');
-      }
-
-      function showTranslate() {
-        translateContainer.classList.add('show');
-        // تهيئة الترجمة في كل مرة يتم فيها فتح النافذة
-        initGoogleTranslate();
-      }
-
-      function hideTranslate() {
-        translateContainer.classList.remove('show');
-      }
-
-      translateBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (translateContainer.classList.contains('show')) {
-          hideTranslate();
-        } else {
-          showTranslate();
-        }
-      });
-
-      closeTranslateBtn.addEventListener('click', hideTranslate);
-
-      document.addEventListener('click', (e) => {
-        if (!translateContainer.contains(e.target) && !translateBtn.contains(e.target)) {
-          hideTranslate();
-        }
-      });
-
-      // عند تغيير اللغة، نغلق النافذة بعد قليل
-      document.addEventListener('change', (e) => {
-        if (e.target.classList.contains('goog-te-combo')) {
-          setTimeout(hideTranslate, 600);
-        }
-      }, true); // استخدام capture للتقاط الحدث قبل غيره
-
-      // دالة لتهيئة الترجمة مرة واحدة عند تحميل الصفحة (اختياري، لكننا نفضل إعادة التهيئة عند الفتح)
-      window.googleTranslateElementInit = function() {
-        // لا نقوم بتهيئة الأداة هنا، بل نتركها لـ initGoogleTranslate
-        console.log('Google Translate ready');
-      };
-
       init();
     })();
   </script>
+
+  <!-- Google Translate Scripts -->
+  <script>
+    function googleTranslateElementInit() {
+      new google.translate.TranslateElement({
+        pageLanguage: 'en'
+      }, 'google_translate_element');
+    }
+  </script>
+  <script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 </body>
 </html>

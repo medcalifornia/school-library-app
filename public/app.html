@@ -83,38 +83,11 @@
       font-size: 12px;
       margin-right: 2px;
     }
-
-    /* زر الترجمة */
-    .translate-btn {
-      background: rgba(255,255,255,0.1);
-      border: 1px solid var(--border);
-      border-radius: 30px;
-      padding: 6px 12px;
-      color: white;
-      font-size: 14px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.2s;
-    }
-    .translate-btn:hover {
-      background: rgba(255,255,255,0.2);
-    }
-    .translate-btn .globe-icon {
-      font-size: 18px;
-    }
-    /* إخفاء شريط Google Translate الافتراضي */
-    .goog-te-banner-frame.skiptranslate { display: none !important; }
-    body { top: 0 !important; }
-    .goog-tooltip { display: none !important; }
-    .goog-tooltip:hover { display: none !important; }
-    .goog-text-highlight { background-color: transparent !important; border: none !important; box-shadow: none !important; }
   </style>
 </head>
 
 <body class="app-page">
-  <!-- Top App Bar -->
+  <!-- Top App Bar (نفس الكود السابق) -->
   <header class="appbar">
     <div class="appbar-inner">
       <div class="brand">
@@ -126,13 +99,6 @@
       </div>
 
       <div class="appbar-actions">
-        <!-- زر الترجمة الجديد -->
-        <div id="google_translate_element" style="display: none;"></div>
-        <button class="translate-btn" id="translateButton" onclick="openGoogleTranslate()">
-          <span class="globe-icon">🌐</span>
-          <span>Translate</span>
-        </button>
-
         <button class="chip" id="whoamiChip" type="button" aria-label="User">
           <span class="dot"></span>
           <span id="whoamiText">Loading…</span>
@@ -149,7 +115,6 @@
     </div>
   </header>
 
-  <!-- باقي المحتوى (نفس الكود السابق) -->
   <main class="shell">
     <!-- Tabs -->
     <nav class="tabs" aria-label="Sections">
@@ -345,32 +310,6 @@
 
   <!-- Toast -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-
-  <!-- سكريبت Google Translate -->
-  <script type="text/javascript">
-    function googleTranslateElementInit() {
-      new google.translate.TranslateElement({
-        pageLanguage: 'en',
-        includedLanguages: 'ar,en,fr,es,de,it,pt,ru,zh-CN,ja,hi,ur',
-        layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
-        autoDisplay: false
-      }, 'google_translate_element');
-    }
-
-    function openGoogleTranslate() {
-      // فتح القائمة المنسدلة للترجمة
-      var select = document.querySelector('.goog-te-combo');
-      if (select) {
-        // إذا كانت القائمة موجودة، نفتحها
-        select.focus();
-        select.click(); // محاولة فتح القائمة
-      } else {
-        // إذا لم تكن محملة بعد، نعيد المحاولة بعد قليل
-        setTimeout(openGoogleTranslate, 500);
-      }
-    }
-  </script>
-  <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
   <script>
     (function() {

@@ -34,9 +34,10 @@
       border-radius: 20px;
       font-size: 10px;
       font-weight: 600;
-      margin-left: 8px;
+      margin-left: 6px;
       vertical-align: middle;
       border: 1px solid transparent;
+      line-height: 1.4;
     }
     .status-badge.normal {
       background-color: rgba(46, 204, 113, 0.15);
@@ -77,11 +78,20 @@
       color: #e74c3c;
       font-size: 12px;
       margin-right: 2px;
+      font-weight: bold;
     }
     .trend-down {
       color: #2ecc71;
       font-size: 12px;
       margin-right: 2px;
+      font-weight: bold;
+    }
+    /* تحسين عرض الجدول */
+    .table td .value-with-status {
+      display: inline-flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 4px;
     }
   </style>
 </head>
@@ -748,7 +758,9 @@
 
         tbody.innerHTML = pageItems.map(r => {
           const date = parseDate(r.ts)?.toLocaleString() || '—';
+          const typeDisplay = r.type === 'glucose' ? 'Glucose' : 'Blood Pressure';
           let valueHtml = '';
+
           if (r.type === 'glucose') {
             const { colorClass, value, warning, trend, badgeText } = getGlucoseStatus(r.value, r.note);
             valueHtml = `<span class="${colorClass}">${value}</span>`;
@@ -789,8 +801,8 @@
           return `
             <tr>
               <td>${escapeHtml(date)}</td>
-              <td><span class="pill">${escapeHtml(r.type)}</span></td>
-              <td>${valueHtml}</td>
+              <td><span class="pill">${escapeHtml(typeDisplay)}</span></td>
+              <td><div class="value-with-status">${valueHtml}</div></td>
               <td class="muted">${escapeHtml(r.note || '')}</td>
               <td class="td-actions">
                 <button class="mini-btn" onclick="editReading('${r.id}', '${escapeHtml(r.value)}', '${escapeHtml(r.note || '')}')">Edit</button>

@@ -110,6 +110,7 @@
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s;
+      font-size: 14px;
     }
     .report-btn.active {
       background: var(--primary);
@@ -130,10 +131,11 @@
       display: flex;
       align-items: center;
       gap: 8px;
+      font-size: 14px;
     }
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
       gap: 16px;
       margin-top: 20px;
     }
@@ -159,11 +161,54 @@
       font-size: 12px;
       color: var(--muted2);
     }
+    /* تحليل الحالة */
+    .ai-insight {
+      background: rgba(76, 125, 255, 0.1);
+      border-left: 4px solid var(--primary);
+      padding: 16px;
+      border-radius: 12px;
+      margin: 20px 0;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .print-only {
+      display: none;
+    }
     @media print {
       body * { visibility: hidden; }
       .print-area, .print-area * { visibility: visible; }
-      .print-area { position: absolute; left: 0; top: 0; width: 100%; background: white; color: black; padding: 20px; }
+      .print-area { 
+        position: absolute; 
+        left: 0; 
+        top: 0; 
+        width: 100%; 
+        background: white; 
+        color: black; 
+        padding: 20px; 
+      }
       .no-print { display: none; }
+      .print-only { display: block; }
+      .stat-card {
+        background: #f5f5f5;
+        border: 1px solid #ddd;
+        color: #333;
+      }
+      .ai-insight {
+        background: #e6f0ff;
+        color: #004080;
+      }
+    }
+    /* تحسين زر المستخدم */
+    .chip {
+      padding: 4px 10px;
+      font-size: 11px;
+      background: rgba(255,255,255,0.15);
+      border-color: rgba(255,255,255,0.25);
+    }
+    .chip .dot {
+      width: 6px;
+      height: 6px;
+      box-shadow: 0 0 0 2px rgba(60,255,151,0.2);
     }
   </style>
 </head>
@@ -183,7 +228,7 @@
       <div class="appbar-actions">
         <button class="chip" id="whoamiChip" type="button" aria-label="User">
           <span class="dot"></span>
-          <span id="whoamiText">Loading…</span>
+          <span id="whoamiText">Connected</span> <!-- Changed to "Connected" -->
         </button>
 
         <button class="icon-btn" type="button" onclick="logout()" aria-label="Logout">
@@ -203,7 +248,7 @@
       <button class="tab active" type="button" data-tab="dashboard" onclick="showTab('dashboard')">Dashboard</button>
       <button class="tab" type="button" data-tab="history" onclick="showTab('history')">History</button>
       <button class="tab" type="button" data-tab="insights" onclick="showTab('insights')">Insights</button>
-      <button class="tab" type="button" data-tab="reports" onclick="showTab('reports')">Reports</button>
+      <button class="tab" type="button" data-tab="reports" onclick="showTab('reports')">Report</button>
     </nav>
 
     <!-- TAB: Dashboard -->
@@ -393,9 +438,17 @@
     <!-- TAB: Reports -->
     <section id="tab-reports" class="tab-panel">
       <section class="card print-area">
-        <div class="card-head">
+        <div class="card-head no-print">
           <h2>Health Reports</h2>
           <p class="muted">View and print your statistics</p>
+        </div>
+
+        <!-- Print header (visible only when printing) -->
+        <div class="print-only">
+          <h1 style="margin:0; color:#333;">Health Tracker Report</h1>
+          <p style="color:#555; margin:5px 0;" id="printCustomerName"></p>
+          <p style="color:#555; margin:5px 0;" id="printDate"></p>
+          <hr style="border:1px solid #ccc;" />
         </div>
 
         <div class="report-controls no-print">
@@ -441,21 +494,28 @@
               <div class="stat-value" id="reportBPRange">—</div>
             </div>
           </div>
-          <div style="margin-top: 20px;">
+
+          <!-- AI Insight Section (visible on print) -->
+          <div class="ai-insight print-only" id="aiInsight"></div>
+
+          <!-- Readings Summary Table (hidden on print) -->
+          <div class="no-print" style="margin-top: 20px;">
             <h3>Readings Summary</h3>
-            <table class="table" style="min-width: 100%;">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Type</th>
-                  <th>Value</th>
-                  <th>Note</th>
-                </tr>
-              </thead>
-              <tbody id="reportReadingsBody">
-                <tr><td colspan="4" class="muted">No data</td></tr>
-              </tbody>
-            </table>
+            <div class="table-wrap">
+              <table class="table" style="min-width: 100%;">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Value</th>
+                    <th>Note</th>
+                  </tr>
+                </thead>
+                <tbody id="reportReadingsBody">
+                  <tr><td colspan="4" class="muted">No data</td></tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </section>
@@ -838,7 +898,8 @@
       function updateHeader() {
         const { name, email } = getAuth();
         const displayName = name || email || 'Guest';
-        $('whoamiText').textContent = displayName;
+        // Chip text is already "Connected" – we leave it as is.
+        // Greeting still shows name.
         $('greeting').textContent = getGreeting(displayName);
       }
 
@@ -1107,6 +1168,24 @@
         renderReport(period);
       };
 
+      // AI Insight generator
+      function generateAIInsight(avgGlucose, avgSys, avgDia, glucoseRange, bpRange) {
+        let insight = '';
+        if (avgGlucose !== null) {
+          if (avgGlucose < 100) insight += '✅ Your average glucose is normal. ';
+          else if (avgGlucose < 126) insight += '⚠️ Your average glucose indicates prediabetes. Consider lifestyle changes. ';
+          else insight += '🔴 Your average glucose is in the diabetic range. Please consult your doctor. ';
+        }
+        if (avgSys !== null && avgDia !== null) {
+          if (avgSys < 120 && avgDia < 80) insight += '✅ Your blood pressure is normal. ';
+          else if (avgSys < 130 && avgDia < 80) insight += '⚠️ Your blood pressure is elevated. ';
+          else if (avgSys < 140 || avgDia < 90) insight += '⚠️ You have stage 1 hypertension. ';
+          else if (avgSys < 180 || avgDia < 120) insight += '🔴 You have stage 2 hypertension. Monitor closely. ';
+          else insight += '🚨 Your blood pressure is in crisis range. Seek immediate medical attention. ';
+        }
+        return insight || 'No enough data for analysis.';
+      }
+
       function renderReport(period) {
         const now = new Date();
         let startDate;
@@ -1150,7 +1229,20 @@
         $('reportBPRange').textContent = (minSys !== null && maxSys !== null && minDia !== null && maxDia !== null) ? 
           `${minSys}/${minDia} - ${maxSys}/${maxDia}` : '—';
 
-        // Render readings table
+        // AI Insight
+        const insight = generateAIInsight(avgGlucose, avgSys, avgDia, 
+          (minGlucose !== null && maxGlucose !== null) ? `${minGlucose}-${maxGlucose}` : null,
+          (minSys !== null && maxSys !== null && minDia !== null && maxDia !== null) ? `${minSys}/${minDia}-${maxSys}/${maxDia}` : null
+        );
+        $('aiInsight').innerHTML = `<strong>AI Health Analysis:</strong> ${insight}`;
+
+        // Update print header with customer name and date
+        const { name, email } = getAuth();
+        const customerName = name || email || 'Guest';
+        $('printCustomerName').textContent = `Report for: ${customerName}`;
+        $('printDate').textContent = `Generated on: ${new Date().toLocaleString()}`;
+
+        // Render readings summary table (for screen only)
         const tbody = $('reportReadingsBody');
         if (filtered.length === 0) {
           tbody.innerHTML = '<tr><td colspan="4" class="muted">No readings in this period</td></tr>';

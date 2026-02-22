@@ -179,7 +179,7 @@
       }
     }
 
-    /* ===== NEW: Recent readings tables ===== */
+    /* ===== Recent readings tables ===== */
     .recent-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -227,6 +227,103 @@
       font-size: 16px;
       font-weight: 600;
     }
+
+    /* ===== Store tab styles ===== */
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .product-card {
+      background: rgba(255,255,255,0.05);
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+      transition: transform 0.2s;
+    }
+    .product-card:hover {
+      transform: scale(1.02);
+      background: rgba(255,255,255,0.08);
+    }
+    .product-image {
+      width: 100%;
+      height: 120px;
+      background: #2a3a4a;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #aaa;
+      font-size: 12px;
+    }
+    .product-title {
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+    .product-price {
+      color: #4c7dff;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .product-btn {
+      background: #4c7dff;
+      border: none;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      cursor: pointer;
+      width: 100%;
+    }
+    .product-btn:active {
+      opacity: 0.8;
+    }
+
+    /* ===== Mobile improvements ===== */
+    @media (max-width: 600px) {
+      .tabs {
+        gap: 4px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 4px 0;
+      }
+      .tabs .tab {
+        padding: 8px 12px;
+        font-size: 14px;
+        white-space: nowrap;
+      }
+      .grid {
+        grid-template-columns: 1fr !important;
+      }
+      .recent-grid {
+        grid-template-columns: 1fr !important;
+      }
+      .appbar-inner {
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .brand {
+        width: 100%;
+        justify-content: center;
+      }
+      .appbar-actions {
+        width: 100%;
+        justify-content: center;
+      }
+      .kpis {
+        flex-direction: column;
+        gap: 8px;
+      }
+      .kpi {
+        width: 100%;
+      }
+      .product-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
   </style>
 </head>
 
@@ -261,12 +358,13 @@
 
   <!-- باقي المحتوى -->
   <main class="shell">
-    <!-- Tabs (Report tab added) -->
+    <!-- Tabs (Store tab added) -->
     <nav class="tabs" aria-label="Sections">
       <button class="tab active" type="button" data-tab="dashboard" onclick="showTab('dashboard')">Dashboard</button>
       <button class="tab" type="button" data-tab="history" onclick="showTab('history')">History</button>
       <button class="tab" type="button" data-tab="insights" onclick="showTab('insights')">Insights</button>
       <button class="tab" type="button" data-tab="report" onclick="showTab('report')">Report</button>
+      <button class="tab" type="button" data-tab="store" onclick="showTab('store')">Store</button>
     </nav>
 
     <!-- TAB: Dashboard -->
@@ -344,7 +442,7 @@
           </div>
         </section>
 
-        <!-- Right: Quick summary + recent tables (replaces chart) -->
+        <!-- Right: Quick summary + recent tables -->
         <section class="card">
           <div class="card-head">
             <h2>Today</h2>
@@ -364,7 +462,7 @@
             </div>
           </div>
 
-          <!-- NEW: Recent readings tables instead of chart -->
+          <!-- Recent readings tables -->
           <div class="recent-readings" id="recentReadings">
             <div class="recent-header">
               <h3>Recent Readings</h3>
@@ -462,16 +560,32 @@
       </section>
     </section>
 
-    <!-- TAB: Report -->
+    <!-- TAB: Report (with Share button) -->
     <section id="tab-report" class="tab-panel">
       <section class="card">
         <div class="card-head" style="display: flex; justify-content: space-between; align-items: center;">
           <h2>Health Report</h2>
-          <button class="btn primary" onclick="printReport()">🖨️ Print</button>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn secondary" onclick="shareReport()">📤 Share</button>
+            <button class="btn primary" onclick="printReport()">🖨️ Print</button>
+          </div>
         </div>
         <p class="muted">Average readings with suggestions</p>
         <div id="reportContent" class="report-grid">
           <!-- populated by JS -->
+        </div>
+      </section>
+    </section>
+
+    <!-- TAB: Store (new) -->
+    <section id="tab-store" class="tab-panel">
+      <section class="card">
+        <div class="card-head">
+          <h2>Store</h2>
+          <p class="muted">Diabetes & Blood Pressure essentials</p>
+        </div>
+        <div class="product-grid" id="productGrid">
+          <!-- Products will be inserted via JS (or static) -->
         </div>
       </section>
     </section>
@@ -1156,13 +1270,12 @@
         }
       }
 
-      // ===== NEW: Render recent tables =====
+      // ===== Render recent tables =====
       function renderRecentTables() {
         const glucoseTbody = $('recentGlucose');
         const bpTbody = $('recentBP');
         if (!glucoseTbody || !bpTbody) return;
 
-        // Get last 7 glucose readings (already sorted desc)
         const glucoseReadings = allReadings.filter(r => r.type === 'glucose').slice(0, 7);
         const bpReadings = allReadings.filter(r => r.type === 'bp').slice(0, 7);
 
@@ -1283,6 +1396,62 @@
         container.innerHTML = html;
       }
 
+      // ===== Store products =====
+      function renderStore() {
+        const grid = $('productGrid');
+        if (!grid) return;
+
+        const products = [
+          { name: 'Glucose Meter', price: '$29.99', image: '🩸' },
+          { name: 'Test Strips (50)', price: '$18.50', image: '📏' },
+          { name: 'BP Monitor', price: '$49.99', image: '❤️' },
+          { name: 'Lancets (100)', price: '$9.99', image: '💉' },
+          { name: 'Control Solution', price: '$6.99', image: '🧪' },
+          { name: 'Carrying Case', price: '$12.99', image: '👜' },
+          { name: 'Alcohol Swabs', price: '$4.99', image: '🧴' },
+          { name: 'BP Cuff (Large)', price: '$24.99', image: '📐' },
+        ];
+
+        grid.innerHTML = products.map(p => `
+          <div class="product-card">
+            <div class="product-image">${p.image}</div>
+            <div class="product-title">${p.name}</div>
+            <div class="product-price">${p.price}</div>
+            <button class="product-btn" onclick="toast('Demo: would add to cart', 'ok')">Buy</button>
+          </div>
+        `).join('');
+      }
+
+      // ===== Share report =====
+      window.shareReport = function() {
+        // Gather report data
+        const weeklyG = $('avg7g')?.innerText || '—';
+        const weeklyBP = $('avg7bp')?.innerText || '—';
+        const today = new Date().toLocaleDateString();
+
+        const reportText = `Health Report - ${today}\n\n7‑Day Avg Glucose: ${weeklyG}\n7‑Day Avg BP: ${weeklyBP}\n\nFull report available in the app.`;
+
+        if (navigator.share) {
+          navigator.share({
+            title: 'Health Report',
+            text: reportText,
+          }).catch(() => {
+            // fallback to clipboard
+            copyToClipboard(reportText);
+          });
+        } else {
+          copyToClipboard(reportText);
+        }
+      };
+
+      function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+          toast('Report copied to clipboard', 'ok');
+        }).catch(() => {
+          toast('Could not copy', 'err');
+        });
+      }
+
       // ===== Print report =====
       window.printReport = function() {
         window.print();
@@ -1295,7 +1464,7 @@
         updateSummary();
         renderHistory();
         updateInsights();
-        renderRecentTables();  // new tables instead of chart
+        renderRecentTables();
         renderReport();
         $('lastSync').textContent = `Updated ${new Date().toLocaleTimeString()}`;
       };
@@ -1304,6 +1473,7 @@
       async function init() {
         if (!requireAuth()) return;
         updateHeader();
+        renderStore(); // populate store tab
         await refreshAll();
       }
 

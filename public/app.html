@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -736,13 +735,7 @@
       // ===== Render functions =====
       function updateHeader() {
         const { name, email } = getAuth();
-        const whoami = $('whoamiText');
-        if (name || email) {
-          // Show name + green dot + "Connected"
-          whoami.innerHTML = `${escapeHtml(name || email)} <span style="color: #2ecc71; font-size: 10px;">● Connected</span>`;
-        } else {
-          whoami.textContent = t('userLoading');
-        }
+        $('whoamiText').textContent = name || email || 'Signed in';
         $('subtitle').textContent = email ? `${email} • just now` : 'Welcome back';
       }
 

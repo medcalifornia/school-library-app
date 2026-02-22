@@ -1,1310 +1,873 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Health Tracker · Dashboard</title>
-  <link rel="stylesheet" href="./style.css" />
-  <style>
-    /* تحسينات إضافية للشارت والشارات */
-    .sv-chart { display: block; width: 100%; height: 100%; }
-    .sv-chart-wrap { touch-action: pan-y; user-select: none; }
-    .chart-tooltip { 
-      position: absolute; 
-      background: rgba(0,0,0,0.8); 
-      color: white; 
-      padding: 8px 12px; 
-      border-radius: 8px; 
-      font-size: 12px; 
-      pointer-events: none; 
-      opacity: 0; 
-      transition: opacity 0.2s; 
-      border: 1px solid rgba(255,255,255,0.2);
-      backdrop-filter: blur(4px);
-      z-index: 100;
-    }
-    .chart-tooltip.show { opacity: 1; }
-    
-    /* شارات الحالات */
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 2px 8px;
-      border-radius: 20px;
-      font-size: 10px;
-      font-weight: 600;
-      margin-left: 8px;
-      vertical-align: middle;
-      border: 1px solid transparent;
-      white-space: nowrap;
-    }
-    .status-badge.normal {
-      background-color: rgba(46, 204, 113, 0.15);
-      color: #2ecc71;
-      border-color: rgba(46, 204, 113, 0.3);
-    }
-    .status-badge.elevated {
-      background-color: rgba(241, 196, 15, 0.15);
-      color: #f1c40f;
-      border-color: rgba(241, 196, 15, 0.3);
-    }
-    .status-badge.prediabetes {
-      background-color: rgba(243, 156, 18, 0.15);
-      color: #f39c12;
-      border-color: rgba(243, 156, 18, 0.3);
-    }
-    .status-badge.high {
-      background-color: rgba(231, 76, 60, 0.15);
-      color: #e74c3c;
-      border-color: rgba(231, 76, 60, 0.3);
-    }
-    .status-badge.stage1 {
-      background-color: rgba(243, 156, 18, 0.15);
-      color: #f39c12;
-      border-color: rgba(243, 156, 18, 0.3);
-    }
-    .status-badge.stage2 {
-      background-color: rgba(231, 76, 60, 0.15);
-      color: #e74c3c;
-      border-color: rgba(231, 76, 60, 0.3);
-    }
-    .status-badge.crisis {
-      background-color: rgba(155, 89, 182, 0.15);
-      color: #9b59b6;
-      border-color: rgba(155, 89, 182, 0.3);
-    }
-    .trend-up {
-      color: #e74c3c;
-      font-size: 12px;
-      margin-right: 2px;
-    }
-    .trend-down {
-      color: #2ecc71;
-      font-size: 12px;
-      margin-right: 2px;
-    }
-
-    /* تقليل المسافات بين عناصر الـ appbar */
-    .appbar-actions {
-      gap: 6px;
-    }
-    .chip {
-      padding: 6px 10px;
-      font-size: 12px;
-    }
-    .icon-btn {
-      padding: 6px 10px;
-    }
-    /* إخفاء شريط Google Translate الافتراضي (للتأكد من عدم ظهوره) */
-    .goog-te-banner-frame.skiptranslate { display: none !important; }
-    body { top: 0 !important; }
-    .goog-tooltip { display: none !important; }
-    .goog-tooltip:hover { display: none !important; }
-    .goog-text-highlight { background-color: transparent !important; border: none !important; box-shadow: none !important; }
-    .goog-te-spinner-pos { display: none !important; }
-    iframe.goog-te-banner-frame { display: none !important; }
-    div.skiptranslate { display: none !important; }
-  </style>
-</head>
-
-<body class="app-page">
-  <!-- Top App Bar -->
-  <header class="appbar">
-    <div class="appbar-inner">
-      <div class="brand">
-        <img src="./images/logo.png" alt="DahniTech Solutions" class="brand-logo" />
-        <div class="brand-text">
-          <div class="brand-title">Health Tracker</div>
-          <!-- النص الفرعي سيتم تحديثه بالتحية -->
-          <div class="brand-sub" id="subtitle"></div>
-        </div>
-      </div>
-
-      <div class="appbar-actions">
-        <!-- زر المستخدم يعرض "Connected" -->
-        <button class="chip" id="whoamiChip" type="button" aria-label="User">
-          <span class="dot"></span>
-          <span id="whoamiText">Connected</span>
-        </button>
-
-        <button class="icon-btn" type="button" onclick="logout()" aria-label="Logout">
-          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-            <path d="M10 17l1.41-1.41L8.83 13H21v-2H8.83l2.58-2.59L10 7l-7 7 7 7z"></path>
-            <path d="M3 3h8v2H5v14h6v2H3V3z"></path>
-          </svg>
-          <span class="hide-sm">Logout</span>
-        </button>
-      </div>
-    </div>
-  </header>
-
-  <!-- باقي المحتوى (بدون تغيير) -->
-  <main class="shell">
-    <!-- Tabs -->
-    <nav class="tabs" aria-label="Sections">
-      <button class="tab active" type="button" data-tab="dashboard" onclick="showTab('dashboard')">Dashboard</button>
-      <button class="tab" type="button" data-tab="history" onclick="showTab('history')">History</button>
-      <button class="tab" type="button" data-tab="insights" onclick="showTab('insights')">Insights</button>
-    </nav>
-
-    <!-- TAB: Dashboard -->
-    <section id="tab-dashboard" class="tab-panel active">
-      <div class="grid">
-        <!-- Left: Add readings -->
-        <section class="card">
-          <div class="card-head">
-            <h2>Add Reading</h2>
-            <p class="muted">Log your glucose and blood pressure.</p>
-          </div>
-
-          <div class="segmented" role="tablist" aria-label="Reading type">
-            <button class="seg active" type="button" id="seg-glucose" onclick="toggleForm('glucose')">Glucose</button>
-            <button class="seg" type="button" id="seg-bp" onclick="toggleForm('bp')">Blood Pressure</button>
-          </div>
-
-          <!-- Glucose form -->
-          <div id="form-glucose" class="form-block">
-            <label class="field">
-              <span class="label">Glucose</span>
-              <div class="input-wrap">
-                <input id="glucoseValue" inputmode="numeric" placeholder="e.g. 110" />
-                <span class="suffix">mg/dL</span>
-              </div>
-            </label>
-            <label class="field">
-              <span class="label">Note (optional)</span>
-              <select id="glucoseNote">
-                <option value="">Choose note</option>
-                <option>Fasting</option>
-                <option>Before meal</option>
-                <option>After meal</option>
-                <option>Bedtime</option>
-                <option>Workout</option>
-                <option>Feeling low</option>
-                <option>Feeling high</option>
-              </select>
-            </label>
-            <button class="btn primary" type="button" onclick="saveGlucose()">
-              <span class="btn-text">Save Glucose</span>
-              <span class="spinner" aria-hidden="true"></span>
-            </button>
-          </div>
-
-          <!-- Blood pressure form -->
-          <div id="form-bp" class="form-block hidden">
-            <div class="row">
-              <label class="field">
-                <span class="label">Systolic</span>
-                <input id="bpSys" inputmode="numeric" placeholder="120" />
-              </label>
-              <label class="field">
-                <span class="label">Diastolic</span>
-                <input id="bpDia" inputmode="numeric" placeholder="80" />
-              </label>
-            </div>
-            <label class="field">
-              <span class="label">Note (optional)</span>
-              <select id="bpNote">
-                <option value="">Choose note</option>
-                <option>Morning</option>
-                <option>Afternoon</option>
-                <option>Evening</option>
-                <option>After coffee</option>
-                <option>After workout</option>
-                <option>Stress</option>
-                <option>Relaxed</option>
-              </select>
-            </label>
-            <button class="btn primary" type="button" onclick="saveBP()">
-              <span class="btn-text">Save Blood Pressure</span>
-              <span class="spinner" aria-hidden="true"></span>
-            </button>
-          </div>
-        </section>
-
-        <!-- Right: Quick summary + chart -->
-        <section class="card">
-          <div class="card-head">
-            <h2>Today</h2>
-            <p class="muted" id="todayLine">Loading summary…</p>
-          </div>
-
-          <div class="kpis">
-            <div class="kpi">
-              <div class="kpi-label">Latest Glucose</div>
-              <div class="kpi-value" id="kpiGlucose">—</div>
-              <div class="kpi-sub">mg/dL</div>
-            </div>
-            <div class="kpi">
-              <div class="kpi-label">Latest Blood Pressure</div>
-              <div class="kpi-value" id="kpiBP">—</div>
-              <div class="kpi-sub">mmHg</div>
-            </div>
-          </div>
-
-          <!-- Chart Section -->
-          <div class="chart-card" id="trendCard">
-            <div class="chart-head">
-              <div>
-                <div class="chart-title">Trends</div>
-                <div class="muted small">Last 14 days • Glucose & Blood Pressure</div>
-              </div>
-              <div class="legend-inline">
-                <span class="lg lg-g">Glucose</span>
-                <span class="lg lg-s">SYS</span>
-                <span class="lg lg-d">DIA</span>
-              </div>
-            </div>
-
-            <div class="sv-chart-wrap" id="svWrap">
-              <div class="chart-tooltip" id="svTip"></div>
-              <svg class="sv-chart" id="svChart" viewBox="0 0 1000 280" preserveAspectRatio="none"></svg>
-            </div>
-          </div>
-
-          <div class="card-foot">
-            <button class="btn ghost" type="button" onclick="refreshAll()">Refresh</button>
-            <span class="muted small" id="lastSync">—</span>
-          </div>
-        </section>
-      </div>
-    </section>
-
-    <!-- TAB: History -->
-    <section id="tab-history" class="tab-panel">
-      <section class="card">
-        <div class="card-head">
-          <h2>My Readings</h2>
-          <p class="muted">Browse and manage your saved readings.</p>
-        </div>
-
-        <div class="table-wrap">
-          <table class="table" aria-label="Readings table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Type</th>
-                <th>Value</th>
-                <th>Description</th>
-                <th>Note</th>
-                <th class="th-actions">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="readingsBody">
-              <tr><td colspan="6" class="muted">Loading…</td></tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="pager">
-          <button class="btn small ghost" type="button" onclick="prevPage()">‹</button>
-          <span class="muted small" id="pageLabel">1</span>
-          <button class="btn small ghost" type="button" onclick="nextPage()">›</button>
-        </div>
-      </section>
-    </section>
-
-    <!-- TAB: Insights -->
-    <section id="tab-insights" class="tab-panel">
-      <section class="card">
-        <div class="card-head">
-          <h2>Insights</h2>
-          <p class="muted">Trends and patterns from your readings.</p>
-        </div>
-
-        <div class="insights-grid">
-          <div class="mini-card">
-            <div class="mini-title">7-Day Avg (Glucose)</div>
-            <div class="mini-value" id="avg7g">—</div>
-            <div class="mini-sub">mg/dL</div>
-          </div>
-          <div class="mini-card">
-            <div class="mini-title">7-Day Avg (Blood Pressure)</div>
-            <div class="mini-value" id="avg7bp">—</div>
-            <div class="mini-sub">mmHg</div>
-          </div>
-          <div class="mini-card">
-            <div class="mini-title">Most Common Note</div>
-            <div class="mini-value" id="commonNote">—</div>
-            <div class="mini-sub">based on history</div>
-          </div>
-        </div>
-      </section>
-    </section>
-  </main>
-
-  <!-- Toast -->
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
-
-  <script>
-    (function() {
-      "use strict";
-
-      // --- DOM shortcuts ---
-      const $ = id => document.getElementById(id);
-
-      // --- Toast ---
-      function toast(msg, type = 'ok') {
-        const t = $('toast');
-        t.textContent = msg;
-        t.className = `toast show ${type}`;
-        clearTimeout(window.toastTimer);
-        window.toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
-      }
-
-      // --- Loading state ---
-      function setLoading(btn, state) {
-        if (btn) {
-          btn.classList.toggle('loading', state);
-          btn.disabled = state;
-        }
-      }
-
-      // --- Escape HTML ---
-      function escapeHtml(unsafe) {
-        if (unsafe == null) return '';
-        return String(unsafe)
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;')
-          .replace(/'/g, '&#039;');
-      }
-
-      // --- Auth ---
-      function getAuth() {
-        return {
-          userId: localStorage.getItem('userId') || '',
-          name: localStorage.getItem('name') || '',
-          email: localStorage.getItem('email') || ''
-        };
-      }
-
-      function requireAuth() {
-        if (!getAuth().userId) {
-          window.location.href = './index.html';
-          return false;
-        }
-        return true;
-      }
-
-      window.logout = () => {
-        ['userId', 'name', 'phone', 'email'].forEach(k => localStorage.removeItem(k));
-        window.location.href = './index.html';
-      };
-
-      // --- Tab navigation ---
-      window.showTab = name => {
-        document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-        document.querySelector(`.tab[data-tab="${name}"]`).classList.add('active');
-        $(`tab-${name}`).classList.add('active');
-      };
-
-      window.toggleForm = which => {
-        const gForm = $('form-glucose');
-        const bpForm = $('form-bp');
-        const gSeg = $('seg-glucose');
-        const bpSeg = $('seg-bp');
-
-        if (which === 'glucose') {
-          gForm.classList.remove('hidden');
-          bpForm.classList.add('hidden');
-          gSeg.classList.add('active');
-          bpSeg.classList.remove('active');
-        } else {
-          bpForm.classList.remove('hidden');
-          gForm.classList.add('hidden');
-          bpSeg.classList.add('active');
-          gSeg.classList.remove('active');
-        }
-      };
-
-      // --- Global state ---
-      let allReadings = [];
-      let currentPage = 1;
-      const PAGE_SIZE = 10;
-
-      // --- Date helpers ---
-      function parseDate(ts) {
-        const d = new Date(ts);
-        return isNaN(d.getTime()) ? null : d;
-      }
-
-      function isSameDay(d1, d2) {
-        return d1.toDateString() === d2.toDateString();
-      }
-
-      // ===== وصف الحالات بالإنجليزية =====
-      function getGlucoseDescription(value, note) {
-        const num = Number(value);
-        if (isNaN(num)) return '';
-        const noteLower = String(note).toLowerCase();
-        const isFasting = noteLower.includes('fasting');
-        const isPostprandial = noteLower.includes('after meal') || noteLower.includes('aftermeal');
-        
-        if (isFasting) {
-          if (num < 70) return '🔴 Dangerous low (Hypoglycemia) - May cause dizziness, sweating, shaking, loss of consciousness.';
-          if (num >= 70 && num <= 99) return '🟢 Normal - Healthy level for non-diabetic.';
-          if (num >= 100 && num <= 125) return '🟡 Prediabetes - Warning sign, needs lifestyle changes.';
-          if (num >= 126) return '🔴 Diabetes - Official diagnosis if repeated.';
-        } else if (isPostprandial) {
-          if (num < 140) return '🟢 Normal - 2 hours after meal.';
-          if (num >= 140 && num <= 199) return '🟡 Prediabetes - After meal.';
-          if (num >= 200) return '🔴 Likely Diabetes - After meal.';
-        } else {
-          if (num < 70) return '🔴 Dangerous low (Hypoglycemia)';
-          if (num >= 70 && num <= 99) return '🟢 Normal';
-          if (num >= 100 && num <= 125) return '🟡 Prediabetes';
-          if (num >= 126) return '🔴 Diabetes';
-        }
-        return '';
-      }
-
-      function getBPDescription(bpString) {
-        const parts = bpString.split('/').map(Number);
-        if (parts.length !== 2 || isNaN(parts[0]) || isNaN(parts[1])) return '';
-        const sys = parts[0];
-        const dia = parts[1];
-        
-        if (sys >= 180 || dia >= 120) return '🚨 Hypertensive Crisis - Danger to brain, heart, kidneys. If severe headache, chest pain, shortness of breath → ER immediately.';
-        if (sys >= 140 || dia >= 90) return '🔴 Stage 2 Hypertension - Clearly high, usually needs medication + lifestyle changes.';
-        if (sys >= 130 || dia >= 80) return '🟠 Stage 1 Hypertension - Early high BP, may need monitoring or treatment depending on risk factors.';
-        if (sys >= 120 && sys <= 129 && dia < 80) return '🟡 Elevated - Not yet hypertension, but early warning. Needs lifestyle changes (less salt, exercise, healthy weight).';
-        if (sys < 120 && dia < 80) return '🟢 Normal - Healthy BP, no current risk if no other factors.';
-        if (sys < 90 || dia < 60) return '⚠️ Low Blood Pressure - Not always dangerous. If accompanied by dizziness or fainting → needs evaluation.';
-        return '';
-      }
-
-      // ===== Glucose Color Coding with Indicators =====
-      function getGlucoseStatus(value, note = '') {
-        const num = Number(value);
-        if (isNaN(num)) return { category: 'unknown', colorClass: '', text: value, warning: false, trend: null, badgeText: '' };
-
-        const noteLower = String(note).toLowerCase();
-        const isFasting = noteLower.includes('fasting');
-        const isPostprandial = noteLower.includes('after meal') || noteLower.includes('aftermeal');
-
-        let category = '';
-        let colorClass = '';
-        let warning = false;
-        let trend = null;
-        let badgeText = '';
-
-        if (isFasting) {
-          if (num < 100) { 
-            category = 'normal'; 
-            colorClass = 'glucose-normal'; 
-            trend = 'down';
-            badgeText = 'Normal';
-          }
-          else if (num >= 100 && num <= 125) { 
-            category = 'prediabetes'; 
-            colorClass = 'glucose-prediabetes'; 
-            badgeText = 'Prediabetes';
-          }
-          else if (num >= 126) { 
-            category = 'diabetes'; 
-            colorClass = 'glucose-diabetes'; 
-            warning = true; 
-            trend = 'up';
-            badgeText = 'High';
-          }
-        } else if (isPostprandial) {
-          if (num < 140) { 
-            category = 'normal'; 
-            colorClass = 'glucose-normal'; 
-            trend = 'down';
-            badgeText = 'Normal';
-          }
-          else if (num >= 140 && num <= 199) { 
-            category = 'prediabetes'; 
-            colorClass = 'glucose-prediabetes'; 
-            badgeText = 'Prediabetes';
-          }
-          else if (num >= 200) { 
-            category = 'diabetes'; 
-            colorClass = 'glucose-diabetes'; 
-            warning = true; 
-            trend = 'up';
-            badgeText = 'High';
-          }
-        } else {
-          if (num < 100) { 
-            category = 'normal'; 
-            colorClass = 'glucose-normal'; 
-            trend = 'down';
-            badgeText = 'Normal';
-          }
-          else if (num >= 100 && num <= 125) { 
-            category = 'prediabetes'; 
-            colorClass = 'glucose-prediabetes'; 
-            badgeText = 'Prediabetes';
-          }
-          else if (num >= 126) { 
-            category = 'diabetes'; 
-            colorClass = 'glucose-diabetes'; 
-            warning = true; 
-            trend = 'up';
-            badgeText = 'High';
-          }
-        }
-
-        return { category, colorClass, value: num, warning, trend, badgeText };
-      }
-
-      // ===== BP Color Coding with named badges =====
-      function getBPStatus(bpString) {
-        if (!bpString || typeof bpString !== 'string') {
-          return { category: 'unknown', colorClass: '', explanation: '', sys: null, dia: null, warning: false, trend: null, badgeText: '' };
-        }
-        const parts = bpString.split('/').map(Number);
-        if (parts.length !== 2 || isNaN(parts[0]) || isNaN(parts[1])) {
-          return { category: 'unknown', colorClass: '', explanation: '', sys: null, dia: null, warning: false, trend: null, badgeText: '' };
-        }
-        const sys = parts[0];
-        const dia = parts[1];
-
-        let category = '';
-        let colorClass = '';
-        let explanation = '';
-        let warning = false;
-        let trend = null;
-        let badgeText = '';
-
-        if (sys >= 180 || dia >= 120) {
-          category = 'Crisis';
-          colorClass = 'bp-crisis';
-          explanation = 'Hypertensive crisis - seek emergency immediately';
-          warning = true;
-          trend = 'up';
-          badgeText = 'Crisis';
-        } else if (sys >= 140 || dia >= 90) {
-          category = 'Stage 2';
-          colorClass = 'bp-stage2';
-          explanation = 'Stage 2 hypertension - may need medication';
-          warning = true;
-          trend = 'up';
-          badgeText = 'Stage 2';
-        } else if (sys >= 130 || dia >= 80) {
-          category = 'Stage 1';
-          colorClass = 'bp-stage1';
-          explanation = 'Stage 1 hypertension - monitor & lifestyle changes';
-          warning = false;
-          trend = null;
-          badgeText = 'Stage 1';
-        } else if (sys >= 120 && sys <= 129 && dia < 80) {
-          category = 'Elevated';
-          colorClass = 'bp-elevated';
-          explanation = 'Elevated (early warning)';
-          warning = false;
-          trend = null;
-          badgeText = 'Elevated';
-        } else if (sys < 120 && dia < 80) {
-          category = 'Normal';
-          colorClass = 'bp-normal';
-          explanation = 'Excellent normal pressure';
-          warning = false;
-          trend = 'down';
-          badgeText = 'Normal';
-        } else {
-          if (sys >= 140 || dia >= 90) {
-            category = 'Stage 2';
-            colorClass = 'bp-stage2';
-            explanation = 'Stage 2 hypertension - may need medication';
-            warning = true;
-            trend = 'up';
-            badgeText = 'Stage 2';
-          } else if (sys >= 130 || dia >= 80) {
-            category = 'Stage 1';
-            colorClass = 'bp-stage1';
-            explanation = 'Stage 1 hypertension - monitor & lifestyle changes';
-            warning = false;
-            trend = null;
-            badgeText = 'Stage 1';
-          } else if (sys >= 120 && dia < 80) {
-            category = 'Elevated';
-            colorClass = 'bp-elevated';
-            explanation = 'Elevated (early warning)';
-            warning = false;
-            trend = null;
-            badgeText = 'Elevated';
-          } else {
-            category = 'Normal';
-            colorClass = 'bp-normal';
-            explanation = 'Excellent normal pressure';
-            warning = false;
-            trend = 'down';
-            badgeText = 'Normal';
-          }
-        }
-
-        return { 
-          category, 
-          colorClass, 
-          explanation, 
-          sys, 
-          dia, 
-          display: bpString, 
-          warning, 
-          trend, 
-          badgeText 
-        };
-      }
-
-      // ===== API calls =====
-      window.saveGlucose = async () => {
-        if (!requireAuth()) return;
-        const { userId } = getAuth();
-        const btn = document.querySelector('#form-glucose .btn.primary');
-        const value = $('glucoseValue').value.trim();
-        const note = $('glucoseNote').value;
-
-        const num = Number(value);
-        if (!value || isNaN(num) || num <= 0) return toast('Enter a valid glucose number', 'err');
-
-        try {
-          setLoading(btn, true);
-          const res = await fetch('/api/readings', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId, type: 'glucose', value: String(num), note })
-          });
-          if (!res.ok) throw new Error();
-          $('glucoseValue').value = '';
-          $('glucoseNote').value = '';
-          toast('Glucose saved');
-          await refreshAll();
-        } catch {
-          toast('Could not save glucose', 'err');
-        } finally {
-          setLoading(btn, false);
-        }
-      };
-
-      window.saveBP = async () => {
-        if (!requireAuth()) return;
-        const { userId } = getAuth();
-        const btn = document.querySelector('#form-bp .btn.primary');
-        const sys = $('bpSys').value.trim();
-        const dia = $('bpDia').value.trim();
-        const note = $('bpNote').value;
-
-        const s = Number(sys), d = Number(dia);
-        if (!sys || !dia || isNaN(s) || isNaN(d) || s <= 0 || d <= 0) {
-          return toast('Enter valid BP numbers', 'err');
-        }
-
-        try {
-          setLoading(btn, true);
-          const res = await fetch('/api/readings', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId, type: 'bp', value: `${s}/${d}`, note })
-          });
-          if (!res.ok) throw new Error();
-          $('bpSys').value = '';
-          $('bpDia').value = '';
-          $('bpNote').value = '';
-          toast('Blood pressure saved');
-          await refreshAll();
-        } catch {
-          toast('Could not save BP', 'err');
-        } finally {
-          setLoading(btn, false);
-        }
-      };
-
-      async function loadReadings() {
-        if (!requireAuth()) return [];
-        const { userId } = getAuth();
-        try {
-          const res = await fetch(`/api/readings/${encodeURIComponent(userId)}`);
-          if (!res.ok) throw new Error();
-          const data = await res.json();
-          allReadings = Array.isArray(data) ? data.sort((a, b) => new Date(b.ts) - new Date(a.ts)) : [];
-          console.log('Readings loaded:', allReadings);
-        } catch {
-          toast('Failed to load readings', 'err');
-          allReadings = [];
-        }
-        return allReadings;
-      }
-
-      // ===== Render functions =====
-      // دالة لجلب التحية حسب الوقت
-      function getGreeting() {
-        const hour = new Date().getHours();
-        if (hour >= 5 && hour < 12) return "صباح الخير";
-        if (hour >= 12 && hour < 18) return "مساء الخير";
-        return "مساء الخير"; // نستخدم نفس التحية للمساء والليل
-      }
-
-      // تحديث رأس الصفحة: زر المستخدم ورسالة الترحيب
-      function updateHeader() {
-        const { name } = getAuth();
-        // استخراج الاسم الأول
-        let firstName = name ? name.split(' ')[0] : 'زائر';
-        if (!firstName) firstName = 'زائر';
-        
-        // تعيين نص الزر إلى "Connected"
-        $('whoamiText').textContent = 'Connected';
-        
-        // تعيين النص الفرعي بالتحية والاسم الأول
-        $('subtitle').textContent = `${getGreeting()}، ${firstName}`;
-      }
-
-      function updateSummary() {
-        const now = new Date();
-        const todayCount = allReadings.filter(r => {
-          const d = parseDate(r.ts);
-          return d && isSameDay(d, now);
-        }).length;
-
-        const latestGlucose = allReadings.find(r => r.type === 'glucose');
-        const latestBP = allReadings.find(r => r.type === 'bp');
-
-        if (latestGlucose) {
-          const { colorClass, value, warning, trend, badgeText } = getGlucoseStatus(latestGlucose.value, latestGlucose.note);
-          let html = `<span class="${colorClass}">${value}</span>`;
-          if (warning && trend === 'up') {
-            html += `<span class="trend-up" title="High glucose">▲</span>`;
-          } else if (trend === 'down') {
-            html += `<span class="trend-down" title="Normal glucose">▼</span>`;
-          }
-          let badgeClass = '';
-          if (badgeText === 'Normal') badgeClass = 'normal';
-          else if (badgeText === 'Prediabetes') badgeClass = 'prediabetes';
-          else if (badgeText === 'High') badgeClass = 'high';
-          if (badgeClass) {
-            html += `<span class="status-badge ${badgeClass}">${badgeText}</span>`;
-          }
-          $('kpiGlucose').innerHTML = html;
-        } else {
-          $('kpiGlucose').textContent = '—';
-        }
-
-        if (latestBP) {
-          const bpStatus = getBPStatus(latestBP.value);
-          let html = `<span class="${bpStatus.colorClass}">${bpStatus.display}</span>`;
-          
-          if (bpStatus.trend === 'up') {
-            html += `<span class="trend-up" title="High BP">▲</span>`;
-          } else if (bpStatus.trend === 'down') {
-            html += `<span class="trend-down" title="Normal BP">▼</span>`;
-          }
-
-          let badgeClass = '';
-          if (bpStatus.badgeText === 'Normal') badgeClass = 'normal';
-          else if (bpStatus.badgeText === 'Elevated') badgeClass = 'elevated';
-          else if (bpStatus.badgeText === 'Stage 1') badgeClass = 'stage1';
-          else if (bpStatus.badgeText === 'Stage 2') badgeClass = 'stage2';
-          else if (bpStatus.badgeText === 'Crisis') badgeClass = 'crisis';
-          if (badgeClass) {
-            html += `<span class="status-badge ${badgeClass}">${bpStatus.badgeText}</span>`;
-          }
-
-          $('kpiBP').innerHTML = html;
-        } else {
-          $('kpiBP').textContent = '—';
-        }
-
-        $('todayLine').textContent = todayCount ? `${todayCount} reading(s) logged today` : 'No readings yet today';
-      }
-
-      function renderHistory() {
-        const tbody = $('readingsBody');
-        const totalPages = Math.max(1, Math.ceil(allReadings.length / PAGE_SIZE));
-        if (currentPage > totalPages) currentPage = totalPages;
-
-        const start = (currentPage - 1) * PAGE_SIZE;
-        const pageItems = allReadings.slice(start, start + PAGE_SIZE);
-        $('pageLabel').textContent = `${currentPage} / ${totalPages}`;
-
-        if (!pageItems.length) {
-          tbody.innerHTML = '<tr><td colspan="6" class="muted">No readings yet.</td></tr>';
-          return;
-        }
-
-        tbody.innerHTML = pageItems.map(r => {
-          const date = parseDate(r.ts)?.toLocaleString() || '—';
-          let valueHtml = '';
-          let description = '';
-
-          if (r.type === 'glucose') {
-            const { colorClass, value, warning, trend, badgeText } = getGlucoseStatus(r.value, r.note);
-            valueHtml = `<span class="${colorClass}">${value}</span>`;
-            if (warning && trend === 'up') {
-              valueHtml += ` <span class="trend-up" title="High glucose">▲</span>`;
-            } else if (trend === 'down') {
-              valueHtml += ` <span class="trend-down" title="Normal glucose">▼</span>`;
-            }
-            let badgeClass = '';
-            if (badgeText === 'Normal') badgeClass = 'normal';
-            else if (badgeText === 'Prediabetes') badgeClass = 'prediabetes';
-            else if (badgeText === 'High') badgeClass = 'high';
-            if (badgeClass) {
-              valueHtml += ` <span class="status-badge ${badgeClass}">${badgeText}</span>`;
-            }
-            description = getGlucoseDescription(r.value, r.note);
-          } else if (r.type === 'bp') {
-            const bpStatus = getBPStatus(r.value);
-            valueHtml = `<span class="${bpStatus.colorClass}">${bpStatus.display}</span>`;
-            if (bpStatus.trend === 'up') {
-              valueHtml += ` <span class="trend-up" title="High BP">▲</span>`;
-            } else if (bpStatus.trend === 'down') {
-              valueHtml += ` <span class="trend-down" title="Normal BP">▼</span>`;
-            }
-            let badgeClass = '';
-            if (bpStatus.badgeText === 'Normal') badgeClass = 'normal';
-            else if (bpStatus.badgeText === 'Elevated') badgeClass = 'elevated';
-            else if (bpStatus.badgeText === 'Stage 1') badgeClass = 'stage1';
-            else if (bpStatus.badgeText === 'Stage 2') badgeClass = 'stage2';
-            else if (bpStatus.badgeText === 'Crisis') badgeClass = 'crisis';
-            if (badgeClass) {
-              valueHtml += ` <span class="status-badge ${badgeClass}">${bpStatus.badgeText}</span>`;
-            }
-            description = getBPDescription(r.value);
-          } else {
-            valueHtml = escapeHtml(r.value);
-          }
-
-          return `
-            <tr>
-              <td data-label="Date">${escapeHtml(date)}</td>
-              <td data-label="Type"><span class="pill">${escapeHtml(r.type === 'bp' ? 'Blood Pressure' : r.type)}</span></td>
-              <td data-label="Value">${valueHtml}</td>
-              <td data-label="Description" class="description-cell">${escapeHtml(description)}</td>
-              <td data-label="Note" class="note-cell">${escapeHtml(r.note || '')}</td>
-              <td data-label="Actions" class="td-actions">
-                <button class="mini-btn" onclick="editReading('${r.id}', '${escapeHtml(r.value)}', '${escapeHtml(r.note || '')}')" aria-label="Edit">
-                  <span class="btn-text">Edit</span>
-                </button>
-                <button class="mini-btn danger" onclick="deleteReading('${r.id}')" aria-label="Delete">
-                  <span class="btn-text">Delete</span>
-                </button>
-              </td>
-            </tr>
-          `;
-        }).join('');
-      }
-
-      window.prevPage = () => { if (currentPage > 1) { currentPage--; renderHistory(); } };
-      window.nextPage = () => {
-        const total = Math.ceil(allReadings.length / PAGE_SIZE);
-        if (currentPage < total) { currentPage++; renderHistory(); }
-      };
-
-      window.editReading = async (id, currentVal, currentNote) => {
-        if (!requireAuth()) return;
-        const { userId } = getAuth();
-        const newVal = prompt('Edit value:', currentVal);
-        if (newVal === null) return;
-        const newNote = prompt('Edit note (optional):', currentNote);
-        if (newNote === null) return;
-
-        try {
-          const res = await fetch(`/api/readings/${encodeURIComponent(id)}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId, value: newVal.trim(), note: (newNote || '').trim() })
-          });
-          if (!res.ok) throw new Error();
-          toast('Updated');
-          await refreshAll();
-          showTab('history');
-        } catch {
-          toast('Update failed', 'err');
-        }
-      };
-
-      window.deleteReading = async (id) => {
-        if (!requireAuth()) return;
-        const { userId } = getAuth();
-        if (!confirm('Delete this reading?')) return;
-
-        try {
-          const res = await fetch(`/api/readings/${encodeURIComponent(id)}`, {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId })
-          });
-          if (!res.ok) throw new Error();
-          toast('Deleted');
-          await refreshAll();
-        } catch {
-          toast('Delete failed', 'err');
-        }
-      };
-
-      function updateInsights() {
-        const sevenDaysAgo = new Date(Date.now() - 7 * 86400000);
-        const weekReadings = allReadings.filter(r => {
-          const d = parseDate(r.ts);
-          return d && d >= sevenDaysAgo;
-        });
-
-        const glucoseVals = weekReadings.filter(r => r.type === 'glucose').map(r => Number(r.value)).filter(n => !isNaN(n));
-        const avg = arr => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
-        const gAvg = avg(glucoseVals);
-        if (gAvg !== null) {
-          const { colorClass, warning, trend, badgeText } = getGlucoseStatus(gAvg, '');
-          let html = `<span class="${colorClass}">${gAvg}</span>`;
-          if (warning && trend === 'up') {
-            html += ` <span class="trend-up" title="High average glucose">▲</span>`;
-          } else if (trend === 'down') {
-            html += ` <span class="trend-down" title="Normal average glucose">▼</span>`;
-          }
-          let badgeClass = '';
-          if (badgeText === 'Normal') badgeClass = 'normal';
-          else if (badgeText === 'Prediabetes') badgeClass = 'prediabetes';
-          else if (badgeText === 'High') badgeClass = 'high';
-          if (badgeClass) {
-            html += ` <span class="status-badge ${badgeClass}">${badgeText}</span>`;
-          }
-          $('avg7g').innerHTML = html;
-        } else {
-          $('avg7g').textContent = '—';
-        }
-
-        const bpReadings = weekReadings.filter(r => r.type === 'bp');
-        if (bpReadings.length > 0) {
-          let totalSys = 0, totalDia = 0, count = 0;
-          bpReadings.forEach(r => {
-            const parts = r.value.split('/').map(Number);
-            if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-              totalSys += parts[0];
-              totalDia += parts[1];
-              count++;
-            }
-          });
-          if (count > 0) {
-            const avgSys = Math.round(totalSys / count);
-            const avgDia = Math.round(totalDia / count);
-            const avgString = `${avgSys}/${avgDia}`;
-            const bpStatus = getBPStatus(avgString);
-            let html = `<span class="${bpStatus.colorClass}">${avgString}</span>`;
-            if (bpStatus.trend === 'up') {
-              html += ` <span class="trend-up" title="High average BP">▲</span>`;
-            } else if (bpStatus.trend === 'down') {
-              html += ` <span class="trend-down" title="Normal average BP">▼</span>`;
-            }
-            let badgeClass = '';
-            if (bpStatus.badgeText === 'Normal') badgeClass = 'normal';
-            else if (bpStatus.badgeText === 'Elevated') badgeClass = 'elevated';
-            else if (bpStatus.badgeText === 'Stage 1') badgeClass = 'stage1';
-            else if (bpStatus.badgeText === 'Stage 2') badgeClass = 'stage2';
-            else if (bpStatus.badgeText === 'Crisis') badgeClass = 'crisis';
-            if (badgeClass) {
-              html += ` <span class="status-badge ${badgeClass}">${bpStatus.badgeText}</span>`;
-            }
-            $('avg7bp').innerHTML = html;
-          } else {
-            $('avg7bp').textContent = '—';
-          }
-        } else {
-          $('avg7bp').textContent = '—';
-        }
-
-        const notes = allReadings.map(r => r.note).filter(Boolean);
-        if (notes.length) {
-          const freq = notes.reduce((acc, n) => (acc[n] = (acc[n] || 0) + 1, acc), {});
-          $('commonNote').textContent = Object.entries(freq).sort((a, b) => b[1] - a[1])[0]?.[0] || '—';
-        } else {
-          $('commonNote').textContent = '—';
-        }
-      }
-
-      // ========== CHART RENDERING ==========
-      const SVG_W = 1000, SVG_H = 280;
-      const PAD = { l: 70, r: 50, t: 30, b: 50 };
-
-      function getLastNDays(n = 14) {
-        const days = [];
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        for (let i = n - 1; i >= 0; i--) {
-          const d = new Date(today);
-          d.setDate(today.getDate() - i);
-          days.push(d);
-        }
-        return days;
-      }
-
-      function toYYYYMMDD(date) {
-        const y = date.getFullYear();
-        const m = String(date.getMonth() + 1).padStart(2, '0');
-        const d = String(date.getDate()).padStart(2, '0');
-        return `${y}-${m}-${d}`;
-      }
-
-      function buildChartData() {
-        const days = getLastNDays(14);
-        const labels = days.map(d => d.toLocaleDateString(undefined, { month: '2-digit', day: '2-digit' }));
-
-        const buckets = {};
-        days.forEach(d => { buckets[toYYYYMMDD(d)] = { glucose: [], sys: [], dia: [] }; });
-
-        allReadings.forEach(r => {
-          const date = parseDate(r.ts);
-          if (!date) return;
-          const key = toYYYYMMDD(date);
-          if (!buckets[key]) return;
-
-          if (r.type === 'glucose') {
-            const val = Number(r.value);
-            if (!isNaN(val)) buckets[key].glucose.push(val);
-          } else if (r.type === 'bp') {
-            const [s, d] = r.value.split('/').map(Number);
-            if (!isNaN(s)) buckets[key].sys.push(s);
-            if (!isNaN(d)) buckets[key].dia.push(d);
-          }
-        });
-
-        const avg = arr => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
-        const glucose = days.map(d => avg(buckets[toYYYYMMDD(d)].glucose));
-        const sys = days.map(d => avg(buckets[toYYYYMMDD(d)].sys));
-        const dia = days.map(d => avg(buckets[toYYYYMMDD(d)].dia));
-
-        return { labels, glucose, sys, dia };
-      }
-
-      function getRange(values) {
-        const valid = values.filter(v => v != null && isFinite(v));
-        if (valid.length === 0) return { min: 70, max: 150 };
-        const min = Math.min(...valid);
-        const max = Math.max(...valid);
-        const pad = (max - min) * 0.1 || 10;
-        return { min: Math.max(0, Math.floor(min - pad)), max: Math.ceil(max + pad) };
-      }
-
-      function renderChart() {
-        const svg = $('svChart');
-        const wrap = $('svWrap');
-        const tip = $('svTip');
-        if (!svg || !wrap || !tip) return;
-
-        const { labels, glucose, sys, dia } = buildChartData();
-        const n = labels.length;
-        if (n === 0) return;
-
-        const hasData = glucose.some(v => v != null) || sys.some(v => v != null) || dia.some(v => v != null);
-        let displayGlucose = glucose;
-        let displaySys = sys;
-        let displayDia = dia;
-
-        if (!hasData) {
-          console.warn('⚠️ No real data, using sample data for chart display');
-          displayGlucose = [120, 135, 110, 150, 140, 130, 125, 145, 135, 155, 140, 130, 120, 115];
-          displaySys = [130, 125, 135, 140, 130, 125, 135, 145, 140, 150, 135, 125, 130, 120];
-          displayDia = [85, 80, 90, 95, 85, 80, 85, 95, 90, 100, 85, 80, 85, 75];
-        }
-
-        const allValues = [...displayGlucose, ...displaySys, ...displayDia].filter(v => v != null);
-        const minVal = allValues.length ? Math.min(...allValues) : 70;
-        const maxVal = allValues.length ? Math.max(...allValues) : 150;
-        const range = { 
-          min: Math.max(0, Math.floor(minVal - (maxVal - minVal) * 0.1)), 
-          max: Math.ceil(maxVal + (maxVal - minVal) * 0.1) 
-        };
-
-        const chartW = SVG_W - PAD.l - PAD.r;
-        const chartH = SVG_H - PAD.t - PAD.b;
-
-        const xPos = i => PAD.l + (i * (chartW / (n - 1 || 1)));
-        const yPos = val => {
-          if (val == null || !isFinite(val)) return null;
-          return PAD.t + chartH - ((val - range.min) / (range.max - range.min)) * chartH;
-        };
-
-        function buildPath(data) {
-          let d = '';
-          let started = false;
-          for (let i = 0; i < n; i++) {
-            const y = yPos(data[i]);
-            if (y == null) {
-              started = false;
-              continue;
-            }
-            const x = xPos(i);
-            if (!started) {
-              d += `M ${x} ${y}`;
-              started = true;
-            } else {
-              d += ` L ${x} ${y}`;
-            }
-          }
-          return d;
-        }
-
-        while (svg.firstChild) svg.removeChild(svg.firstChild);
-
-        const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        bg.setAttribute('x', '0'); bg.setAttribute('y', '0');
-        bg.setAttribute('width', SVG_W); bg.setAttribute('height', SVG_H);
-        bg.setAttribute('fill', '#1a2634');
-        bg.setAttribute('rx', '12'); bg.setAttribute('ry', '12');
-        svg.appendChild(bg);
-
-        const gridGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        gridGroup.setAttribute('opacity', '0.2');
-        for (let i = 0; i <= 5; i++) {
-          const y = PAD.t + (i * (chartH / 5));
-          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-          line.setAttribute('x1', PAD.l); line.setAttribute('y1', y);
-          line.setAttribute('x2', SVG_W - PAD.r); line.setAttribute('y2', y);
-          line.setAttribute('stroke', '#ffffff');
-          line.setAttribute('stroke-width', '1');
-          line.setAttribute('stroke-dasharray', '3,3');
-          gridGroup.appendChild(line);
-        }
-        svg.appendChild(gridGroup);
-
-        const vGridGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        vGridGroup.setAttribute('opacity', '0.1');
-        for (let i = 0; i < n; i += 2) {
-          const x = xPos(i);
-          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-          line.setAttribute('x1', x); line.setAttribute('y1', PAD.t);
-          line.setAttribute('x2', x); line.setAttribute('y2', SVG_H - PAD.b);
-          line.setAttribute('stroke', '#ffffff');
-          line.setAttribute('stroke-width', '1');
-          line.setAttribute('stroke-dasharray', '2,2');
-          vGridGroup.appendChild(line);
-        }
-        svg.appendChild(vGridGroup);
-
-        const yLabelsLeft = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        yLabelsLeft.setAttribute('fill', 'rgba(255,255,255,0.7)');
-        yLabelsLeft.setAttribute('font-size', '11');
-        yLabelsLeft.setAttribute('font-weight', '500');
-        yLabelsLeft.setAttribute('text-anchor', 'end');
-        for (let i = 0; i <= 5; i++) {
-          const y = PAD.t + (i * (chartH / 5));
-          const val = Math.round(range.max - i * (range.max - range.min) / 5);
-          const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-          text.setAttribute('x', PAD.l - 10);
-          text.setAttribute('y', y + 4);
-          text.textContent = val;
-          yLabelsLeft.appendChild(text);
-        }
-        svg.appendChild(yLabelsLeft);
-
-        const xLabels = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        xLabels.setAttribute('fill', 'rgba(255,255,255,0.7)');
-        xLabels.setAttribute('font-size', '10');
-        xLabels.setAttribute('text-anchor', 'middle');
-        
-        const step = n > 10 ? 2 : 1;
-        for (let i = 0; i < n; i += step) {
-          const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-          txt.setAttribute('x', xPos(i));
-          txt.setAttribute('y', SVG_H - 20);
-          txt.textContent = labels[i];
-          xLabels.appendChild(txt);
-        }
-        if ((n-1) % step !== 0) {
-          const lastTxt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-          lastTxt.setAttribute('x', xPos(n-1));
-          lastTxt.setAttribute('y', SVG_H - 20);
-          lastTxt.textContent = labels[n-1];
-          xLabels.appendChild(lastTxt);
-        }
-        svg.appendChild(xLabels);
-
-        const lineGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        lineGroup.setAttribute('fill', 'none');
-        lineGroup.setAttribute('stroke-width', '3');
-        lineGroup.setAttribute('stroke-linecap', 'round');
-        lineGroup.setAttribute('stroke-linejoin', 'round');
-
-        const datasets = [
-          { data: displayGlucose, color: '#4c7dff' },
-          { data: displaySys, color: '#3cff97' },
-          { data: displayDia, color: '#ff4d6d' }
-        ];
-
-        datasets.forEach(ds => {
-          const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-          path.setAttribute('d', buildPath(ds.data));
-          path.setAttribute('stroke', ds.color);
-          lineGroup.appendChild(path);
-        });
-        svg.appendChild(lineGroup);
-
-        const pointsGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        datasets.forEach(ds => {
-          for (let i = 0; i < n; i++) {
-            const y = yPos(ds.data[i]);
-            if (y == null) continue;
-            const x = xPos(i);
-            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            circle.setAttribute('cx', x);
-            circle.setAttribute('cy', y);
-            circle.setAttribute('r', '4');
-            circle.setAttribute('fill', ds.color);
-            circle.setAttribute('stroke', 'white');
-            circle.setAttribute('stroke-width', '1.5');
-            pointsGroup.appendChild(circle);
-          }
-        });
-        svg.appendChild(pointsGroup);
-
-        function showTooltip(e) {
-          const rect = wrap.getBoundingClientRect();
-          const mouseX = e.clientX - rect.left;
-          const idx = Math.round((mouseX / rect.width) * (n - 1));
-          if (idx < 0 || idx >= n) return;
-
-          const dateStr = getLastNDays(14)[idx].toLocaleDateString(undefined, { month: '2-digit', day: '2-digit', year: 'numeric' });
-          const g = displayGlucose[idx] ?? '—';
-          const s = displaySys[idx] ?? '—';
-          const d = displayDia[idx] ?? '—';
-
-          tip.innerHTML = `
-            <div style="font-weight:700; margin-bottom:4px;">${dateStr}</div>
-            <div><span style="color:#4c7dff;">●</span> Glucose: <b>${g}</b> mg/dL</div>
-            <div><span style="color:#3cff97;">●</span> SYS: <b>${s}</b> mmHg</div>
-            <div><span style="color:#ff4d6d;">●</span> DIA: <b>${d}</b> mmHg</div>
-          `;
-          tip.classList.add('show');
-        }
-
-        function hideTooltip() {
-          tip.classList.remove('show');
-        }
-
-        wrap.addEventListener('mousemove', showTooltip);
-        wrap.addEventListener('mouseleave', hideTooltip);
-        wrap.addEventListener('touchmove', (e) => {
-          e.preventDefault();
-          const touch = e.touches[0];
-          showTooltip(touch);
-        });
-        wrap.addEventListener('touchend', hideTooltip);
-      }
-
-      // ===== Refresh All =====
-      window.refreshAll = async () => {
-        console.log('🔄 Refreshing...');
-        await loadReadings();
-        updateSummary();
-        renderHistory();
-        updateInsights();
-        renderChart();
-        $('lastSync').textContent = `Updated ${new Date().toLocaleTimeString()}`;
-      };
-
-      // ===== Initialize =====
-      async function init() {
-        if (!requireAuth()) return;
-        updateHeader();   // تحديث التحية والزر
-        await refreshAll();
-      }
-
-      init();
-    })();
-  </script>
-</body>
-</html>
+/* =========================================================
+   Health Tracker UI - نسخة نظيفة ومحسنة مع جدول احترافي
+   ========================================================= */
+
+:root {
+  --bg: #0b1220;
+  --surface: rgba(255, 255, 255, 0.07);
+  --surface2: rgba(255, 255, 255, 0.10);
+  --border: rgba(255, 255, 255, 0.14);
+  --text: rgba(255, 255, 255, 0.92);
+  --muted: rgba(255, 255, 255, 0.65);
+  --muted2: rgba(255, 255, 255, 0.50);
+
+  --primary: #4c7dff;
+  --primary-glow: #6a5cff;
+  --danger: #ff4d6d;
+  --success: #3cff97;
+  --warning: #ffaa33;
+  --elevated: #f1c40f;
+  --crisis: #9b59b6;
+
+  --radius: 18px;
+  --radius-sm: 14px;
+  --shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+  --max-width: 1100px;
+  --gap: 16px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  background-color: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body, button, a, input, select, textarea, svg {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  outline: none;
+}
+
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(1200px 600px at 20% 10%, rgba(76, 125, 255, 0.35), transparent 60%),
+    radial-gradient(900px 500px at 80% 0%, rgba(106, 92, 255, 0.25), transparent 55%),
+    radial-gradient(900px 500px at 30% 85%, rgba(0, 255, 180, 0.10), transparent 50%),
+    var(--bg);
+}
+
+/* ===== App Shell ===== */
+.shell {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 12px 16px 28px;
+}
+
+/* ===== App Bar ===== */
+.appbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  backdrop-filter: blur(14px) saturate(180%);
+  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  background: rgba(11, 18, 32, 0.75);
+  border-bottom: 1px solid var(--border);
+}
+
+.appbar-inner {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.brand-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  object-fit: cover;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border);
+}
+
+.brand-text {
+  min-width: 0;
+}
+
+.brand-title {
+  font-weight: 800;
+  font-size: 18px;
+  line-height: 1.2;
+  letter-spacing: -0.2px;
+}
+
+.brand-sub {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 50vw;
+}
+
+.appbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 0 4px rgba(60, 255, 151, 0.15);
+}
+
+.icon-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.icon-btn svg {
+  fill: currentColor;
+  width: 18px;
+  height: 18px;
+}
+
+.icon-btn:hover {
+  background: rgba(255, 255, 255, 0.10);
+}
+
+.icon-btn:active {
+  transform: scale(0.98);
+}
+
+.hide-sm {
+  display: none;
+}
+
+@media (min-width: 600px) {
+  .hide-sm { display: inline; }
+  .brand-sub { max-width: 300px; }
+}
+
+/* ===== Tabs ===== */
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin: 16px 0;
+  padding: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  flex: 1;
+  min-width: 100px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.tab.active {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text);
+}
+
+.tab-panel {
+  display: none;
+}
+
+.tab-panel.active {
+  display: block;
+}
+
+/* ===== Grid Layout ===== */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--gap);
+}
+
+@media (min-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ===== Cards ===== */
+.card {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 18px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.card-head {
+  margin-bottom: 12px;
+}
+
+.card-head h2 {
+  font-size: 18px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.card-head p {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.small {
+  font-size: 12px;
+  color: var(--muted2);
+}
+
+/* ===== Segmented Control ===== */
+.segmented {
+  display: flex;
+  padding: 4px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  margin: 16px 0 8px;
+}
+
+.seg {
+  flex: 1;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.seg.active {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text);
+}
+
+/* ===== Forms ===== */
+.form-block {
+  margin-top: 12px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.field {
+  display: block;
+  margin-bottom: 16px;
+}
+
+.label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  margin-bottom: 6px;
+  letter-spacing: 0.3px;
+}
+
+input, select {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--text);
+  font-size: 15px;
+  transition: all 0.15s ease;
+}
+
+input:focus, select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(76, 125, 255, 0.2);
+  background: rgba(0, 0, 0, 0.4);
+}
+
+input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 480px) {
+  .row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
+
+.input-wrap {
+  position: relative;
+}
+
+.input-wrap input {
+  padding-right: 80px;
+}
+
+.suffix {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: var(--muted2);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  pointer-events: none;
+}
+
+/* ===== Buttons ===== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 18px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  position: relative;
+}
+
+.btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn.primary {
+  border: none;
+  background: linear-gradient(135deg, var(--primary), var(--primary-glow));
+  box-shadow: 0 10px 25px rgba(76, 125, 255, 0.3);
+}
+
+.btn.ghost {
+  width: auto;
+  background: transparent;
+  border-color: transparent;
+}
+
+.btn.small {
+  width: auto;
+  padding: 8px 16px;
+  font-size: 13px;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  display: none;
+  animation: spin 0.7s linear infinite;
+}
+
+.btn.loading .spinner {
+  display: inline-block;
+}
+
+.btn.loading .btn-text {
+  opacity: 0.7;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ===== KPIs ===== */
+.kpis {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 12px 0 16px;
+}
+
+.kpi {
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+}
+
+.kpi-label {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.kpi-value {
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.2;
+  margin-top: 4px;
+}
+
+.kpi-sub {
+  font-size: 11px;
+  color: var(--muted2);
+}
+
+/* ===== Glucose Colors ===== */
+.glucose-normal {
+  color: #2ecc71;
+  font-weight: 700;
+}
+
+.glucose-prediabetes {
+  color: #f39c12;
+  font-weight: 700;
+}
+
+.glucose-diabetes {
+  color: #e74c3c;
+  font-weight: 700;
+}
+
+/* ===== BP Colors (5 Categories) ===== */
+.bp-normal {
+  color: #2ecc71;
+  font-weight: 700;
+}
+
+.bp-elevated {
+  color: #f1c40f;
+  font-weight: 700;
+}
+
+.bp-stage1 {
+  color: #f39c12;
+  font-weight: 700;
+}
+
+.bp-stage2 {
+  color: #e74c3c;
+  font-weight: 700;
+}
+
+.bp-crisis {
+  color: #9b59b6;
+  font-weight: 700;
+  text-decoration: underline wavy #e74c3c;
+}
+
+/* ===== Chart Card ===== */
+.chart-card {
+  margin-top: 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.chart-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 12px 6px;
+}
+
+.chart-title {
+  font-weight: 800;
+  font-size: 15px;
+}
+
+.legend-inline {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.lg {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+}
+
+.lg-g { color: #7a9eff; }
+.lg-s { color: #7affb7; }
+.lg-d { color: #ff7a95; }
+
+.sv-chart-wrap {
+  position: relative;
+  padding: 8px 8px 12px;
+  height: 220px;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sv-chart {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.chart-tooltip {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  z-index: 10;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  color: white;
+  font-size: 12px;
+  line-height: 1.5;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-5px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  max-width: 90%;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+}
+
+.chart-tooltip.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ===== الجدول المحسن (احترافي) ===== */
+.table-wrap {
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  margin: 16px 0;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  min-width: 800px; /* للتمرير الأفقي على الشاشات الصغيرة */
+}
+
+.table th {
+  background: rgba(255, 255, 255, 0.06);
+  padding: 16px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 14px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  vertical-align: middle;
+  color: var(--text);
+}
+
+.table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* تحسين عرض القيم مع الشارات */
+.table td .status-badge {
+  margin-left: 0;
+  margin-right: 8px;
+}
+
+/* أزرار الإجراءات */
+.td-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.mini-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 30px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.mini-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.mini-btn.danger {
+  border-color: rgba(255, 77, 109, 0.3);
+  background: rgba(255, 77, 109, 0.1);
+  color: #ff6b8b;
+}
+
+.mini-btn.danger:hover {
+  background: rgba(255, 77, 109, 0.2);
+}
+
+.mini-btn:active {
+  transform: scale(0.95);
+}
+
+/* ===== Pager ===== */
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+/* ===== Insights ===== */
+.insights-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+@media (min-width: 700px) {
+  .insights-grid {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}
+
+.mini-card {
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+}
+
+.mini-title {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.mini-value {
+  font-size: 24px;
+  font-weight: 800;
+  margin: 6px 0 2px;
+}
+
+.mini-sub {
+  font-size: 11px;
+  color: var(--muted2);
+}
+
+/* ===== Toast ===== */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%) translateY(10px);
+  padding: 12px 20px;
+  border-radius: 30px;
+  background: rgba(20, 30, 45, 0.9);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: var(--shadow);
+  opacity: 0;
+  transition: all 0.2s ease;
+  z-index: 9999;
+  pointer-events: none;
+  max-width: 90vw;
+  text-align: center;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.toast.ok {
+  border-color: rgba(60, 255, 151, 0.3);
+}
+
+.toast.err {
+  border-color: rgba(255, 77, 109, 0.4);
+}
+
+/* ===== تحويل الجدول إلى بطاقات على الشاشات الصغيرة جداً ===== */
+@media (max-width: 550px) {
+  .table-wrap {
+    background: transparent;
+    border: none;
+  }
+  
+  .table,
+  .table thead,
+  .table tbody,
+  .table tr,
+  .table td {
+    display: block;
+  }
+  
+  .table thead {
+    display: none; /* إخفاء رأس الجدول */
+  }
+  
+  .table tr {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    margin-bottom: 16px;
+    padding: 16px;
+    position: relative;
+  }
+  
+  .table td {
+    display: flex;
+    align-items: flex-start;
+    padding: 10px 0;
+    border-bottom: 1px dashed var(--border);
+  }
+  
+  .table td:last-child {
+    border-bottom: none;
+  }
+  
+  .table td::before {
+    content: attr(data-label);
+    font-weight: 700;
+    width: 100px;
+    min-width: 100px;
+    color: var(--muted);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  
+  .td-actions {
+    justify-content: flex-start;
+    padding-top: 8px;
+  }
+  
+  .td-actions::before {
+    content: "الإجراءات:";
+  }
+  
+  .mini-btn {
+    padding: 8px 12px;
+  }
+}
+
+/* ===== إخفاء أي بقايا لخدمات الترجمة (اختياري) ===== */
+.goog-te-banner-frame.skiptranslate,
+.goog-te-spinner-pos,
+iframe.goog-te-banner-frame,
+div.skiptranslate {
+  display: none !important;
+}
+body {
+  top: 0 !important;
+}

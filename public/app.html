@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -85,17 +85,72 @@
       margin-right: 2px;
     }
 
-    /* تقليل المسافات بين عناصر الـ appbar */
+    /* ===== رأس الصفحة: العنوان على اليسار، الأزرار على اليمين ===== */
+    .appbar-inner {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .brand-title {
+      font-size: 24px;
+      font-weight: 600;
+      color: #1c1c1e;
+    }
+
+    .brand-sub {
+      font-size: 16px;
+      color: #3a3a3c;
+      background: #f1f3f5;
+      padding: 4px 12px;
+      border-radius: 30px;
+      margin-top: 4px;
+    }
+
     .appbar-actions {
-      gap: 6px;
+      display: flex;
+      gap: 8px;
     }
+
     .chip {
-      padding: 6px 10px;
-      font-size: 12px;
+      padding: 6px 12px;
+      font-size: 14px;
+      background-color: #e8f0fe;
+      color: #0057b3;
+      border: 1px solid #cce0ff;
+      border-radius: 40px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
+
     .icon-btn {
-      padding: 6px 10px;
+      padding: 6px 12px;
+      font-size: 14px;
+      background-color: #ffeeee;
+      color: #b3002d;
+      border: 1px solid #ffccd4;
+      border-radius: 40px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
+
+    .hide-sm {
+      display: inline;
+    }
+
     /* إخفاء شريط Google Translate الافتراضي */
     .goog-te-banner-frame.skiptranslate { display: none !important; }
     body { top: 0 !important; }
@@ -284,67 +339,91 @@
 
     /* ===== Mobile improvements ===== */
     @media (max-width: 600px) {
-  .tabs {
-    gap: 2px;                /* reduced from 4px */
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    padding: 4px 0;
-  }
-  .tabs .tab {
-    padding: 6px 10px;        /* reduced from 8px 12px */
-    font-size: 14px;
-    white-space: nowrap;
-  }
-  .grid {
-    grid-template-columns: 1fr !important;
-  }
-  .recent-grid {
-    grid-template-columns: 1fr !important;
-  }
-  .appbar-inner {
-    flex-wrap: wrap;
-    gap: 4px;                 /* reduced from 8px */
-  }
-  .brand {
-    width: 100%;
-    justify-content: center;
-  }
-  .brand-logo {
-    max-height: 32px;         /* limit logo height */
-    width: auto;
-  }
-  .appbar-actions {
-    width: 100%;
-    justify-content: center;
-    gap: 4px;                 /* smaller gap between buttons */
-  }
-  .chip, .icon-btn {
-    padding: 4px 8px;         /* smaller padding */
-    font-size: 12px;
-  }
-  .kpis {
-    flex-direction: column;
-    gap: 8px;
-  }
-  .kpi {
-    width: 100%;
-  }
-  .product-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-}
+      .tabs {
+        gap: 2px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 4px 0;
+      }
+      .tabs .tab {
+        padding: 6px 10px;
+        font-size: 14px;
+        white-space: nowrap;
+      }
+      .grid {
+        grid-template-columns: 1fr !important;
+      }
+      .recent-grid {
+        grid-template-columns: 1fr !important;
+      }
+      .kpis {
+        flex-direction: column;
+        gap: 8px;
+      }
+      .kpi {
+        width: 100%;
+      }
+      .product-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      .appbar-inner {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      .appbar-actions {
+        align-self: flex-end;
+      }
+    }
+
+    /* ===== Insights section داخل Dashboard ===== */
+    .dashboard-insights {
+      margin-top: 24px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 16px;
+      padding: 16px;
+    }
+    .dashboard-insights h3 {
+      margin: 0 0 16px 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: #ddd;
+    }
+    .insights-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+    }
+    .mini-card {
+      background: rgba(0,0,0,0.2);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .mini-title {
+      font-size: 12px;
+      color: #aaa;
+      margin-bottom: 4px;
+    }
+    .mini-value {
+      font-size: 26px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    .mini-sub {
+      font-size: 12px;
+      color: #aaa;
+      margin-top: 4px;
+    }
   </style>
 </head>
 
 <body class="app-page">
-  <!-- Top App Bar -->
+  <!-- Top App Bar: العنوان على اليسار، الأزرار على اليمين -->
   <header class="appbar">
     <div class="appbar-inner">
       <div class="brand">
-        <div class="brand-text">
-          <div class="brand-title">Health Tracker</div>
-          <div class="brand-sub" id="subtitle"></div>
-        </div>
+        <div class="brand-title">Health Tracker</div>
+        <div class="brand-sub" id="subtitle"></div>
       </div>
 
       <div class="appbar-actions">
@@ -366,11 +445,10 @@
 
   <!-- باقي المحتوى -->
   <main class="shell">
-    <!-- Tabs (Store tab added) -->
+    <!-- Tabs (تم إزالة Insights) -->
     <nav class="tabs" aria-label="Sections">
       <button class="tab active" type="button" data-tab="dashboard" onclick="showTab('dashboard')">Dashboard</button>
       <button class="tab" type="button" data-tab="history" onclick="showTab('history')">History</button>
-      <button class="tab" type="button" data-tab="insights" onclick="showTab('insights')">Insights</button>
       <button class="tab" type="button" data-tab="report" onclick="showTab('report')">Report</button>
       <button class="tab" type="button" data-tab="store" onclick="showTab('store')">Store</button>
     </nav>
@@ -450,7 +528,7 @@
           </div>
         </section>
 
-        <!-- Right: Quick summary + recent tables -->
+        <!-- Right: Quick summary + recent tables + insights -->
         <section class="card">
           <div class="card-head">
             <h2>Today</h2>
@@ -498,6 +576,28 @@
             </div>
           </div>
 
+          <!-- Insights section moved here -->
+          <div class="dashboard-insights">
+            <h3>📊 Quick Insights</h3>
+            <div class="insights-grid">
+              <div class="mini-card">
+                <div class="mini-title">7-Day Avg Glucose</div>
+                <div class="mini-value" id="avg7g">—</div>
+                <div class="mini-sub">mg/dL</div>
+              </div>
+              <div class="mini-card">
+                <div class="mini-title">7-Day Avg BP</div>
+                <div class="mini-value" id="avg7bp">—</div>
+                <div class="mini-sub">mmHg</div>
+              </div>
+              <div class="mini-card">
+                <div class="mini-title">Most Common Note</div>
+                <div class="mini-value" id="commonNote">—</div>
+                <div class="mini-sub">based on history</div>
+              </div>
+            </div>
+          </div>
+
           <div class="card-foot">
             <button class="btn ghost" type="button" onclick="refreshAll()">Refresh</button>
             <span class="muted small" id="lastSync">—</span>
@@ -540,35 +640,7 @@
       </section>
     </section>
 
-    <!-- TAB: Insights -->
-    <section id="tab-insights" class="tab-panel">
-      <section class="card">
-        <div class="card-head">
-          <h2>Insights</h2>
-          <p class="muted">Trends and patterns from your readings.</p>
-        </div>
-
-        <div class="insights-grid">
-          <div class="mini-card">
-            <div class="mini-title">7-Day Avg (Glucose)</div>
-            <div class="mini-value" id="avg7g">—</div>
-            <div class="mini-sub">mg/dL</div>
-          </div>
-          <div class="mini-card">
-            <div class="mini-title">7-Day Avg (Blood Pressure)</div>
-            <div class="mini-value" id="avg7bp">—</div>
-            <div class="mini-sub">mmHg</div>
-          </div>
-          <div class="mini-card">
-            <div class="mini-title">Most Common Note</div>
-            <div class="mini-value" id="commonNote">—</div>
-            <div class="mini-sub">based on history</div>
-          </div>
-        </div>
-      </section>
-    </section>
-
-    <!-- TAB: Report (with Share button) -->
+    <!-- TAB: Report -->
     <section id="tab-report" class="tab-panel">
       <section class="card">
         <div class="card-head" style="display: flex; justify-content: space-between; align-items: center;">
@@ -585,7 +657,7 @@
       </section>
     </section>
 
-    <!-- TAB: Store (new) -->
+    <!-- TAB: Store -->
     <section id="tab-store" class="tab-panel">
       <section class="card">
         <div class="card-head">
@@ -1471,7 +1543,7 @@
         await loadReadings();
         updateSummary();
         renderHistory();
-        updateInsights();
+        updateInsights();    // now updates dashboard insights
         renderRecentTables();
         renderReport();
         $('lastSync').textContent = `Updated ${new Date().toLocaleTimeString()}`;

@@ -116,14 +116,16 @@
         <img src="./images/logo.png" alt="DahniTech Solutions" class="brand-logo" />
         <div class="brand-text">
           <div class="brand-title">Health Tracker</div>
-          <div class="brand-sub" id="subtitle">Your daily readings, simplified</div>
+          <!-- النص الفرعي سيتم تحديثه بالتحية -->
+          <div class="brand-sub" id="subtitle"></div>
         </div>
       </div>
 
       <div class="appbar-actions">
+        <!-- زر المستخدم يعرض "Connected" -->
         <button class="chip" id="whoamiChip" type="button" aria-label="User">
           <span class="dot"></span>
-          <span id="whoamiText">Loading…</span>
+          <span id="whoamiText">Connected</span>
         </button>
 
         <button class="icon-btn" type="button" onclick="logout()" aria-label="Logout">
@@ -137,7 +139,7 @@
     </div>
   </header>
 
-  <!-- باقي المحتوى -->
+  <!-- باقي المحتوى (بدون تغيير) -->
   <main class="shell">
     <!-- Tabs -->
     <nav class="tabs" aria-label="Sections">
@@ -731,10 +733,26 @@
       }
 
       // ===== Render functions =====
+      // دالة لجلب التحية حسب الوقت
+      function getGreeting() {
+        const hour = new Date().getHours();
+        if (hour >= 5 && hour < 12) return "صباح الخير";
+        if (hour >= 12 && hour < 18) return "مساء الخير";
+        return "مساء الخير"; // نستخدم نفس التحية للمساء والليل
+      }
+
+      // تحديث رأس الصفحة: زر المستخدم ورسالة الترحيب
       function updateHeader() {
-        const { name, email } = getAuth();
-        $('whoamiText').textContent = name || email || 'Signed in';
-        $('subtitle').textContent = email ? `${email} • just now` : 'Welcome back';
+        const { name } = getAuth();
+        // استخراج الاسم الأول
+        let firstName = name ? name.split(' ')[0] : 'زائر';
+        if (!firstName) firstName = 'زائر';
+        
+        // تعيين نص الزر إلى "Connected"
+        $('whoamiText').textContent = 'Connected';
+        
+        // تعيين النص الفرعي بالتحية والاسم الأول
+        $('subtitle').textContent = `${getGreeting()}، ${firstName}`;
       }
 
       function updateSummary() {
@@ -1281,7 +1299,7 @@
       // ===== Initialize =====
       async function init() {
         if (!requireAuth()) return;
-        updateHeader();
+        updateHeader();   // تحديث التحية والزر
         await refreshAll();
       }
 

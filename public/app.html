@@ -284,46 +284,55 @@
 
     /* ===== Mobile improvements ===== */
     @media (max-width: 600px) {
-      .tabs {
-        gap: 4px;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        padding: 4px 0;
-      }
-      .tabs .tab {
-        padding: 8px 12px;
-        font-size: 14px;
-        white-space: nowrap;
-      }
-      .grid {
-        grid-template-columns: 1fr !important;
-      }
-      .recent-grid {
-        grid-template-columns: 1fr !important;
-      }
-      .appbar-inner {
-        flex-wrap: wrap;
-        gap: 8px;
-      }
-      .brand {
-        width: 100%;
-        justify-content: center;
-      }
-      .appbar-actions {
-        width: 100%;
-        justify-content: center;
-      }
-      .kpis {
-        flex-direction: column;
-        gap: 8px;
-      }
-      .kpi {
-        width: 100%;
-      }
-      .product-grid {
-        grid-template-columns: 1fr 1fr;
-      }
-    }
+  .tabs {
+    gap: 2px;                /* reduced from 4px */
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 4px 0;
+  }
+  .tabs .tab {
+    padding: 6px 10px;        /* reduced from 8px 12px */
+    font-size: 14px;
+    white-space: nowrap;
+  }
+  .grid {
+    grid-template-columns: 1fr !important;
+  }
+  .recent-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .appbar-inner {
+    flex-wrap: wrap;
+    gap: 4px;                 /* reduced from 8px */
+  }
+  .brand {
+    width: 100%;
+    justify-content: center;
+  }
+  .brand-logo {
+    max-height: 32px;         /* limit logo height */
+    width: auto;
+  }
+  .appbar-actions {
+    width: 100%;
+    justify-content: center;
+    gap: 4px;                 /* smaller gap between buttons */
+  }
+  .chip, .icon-btn {
+    padding: 4px 8px;         /* smaller padding */
+    font-size: 12px;
+  }
+  .kpis {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .kpi {
+    width: 100%;
+  }
+  .product-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
   </style>
 </head>
 

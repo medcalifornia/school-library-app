@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -136,25 +136,32 @@
       background: rgba(20, 30, 45, 0.95);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 12px;
+      padding: 16px;
       box-shadow: var(--shadow);
       backdrop-filter: blur(10px);
       display: none;
-      min-width: 200px;
+      min-width: 220px;
     }
     #translate-container.show {
       display: block;
     }
+    /* تنسيق قائمة اللغات التي سيضيفها Google Translate */
     .goog-te-combo {
       background: rgba(255,255,255,0.1);
       color: white;
       border: 1px solid var(--border);
       border-radius: 20px;
-      padding: 8px 12px;
+      padding: 10px 12px;
       font-size: 14px;
       width: 100%;
-      margin-bottom: 8px;
+      margin-bottom: 12px;
       cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 16px;
     }
     .goog-te-combo option {
       background: #1e2a3a;
@@ -165,11 +172,12 @@
       border: 1px solid var(--border);
       color: white;
       border-radius: 20px;
-      padding: 6px 12px;
-      font-size: 12px;
+      padding: 8px 12px;
+      font-size: 13px;
       cursor: pointer;
       width: 100%;
       transition: all 0.2s;
+      font-weight: 500;
     }
     .close-translate:hover {
       background: rgba(255,255,255,0.2);
@@ -180,13 +188,12 @@
     .goog-tooltip { display: none !important; }
     .goog-tooltip:hover { display: none !important; }
     .goog-text-highlight { background-color: transparent !important; border: none !important; box-shadow: none !important; }
-    /* منع ظهور عناصر Google Translate المنبثقة */
     .goog-te-spinner-pos { display: none !important; }
     iframe.goog-te-banner-frame { display: none !important; }
     div.skiptranslate { display: none !important; }
+    #goog-gt-tt { display: none !important; }
   </style>
 </head>
-
 <body class="app-page">
   <!-- Top App Bar -->
   <header class="appbar">
@@ -426,17 +433,7 @@
   <!-- Toast -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <!-- سكريبت Google Translate -->
-  <script type="text/javascript">
-    function googleTranslateElementInit() {
-      new google.translate.TranslateElement({
-        pageLanguage: 'en',
-        includedLanguages: 'ar,en,fr,es,de,it,pt,ru,zh-CN,ja,hi,ur',
-        layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
-        autoDisplay: false
-      }, 'google_translate_element');
-    }
-  </script>
+  <!-- سكريبت Google Translate - يتم تحميله أولاً -->
   <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
   <script>
@@ -556,7 +553,6 @@
           if (num >= 140 && num <= 199) return '🟡 Prediabetes - After meal.';
           if (num >= 200) return '🔴 Likely Diabetes - After meal.';
         } else {
-          // غير محدد (نفس تصنيف fasting)
           if (num < 70) return '🔴 Dangerous low (Hypoglycemia)';
           if (num >= 70 && num <= 99) return '🟢 Normal';
           if (num >= 100 && num <= 125) return '🟡 Prediabetes';
@@ -712,7 +708,6 @@
           trend = 'down';
           badgeText = 'Normal';
         } else {
-          // Mixed cases: take higher stage
           if (sys >= 140 || dia >= 90) {
             category = 'Stage 2';
             colorClass = 'bp-stage2';
@@ -828,7 +823,6 @@
           if (!res.ok) throw new Error();
           const data = await res.json();
           allReadings = Array.isArray(data) ? data.sort((a, b) => new Date(b.ts) - new Date(a.ts)) : [];
-          console.log('Readings loaded:', allReadings);
         } catch {
           toast('Failed to load readings', 'err');
           allReadings = [];
@@ -1183,7 +1177,6 @@
         let displayDia = dia;
 
         if (!hasData) {
-          console.warn('⚠️ No real data, using sample data for chart display');
           displayGlucose = [120, 135, 110, 150, 140, 130, 125, 145, 135, 155, 140, 130, 120, 115];
           displaySys = [130, 125, 135, 140, 130, 125, 135, 145, 140, 150, 135, 125, 130, 120];
           displayDia = [85, 80, 90, 95, 85, 80, 85, 95, 90, 100, 85, 80, 85, 75];
@@ -1375,7 +1368,6 @@
 
       // ===== Refresh All =====
       window.refreshAll = async () => {
-        console.log('🔄 Refreshing...');
         await loadReadings();
         updateSummary();
         renderHistory();
@@ -1391,20 +1383,43 @@
         await refreshAll();
       }
 
-      // ===== Translation UI =====
+      // ===== Translation UI (تم إعادة بنائه بالكامل) =====
       const translateContainer = $('translate-container');
       const translateBtn = $('translateButton');
       const closeTranslateBtn = $('closeTranslateBtn');
 
+      // دالة لتهيئة أداة الترجمة داخل الحاوية
+      function initGoogleTranslate() {
+        // التأكد من أن مكتبة الترجمة محملة
+        if (typeof google === 'undefined' || !google.translate) {
+          setTimeout(initGoogleTranslate, 200);
+          return;
+        }
+
+        // مسح محتوى العنصر القديم
+        const translateElement = $('google_translate_element');
+        translateElement.innerHTML = ''; // إفراغ المحتوى السابق
+
+        // إعادة إنشاء أداة الترجمة
+        new google.translate.TranslateElement({
+          pageLanguage: 'en',
+          includedLanguages: 'ar,en,fr,es,de,it,pt,ru,zh-CN,ja,hi,ur',
+          layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+          autoDisplay: false
+        }, 'google_translate_element');
+      }
+
       function showTranslate() {
         translateContainer.classList.add('show');
+        // تهيئة الترجمة في كل مرة يتم فيها فتح النافذة
+        initGoogleTranslate();
       }
 
       function hideTranslate() {
         translateContainer.classList.remove('show');
       }
 
-      translateBtn.addEventListener('click', function(e) {
+      translateBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         if (translateContainer.classList.contains('show')) {
           hideTranslate();
@@ -1413,30 +1428,26 @@
         }
       });
 
-      closeTranslateBtn.addEventListener('click', function() {
-        hideTranslate();
-      });
+      closeTranslateBtn.addEventListener('click', hideTranslate);
 
-      document.addEventListener('click', function(e) {
+      document.addEventListener('click', (e) => {
         if (!translateContainer.contains(e.target) && !translateBtn.contains(e.target)) {
           hideTranslate();
         }
       });
 
-      // الاستماع لتغيير اللغة في Google Translate لإغلاق النافذة تلقائياً
-      function waitForTranslateSelect() {
-        const checkExist = setInterval(function() {
-          const select = document.querySelector('.goog-te-combo');
-          if (select) {
-            clearInterval(checkExist);
-            select.addEventListener('change', function() {
-              // بعد اختيار اللغة، نغلق النافذة بعد قليل
-              setTimeout(hideTranslate, 500);
-            });
-          }
-        }, 500);
-      }
-      waitForTranslateSelect();
+      // عند تغيير اللغة، نغلق النافذة بعد قليل
+      document.addEventListener('change', (e) => {
+        if (e.target.classList.contains('goog-te-combo')) {
+          setTimeout(hideTranslate, 600);
+        }
+      }, true); // استخدام capture للتقاط الحدث قبل غيره
+
+      // دالة لتهيئة الترجمة مرة واحدة عند تحميل الصفحة (اختياري، لكننا نفضل إعادة التهيئة عند الفتح)
+      window.googleTranslateElementInit = function() {
+        // لا نقوم بتهيئة الأداة هنا، بل نتركها لـ initGoogleTranslate
+        console.log('Google Translate ready');
+      };
 
       init();
     })();

@@ -105,6 +105,79 @@
     .goog-te-spinner-pos { display: none !important; }
     iframe.goog-te-banner-frame { display: none !important; }
     div.skiptranslate { display: none !important; }
+
+    /* Report tab styles */
+    .report-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      margin-top: 16px;
+    }
+    .report-section {
+      background: rgba(255,255,255,0.05);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .report-section h3 {
+      margin: 0 0 12px 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: #ddd;
+    }
+    .report-row {
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .report-row:last-child {
+      border-bottom: none;
+    }
+    .report-label {
+      font-weight: 500;
+      margin-right: 8px;
+      color: #aaa;
+    }
+    .report-value {
+      font-weight: 700;
+      font-size: 18px;
+    }
+    .report-suggestion {
+      font-size: 12px;
+      color: #aaa;
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+
+    /* Print styles – only the report is visible */
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #tab-report, #tab-report * {
+        visibility: visible;
+      }
+      #tab-report {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        background: white;
+        color: black;
+      }
+      .appbar, .tabs, .toast, .card-head button, .footer, .pager {
+        display: none !important;
+      }
+      .report-grid {
+        color: black;
+      }
+      .report-section {
+        background: #f5f5f5;
+        color: black;
+      }
+      .report-suggestion {
+        color: #333;
+      }
+    }
   </style>
 </head>
 
@@ -116,7 +189,7 @@
         <img src="./images/logo.png" alt="DahniTech Solutions" class="brand-logo" />
         <div class="brand-text">
           <div class="brand-title">Health Tracker</div>
-          <!-- النص الفرعي سيتم تحديثه بالتحية -->
+          <!-- النص الفرعي سيتم تحديثه بالتحية الإنجليزية -->
           <div class="brand-sub" id="subtitle"></div>
         </div>
       </div>
@@ -141,11 +214,12 @@
 
   <!-- باقي المحتوى (بدون تغيير) -->
   <main class="shell">
-    <!-- Tabs -->
+    <!-- Tabs (Report tab added) -->
     <nav class="tabs" aria-label="Sections">
       <button class="tab active" type="button" data-tab="dashboard" onclick="showTab('dashboard')">Dashboard</button>
       <button class="tab" type="button" data-tab="history" onclick="showTab('history')">History</button>
       <button class="tab" type="button" data-tab="insights" onclick="showTab('insights')">Insights</button>
+      <button class="tab" type="button" data-tab="report" onclick="showTab('report')">Report</button>
     </nav>
 
     <!-- TAB: Dashboard -->
@@ -332,6 +406,20 @@
         </div>
       </section>
     </section>
+
+    <!-- TAB: Report (new) -->
+    <section id="tab-report" class="tab-panel">
+      <section class="card">
+        <div class="card-head" style="display: flex; justify-content: space-between; align-items: center;">
+          <h2>Health Report</h2>
+          <button class="btn primary" onclick="printReport()">🖨️ Print</button>
+        </div>
+        <p class="muted">Average readings with suggestions</p>
+        <div id="reportContent" class="report-grid">
+          <!-- populated by JS -->
+        </div>
+      </section>
+    </section>
   </main>
 
   <!-- Toast -->
@@ -434,6 +522,14 @@
 
       function isSameDay(d1, d2) {
         return d1.toDateString() === d2.toDateString();
+      }
+
+      // ===== English greeting =====
+      function getGreeting() {
+        const hour = new Date().getHours();
+        if (hour >= 5 && hour < 12) return "Good morning";
+        if (hour >= 12 && hour < 18) return "Good afternoon";
+        return "Good evening";
       }
 
       // ===== وصف الحالات بالإنجليزية =====
@@ -733,26 +829,19 @@
       }
 
       // ===== Render functions =====
-      // دالة لجلب التحية حسب الوقت
-      function getGreeting() {
-        const hour = new Date().getHours();
-        if (hour >= 5 && hour < 12) return "صباح الخير";
-        if (hour >= 12 && hour < 18) return "مساء الخير";
-        return "مساء الخير"; // نستخدم نفس التحية للمساء والليل
-      }
 
-      // تحديث رأس الصفحة: زر المستخدم ورسالة الترحيب
+      // تحديث رأس الصفحة: زر المستخدم ورسالة الترحيب (بالإنجليزية)
       function updateHeader() {
         const { name } = getAuth();
         // استخراج الاسم الأول
-        let firstName = name ? name.split(' ')[0] : 'زائر';
-        if (!firstName) firstName = 'زائر';
+        let firstName = name ? name.split(' ')[0] : 'Guest';
+        if (!firstName) firstName = 'Guest';
         
         // تعيين نص الزر إلى "Connected"
         $('whoamiText').textContent = 'Connected';
         
-        // تعيين النص الفرعي بالتحية والاسم الأول
-        $('subtitle').textContent = `${getGreeting()}، ${firstName}`;
+        // تعيين النص الفرعي بالتحية الإنجليزية والاسم الأول
+        $('subtitle').textContent = `${getGreeting()}, ${firstName}`;
       }
 
       function updateSummary() {
@@ -1285,6 +1374,110 @@
         wrap.addEventListener('touchend', hideTooltip);
       }
 
+      // ===== Report rendering =====
+      function renderReport() {
+        const container = $('reportContent');
+        if (!container) return;
+
+        const now = new Date();
+        const oneWeekAgo = new Date(now.getTime() - 7 * 86400000);
+        const oneMonthAgo = new Date(now.getTime() - 30 * 86400000);
+        const oneYearAgo = new Date(now.getTime() - 365 * 86400000);
+
+        // Filter readings
+        const weekReadings = allReadings.filter(r => parseDate(r.ts) >= oneWeekAgo);
+        const monthReadings = allReadings.filter(r => parseDate(r.ts) >= oneMonthAgo);
+        const yearReadings = allReadings.filter(r => parseDate(r.ts) >= oneYearAgo);
+
+        // Helper to average glucose
+        function avgGlucose(arr) {
+          const vals = arr.filter(r => r.type === 'glucose').map(r => Number(r.value)).filter(n => !isNaN(n));
+          return vals.length ? Math.round(vals.reduce((a,b) => a+b, 0) / vals.length) : null;
+        }
+
+        // Helper to average BP
+        function avgBP(arr) {
+          const bpReadings = arr.filter(r => r.type === 'bp');
+          let totalSys = 0, totalDia = 0, count = 0;
+          bpReadings.forEach(r => {
+            const parts = r.value.split('/').map(Number);
+            if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+              totalSys += parts[0];
+              totalDia += parts[1];
+              count++;
+            }
+          });
+          if (count === 0) return null;
+          return { sys: Math.round(totalSys / count), dia: Math.round(totalDia / count) };
+        }
+
+        const weeklyGlucose = avgGlucose(weekReadings);
+        const monthlyGlucose = avgGlucose(monthReadings);
+        const yearlyGlucose = avgGlucose(yearReadings);
+
+        const weeklyBP = avgBP(weekReadings);
+        const monthlyBP = avgBP(monthReadings);
+        const yearlyBP = avgBP(yearReadings);
+
+        // Build HTML
+        let html = '<div class="report-section"><h3>Glucose (mg/dL)</h3>';
+
+        // Helper to create a glucose row
+        function glucoseRow(label, value) {
+          if (value === null) return `<div class="report-row"><span class="report-label">${label}:</span> <span class="report-value">—</span></div>`;
+          const status = getGlucoseStatus(value, '');
+          const badgeClass = status.badgeText.toLowerCase().replace(' ', '');
+          const arrow = status.warning ? '<span class="trend-up">▲</span>' : (status.trend === 'down' ? '<span class="trend-down">▼</span>' : '');
+          const suggestion = getGlucoseDescription(value, '');
+          return `
+            <div class="report-row">
+              <span class="report-label">${label}:</span>
+              <span class="report-value ${status.colorClass}">${value}</span>
+              ${arrow}
+              <span class="status-badge ${badgeClass}">${status.badgeText}</span>
+              <div class="report-suggestion">${suggestion}</div>
+            </div>
+          `;
+        }
+
+        html += glucoseRow('Weekly', weeklyGlucose);
+        html += glucoseRow('Monthly', monthlyGlucose);
+        html += glucoseRow('Yearly', yearlyGlucose);
+
+        html += '</div><div class="report-section"><h3>Blood Pressure (mmHg)</h3>';
+
+        function bpRow(label, bpAvg) {
+          if (!bpAvg) return `<div class="report-row"><span class="report-label">${label}:</span> <span class="report-value">—</span></div>`;
+          const bpString = `${bpAvg.sys}/${bpAvg.dia}`;
+          const status = getBPStatus(bpString);
+          const badgeClass = status.badgeText.toLowerCase().replace(' ', '');
+          const arrow = status.warning ? '<span class="trend-up">▲</span>' : (status.trend === 'down' ? '<span class="trend-down">▼</span>' : '');
+          const suggestion = getBPDescription(bpString);
+          return `
+            <div class="report-row">
+              <span class="report-label">${label}:</span>
+              <span class="report-value ${status.colorClass}">${bpString}</span>
+              ${arrow}
+              <span class="status-badge ${badgeClass}">${status.badgeText}</span>
+              <div class="report-suggestion">${suggestion}</div>
+            </div>
+          `;
+        }
+
+        html += bpRow('Weekly', weeklyBP);
+        html += bpRow('Monthly', monthlyBP);
+        html += bpRow('Yearly', yearlyBP);
+
+        html += '</div>';
+
+        container.innerHTML = html;
+      }
+
+      // ===== Print report =====
+      window.printReport = function() {
+        window.print();
+      };
+
       // ===== Refresh All =====
       window.refreshAll = async () => {
         console.log('🔄 Refreshing...');
@@ -1293,13 +1486,14 @@
         renderHistory();
         updateInsights();
         renderChart();
+        renderReport();  // update report tab
         $('lastSync').textContent = `Updated ${new Date().toLocaleTimeString()}`;
       };
 
       // ===== Initialize =====
       async function init() {
         if (!requireAuth()) return;
-        updateHeader();   // تحديث التحية والزر
+        updateHeader();   // تحديث التحية والزر (بالإنجليزية)
         await refreshAll();
       }
 

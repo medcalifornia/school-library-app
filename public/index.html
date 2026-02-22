@@ -3,143 +3,89 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Health Tracker - Login</title>
-  <link rel="stylesheet" href="./style.css">
-  <style>
-    /* إزالة أي شريط أزرق سفلي */
-    body.login-page {
-      background: var(--bg);
-    }
-    .app-footer {
-      border-top: none;
-      background: transparent;
-    }
-  </style>
+  <title>Health Tracker · Login</title>
+  <link rel="stylesheet" href="./style.css" />
 </head>
-
 <body class="login-page">
+  <div class="login-wrap">
+    <div class="card login-card">
+      <div class="brand-row">
+        <img src="./images/logo.png" alt="DahniTech Solutions" class="brand-logo" />
+        <span class="login-title">Health Tracker</span>
+      </div>
+      <p class="muted">Sign in to your account</p>
 
-  <main class="login-wrap">
-    <section class="card login-card" aria-label="Login">
-
-      <header class="login-head">
-        <div class="brand-row">
-          <img src="./images/logo.png" alt="DahniTech Logo" class="brand-logo">
-          <h1 class="login-title">Health Tracker</h1>
-        </div>
-        <p class="muted">Sign in to your account</p>
-      </header>
-
-      <form class="login-form" onsubmit="event.preventDefault(); login();" novalidate>
+      <div class="login-form">
         <label class="field">
-          <span class="label">Email</span>
-          <input
-            id="email"
-            type="email"
-            placeholder="name@example.com"
-            autocomplete="email"
-            autocapitalize="none"
-            spellcheck="false"
-            inputmode="email"
-            required
-          />
+          <span class="label">Email or phone</span>
+          <input type="text" id="username" placeholder="Enter your email or phone" />
         </label>
-
         <label class="field">
           <span class="label">Password</span>
-          <input
-            id="password"
-            type="password"
-            placeholder="••••••••"
-            autocomplete="current-password"
-            required
-          />
+          <input type="password" id="password" placeholder="Enter your password" />
         </label>
 
-        <button id="loginBtn" class="btn primary" type="submit">
-          <span class="btn-text">Login</span>
-          <span class="spinner" aria-hidden="true"></span>
+        <div class="links-pro">
+          <button class="link-btn link-ghost" onclick="window.location.href='https://dahnitechsolutions.com'">Visit Site</button>
+          <a href="#" class="link-btn" onclick="forgotPassword()">Forgot password?</a>
+        </div>
+
+        <button class="btn primary" onclick="login()">
+          <span class="btn-text">Sign in</span>
+          <span class="spinner"></span>
         </button>
-      </form>
-
-      <nav class="links-pro" aria-label="Account links">
-        <a class="link-btn" href="./register.html">Create account</a>
-        <a class="link-btn link-ghost" href="./forgot.html">Forgot password?</a>
-      </nav>
-
-      <div id="msg" class="msg" role="status" aria-live="polite"></div>
-
-      <div class="hero-image" aria-hidden="true">
-        <img src="./images/health-app.jpg" alt="Health Tracker Dashboard Preview">
+        <div id="msg" class="msg"></div>
       </div>
 
-    </section>
-  </main>
+      <div class="links-pro">
+        <span class="muted">New here?</span>
+        <a href="#" class="link-btn" onclick="createAccount()">Create Account</a>
+      </div>
+    </div>
+
+    <div class="hero-image">
+      <img src="./images/hero.jpg" alt="Health tracking" />
+    </div>
+  </div>
 
   <footer class="app-footer">
     <div class="footer-inner">
-      <p>© 2026 El Mehdi Dahni · DahniTech Solutions</p>
-      <p>Health Tracker – Beta Version</p>
-      <p class="footer-small">Developed as a personal academic project at Cerritos College.</p>
+      © 2025 DahniTech Solutions. All rights reserved.<br />
+      <span class="footer-small">Version 2.0 · Better every day</span>
     </div>
   </footer>
 
-<script>
-  (function() {
-    "use strict";
-    
-    const $ = id => document.getElementById(id);
-    
-    function setLoading(btn, isLoading) {
-      if (btn) {
-        btn.classList.toggle("loading", !!isLoading);
-        btn.disabled = !!isLoading;
-      }
-    }
+  <script>
+    function login() {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const msgDiv = document.getElementById('msg');
+      const btn = document.querySelector('.btn.primary');
 
-    window.login = async function() {
-      const email = $("email")?.value.trim();
-      const password = $("password")?.value;
-      const btn = $("loginBtn");
-      const msg = $("msg");
-
-      if (!email || !password) {
-        msg.textContent = "Please enter email and password.";
+      if (!username || !password) {
+        msgDiv.textContent = 'Please enter both fields.';
         return;
       }
 
-      setLoading(btn, true);
-      msg.textContent = "";
+      // Simulate login - replace with real authentication
+      btn.classList.add('loading');
+      setTimeout(() => {
+        btn.classList.remove('loading');
+        // Store user info in localStorage for demo
+        localStorage.setItem('userId', '1');
+        localStorage.setItem('name', username.split('@')[0] || 'User');
+        localStorage.setItem('email', username);
+        window.location.href = './app.html';
+      }, 1000);
+    }
 
-      try {
-        const res = await fetch("/api/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password })
-        });
+    function forgotPassword() {
+      alert('Password reset link sent to your email (demo).');
+    }
 
-        const data = await res.json().catch(() => ({}));
-
-        if (!res.ok) {
-          msg.textContent = data.error || "Login failed. Check your credentials.";
-          return;
-        }
-
-        // Store auth data
-        localStorage.setItem("userId", data.userId);
-        localStorage.setItem("name", data.name || "");
-        localStorage.setItem("phone", data.phone || "");
-        localStorage.setItem("email", email);
-
-        window.location.href = "./app.html";
-      } catch (err) {
-        msg.textContent = "Network error. Please try again.";
-      } finally {
-        setLoading(btn, false);
-      }
-    };
-  })();
-</script>
-
+    function createAccount() {
+      alert('Redirect to signup page (demo).');
+    }
+  </script>
 </body>
 </html>

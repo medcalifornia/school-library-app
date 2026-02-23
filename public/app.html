@@ -242,6 +242,74 @@
       gap: 16px;
       padding: 16px;
     }
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 20px;
+      padding: 16px;
+    }
+    .category-card {
+      background: rgba(255, 255, 255, 0.07);
+      border-radius: 16px;
+      padding: 20px 12px;
+      text-align: center;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(4px);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .category-card:hover {
+      transform: translateY(-4px);
+      background: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+      border-color: rgba(76, 125, 255, 0.3);
+    }
+    .category-image {
+      width: 100%;
+      height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+    .category-image img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+    .category-title {
+      font-weight: 600;
+      font-size: 18px;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+    .category-count {
+      font-size: 13px;
+      color: #aaa;
+    }
+    .back-btn {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 40px;
+      font-size: 14px;
+      cursor: pointer;
+      margin: 0 16px 16px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.2s;
+    }
+    .back-btn:hover {
+      background: rgba(255,255,255,0.2);
+    }
     .product-card {
       background: rgba(255, 255, 255, 0.07);
       border-radius: 16px;
@@ -262,17 +330,17 @@
     }
     .product-image {
       width: 100%;
-      height: 120px; /* ارتفاع ثابت لجميع الصور */
+      height: 120px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 48px; /* للرموز التعبيرية */
+      font-size: 48px;
       overflow: hidden;
     }
     .product-image img {
       max-width: 100%;
       max-height: 100%;
-      object-fit: contain; /* الحفاظ على أبعاد الصورة */
+      object-fit: contain;
       border-radius: 8px;
     }
     .product-title {
@@ -322,6 +390,12 @@
     #tab-store .card-head .muted {
       font-size: 14px;
       opacity: 0.8;
+    }
+    #category-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
     }
   </style>
 </head>
@@ -575,9 +649,8 @@
           <h2>Store</h2>
           <p class="muted">Diabetes & Blood Pressure essentials</p>
         </div>
-        <div class="product-grid" id="productGrid">
-          <!-- Products will be inserted via JS (or static) -->
-        </div>
+        <!-- حاوية الفئات / المنتجات -->
+        <div id="store-container"></div>
       </section>
     </section>
   </main>
@@ -648,6 +721,10 @@
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
         document.querySelector(`.tab[data-tab="${name}"]`).classList.add('active');
         $(`tab-${name}`).classList.add('active');
+        // إذا تم اختيار المتجر، نعرض الفئات
+        if (name === 'store') {
+          renderStoreCategories();
+        }
       };
 
       window.toggleForm = which => {
@@ -1399,57 +1476,134 @@
         container.innerHTML = html;
       }
 
-      // ===== Store products with real image for Glucose Meter =====
-      function renderStore() {
-        const grid = $('productGrid');
-        if (!grid) return;
+      // ===== Store: الفئات والمنتجات =====
+      // بيانات الفئات
+      const categories = [
+        { id: 'glucose-meters', name: 'Glucose Meters', icon: '🩸', count: 3, image: './images/glucose-meter.jpg' },
+        { id: 'test-strips', name: 'Test Strips', icon: '📏', count: 4, image: '' },
+        { id: 'bp-monitors', name: 'BP Monitors', icon: '❤️', count: 3, image: '' },
+        { id: 'lancets', name: 'Lancets', icon: '💉', count: 2, image: '' }
+      ];
 
-        const products = [
-          { 
-            name: 'Glucose Meter', 
-            price: '$29.99', 
-            image: './images/glucose-meter.jpg', // ضع الصورة في هذا المسار
-            alt: 'TRUE METRIX® Glucose Meter' 
-          },
-          { name: 'Test Strips (50)', price: '$18.50', image: '📏' },
-          { name: 'BP Monitor', price: '$49.99', image: '❤️' },
-          { name: 'Lancets (100)', price: '$9.99', image: '💉' },
-          { name: 'Control Solution', price: '$6.99', image: '🧪' },
-          { name: 'Carrying Case', price: '$12.99', image: '👜' },
-          { name: 'Alcohol Swabs', price: '$4.99', image: '🧴' },
-          { name: 'BP Cuff (Large)', price: '$24.99', image: '📐' },
-        ];
+      // بيانات المنتجات (مرتبطة بمعرّف الفئة)
+      const products = [
+        // Glucose Meters
+        { categoryId: 'glucose-meters', name: 'TRUE METRIX® Meter', price: '$29.99', image: './images/glucose-meter.jpg', price_id: 'price_1GlucoseMeter' },
+        { categoryId: 'glucose-meters', name: 'Accu‑Chek Guide', price: '$34.99', image: '🩸', price_id: 'price_2GlucoseMeter' },
+        { categoryId: 'glucose-meters', name: 'Contour Next', price: '$27.50', image: '🩸', price_id: 'price_3GlucoseMeter' },
+        // Test Strips
+        { categoryId: 'test-strips', name: 'TRUE METRIX® Strips (50)', price: '$18.50', image: '📏', price_id: 'price_TestStrips1' },
+        { categoryId: 'test-strips', name: 'Accu‑Chek Guide Strips (50)', price: '$21.99', image: '📏', price_id: 'price_TestStrips2' },
+        { categoryId: 'test-strips', name: 'Contour Next Strips (50)', price: '$19.99', image: '📏', price_id: 'price_TestStrips3' },
+        { categoryId: 'test-strips', name: 'OneTouch Ultra Strips (50)', price: '$22.99', image: '📏', price_id: 'price_TestStrips4' },
+        // BP Monitors
+        { categoryId: 'bp-monitors', name: 'Omron Upper Arm', price: '$49.99', image: '❤️', price_id: 'price_BPMonitor1' },
+        { categoryId: 'bp-monitors', name: 'Beurer Wrist', price: '$39.99', image: '❤️', price_id: 'price_BPMonitor2' },
+        { categoryId: 'bp-monitors', name: 'Withings Wireless', price: '$79.99', image: '❤️', price_id: 'price_BPMonitor3' },
+        // Lancets
+        { categoryId: 'lancets', name: 'TRUEplus Lancets (100)', price: '$9.99', image: '💉', price_id: 'price_Lancets1' },
+        { categoryId: 'lancets', name: 'Accu‑Chek Softclix (100)', price: '$12.99', image: '💉', price_id: 'price_Lancets2' }
+      ];
 
-        grid.innerHTML = products.map(p => {
-          // إذا كان العنصر صورة حقيقية (يبدأ بـ ./) نستخدم <img> وإلا نستخدم الرمز التعبيري
-          const imageHtml = typeof p.image === 'string' && p.image.startsWith('./') 
-            ? `<img src="${p.image}" alt="${p.alt || p.name}" class="product-image">`
-            : `<div class="product-image">${p.image}</div>`;
+      // حالة المتجر الحالية: null = عرض الفئات، أو categoryId
+      let currentStoreCategory = null;
 
-          return `
-            <div class="product-card">
-              ${imageHtml}
-              <div class="product-title">${p.name}</div>
-              <div class="product-price">${p.price}</div>
-              <button class="product-btn" onclick="toast('Demo: would add to cart', 'ok')">Buy</button>
+      // عرض الفئات
+      function renderStoreCategories() {
+        currentStoreCategory = null;
+        const container = $('store-container');
+        if (!container) return;
+
+        let html = '<div class="category-grid">';
+        categories.forEach(cat => {
+          const imageHtml = cat.image ? `<img src="${cat.image}" alt="${cat.name}">` : `<div>${cat.icon}</div>`;
+          html += `
+            <div class="category-card" onclick="selectCategory('${cat.id}')">
+              <div class="category-image">${imageHtml}</div>
+              <div class="category-title">${cat.name}</div>
+              <div class="category-count">${cat.count} products</div>
             </div>
           `;
-        }).join('');
+        });
+        html += '</div>';
+        container.innerHTML = html;
       }
+
+      // عرض منتجات فئة معينة
+      window.selectCategory = (categoryId) => {
+        currentStoreCategory = categoryId;
+        const container = $('store-container');
+        const category = categories.find(c => c.id === categoryId);
+        if (!category) return;
+
+        const categoryProducts = products.filter(p => p.categoryId === categoryId);
+        let html = `
+          <div id="category-header">
+            <button class="back-btn" onclick="renderStoreCategories()">← Back to Categories</button>
+            <h3 style="color:white; margin:0;">${category.name}</h3>
+          </div>
+          <div class="product-grid">
+        `;
+
+        categoryProducts.forEach(p => {
+          const imageHtml = p.image && p.image.startsWith('./') ? `<img src="${p.image}" alt="${p.name}">` : `<div>${p.image}</div>`;
+          html += `
+            <div class="product-card">
+              <div class="product-image">${imageHtml}</div>
+              <div class="product-title">${p.name}</div>
+              <div class="product-price">${p.price}</div>
+              <button class="product-btn" onclick="buyProduct('${p.price_id}', this)">Buy</button>
+            </div>
+          `;
+        });
+
+        html += '</div>';
+        container.innerHTML = html;
+      };
+
+      // ===== Handle Buy button: call server to create Stripe Checkout Session =====
+      window.buyProduct = async function(priceId, btnElement) {
+        if (!requireAuth()) return;
+
+        const originalText = btnElement.innerText;
+        btnElement.innerText = 'Processing...';
+        btnElement.disabled = true;
+
+        try {
+          const { userId } = getAuth();
+          const response = await fetch('/api/create-checkout-session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              priceId: priceId,
+              userId: userId,
+              successUrl: window.location.origin + '/success.html',
+              cancelUrl: window.location.origin + '/cancel.html'
+            })
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to create checkout session');
+          }
+
+          const { sessionUrl } = await response.json();
+          window.location.href = sessionUrl;
+        } catch (error) {
+          toast('Payment initiation failed: ' + error.message, 'err');
+          btnElement.innerText = originalText;
+          btnElement.disabled = false;
+        }
+      };
 
       // ===== Save report as PDF (single page, clean header) =====
       window.saveReportAsPDF = function() {
         const card = document.querySelector('#tab-report .card');
         if (!card) return;
 
-        // استنساخ البطاقة لتعديلها
         const clone = card.cloneNode(true);
-        
-        // إزالة رأس البطاقة القديم (العنوان والأزرار)
         const oldHead = clone.querySelector('.card-head');
         if (oldHead) oldHead.remove();
 
-        // إنشاء رأس جديد للتقرير
         const { name } = getAuth();
         const userName = name ? name.split(' ')[0] : 'Guest';
         const now = new Date();
@@ -1466,17 +1620,15 @@
         `;
         clone.prepend(newHeader);
 
-        // خيارات html2pdf لصفحة A4 واحدة
         const opt = {
-          margin:        [0.5, 0.5, 0.5, 0.5], // top, right, bottom, left (inches)
+          margin:        [0.5, 0.5, 0.5, 0.5],
           filename:      `Health_Report_${new Date().toISOString().slice(0,10)}.pdf`,
           image:         { type: 'jpeg', quality: 0.98 },
           html2canvas:   { scale: 2, letterRendering: true, useCORS: true, logging: false },
           jsPDF:         { unit: 'in', format: 'a4', orientation: 'portrait' },
-          pagebreak:     { mode: ['css', 'legacy'] } // لتجنب التقسيم غير المرغوب
+          pagebreak:     { mode: ['css', 'legacy'] }
         };
 
-        // توليد PDF وحفظه
         html2pdf().set(opt).from(clone).save();
       };
 
@@ -1523,7 +1675,7 @@
               files: [file]
             }).catch(err => {
               toast('Sharing failed: ' + err.message, 'err');
-              pdf.save(opt.filename); // fallback
+              pdf.save(opt.filename);
             });
           } else {
             pdf.save(opt.filename);
@@ -1532,7 +1684,7 @@
         });
       };
 
-      // ===== Print report (uses browser print) =====
+      // ===== Print report =====
       window.printReport = function() {
         window.print();
       };
@@ -1553,11 +1705,14 @@
       async function init() {
         if (!requireAuth()) return;
         updateHeader();
-        renderStore(); // populate store tab with real image
+        // يتم عرض المتجر عند النقر على التبويب فقط
         await refreshAll();
       }
 
       init();
+
+      // جعل الدوال متاحة عالمياً للنقر من HTML
+      window.renderStoreCategories = renderStoreCategories;
     })();
   </script>
 </body>

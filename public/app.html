@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Health Tracker · Dashboard</title>
   <link rel="stylesheet" href="./style.css" />
+  <!-- مكتبة html2pdf لإنشاء ملفات PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <style>
     /* تحسينات إضافية للشارت والشارات */
     .sv-chart { display: block; width: 100%; height: 100%; }
@@ -322,18 +324,15 @@
         <img src="./images/logo.png" alt="DahniTech Solutions" class="brand-logo" />
         <div class="brand-text">
           <div class="brand-title">Health Tracker</div>
-          <!-- النص الفرعي سيتم تحديثه بالتحية الإنجليزية -->
           <div class="brand-sub" id="subtitle"></div>
         </div>
       </div>
 
       <div class="appbar-actions">
-        <!-- زر المستخدم يعرض "Connected" -->
         <button class="chip" id="whoamiChip" type="button" aria-label="User">
           <span class="dot"></span>
           <span id="whoamiText">Connected</span>
         </button>
-
         <button class="icon-btn" type="button" onclick="logout()" aria-label="Logout">
           <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
             <path d="M10 17l1.41-1.41L8.83 13H21v-2H8.83l2.58-2.59L10 7l-7 7 7 7z"></path>
@@ -344,7 +343,7 @@
       </div>
     </div>
   </header>
-  <!-- باقي المحتوى -->
+
   <main class="shell">
     <!-- Tabs -->
     <nav class="tabs" aria-label="Sections">
@@ -549,6 +548,7 @@
           <div style="display: flex; gap: 8px;">
             <button class="btn secondary" onclick="shareReport()">📤 Share</button>
             <button class="btn primary" onclick="printReport()">🖨️ Print</button>
+            <button class="btn secondary" onclick="saveReportAsPDF()">💾 Save</button>
           </div>
         </div>
         <p class="muted">Average readings with suggestions</p>
@@ -1283,12 +1283,16 @@
         }).join('') || '<tr><td colspan="3" class="muted">No BP readings</td></tr>';
       }
 
-      // ===== Report rendering =====
+      // ===== Report rendering with user name and print date =====
       function renderReport() {
         const container = $('reportContent');
         if (!container) return;
 
+        const { name } = getAuth();
+        const userName = name ? name.split(' ')[0] : 'Guest';
         const now = new Date();
+        const printDate = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
+
         const oneWeekAgo = new Date(now.getTime() - 7 * 86400000);
         const oneMonthAgo = new Date(now.getTime() - 30 * 86400000);
         const oneYearAgo = new Date(now.getTime() - 365 * 86400000);
@@ -1325,7 +1329,17 @@
         const monthlyBP = avgBP(monthReadings);
         const yearlyBP = avgBP(yearReadings);
 
-        let html = '<div class="report-section"><h3>Glucose (mg/dL)</h3>';
+        let html = `
+          <div class="report-header" style="margin-bottom:20px; border-bottom:1px solid #ccc; padding-bottom:10px;">
+            <h1 style="margin:0; font-size:28px;">Health Report</h1>
+            <div style="display:flex; justify-content:space-between; margin-top:5px; color:#aaa;">
+              <span>Patient: ${escapeHtml(userName)}</span>
+              <span>Printed: ${escapeHtml(printDate)}</span>
+            </div>
+          </div>
+        `;
+
+        html += '<div class="report-section"><h2>Glucose (mg/dL)</h2>';
 
         function glucoseRow(label, value) {
           if (value === null) return `<div class="report-row"><span class="report-label">${label}:</span> <span class="report-value">—</span></div>`;
@@ -1336,8 +1350,7 @@
           return `
             <div class="report-row">
               <span class="report-label">${label}:</span>
-              <span class="report-value ${status.colorClass}">${value}</span>
-              ${arrow}
+              <span class="report-value ${status.colorClass}">${value}</span> ${arrow}
               <span class="status-badge ${badgeClass}">${status.badgeText}</span>
               <div class="report-suggestion">${suggestion}</div>
             </div>
@@ -1348,7 +1361,7 @@
         html += glucoseRow('Monthly', monthlyGlucose);
         html += glucoseRow('Yearly', yearlyGlucose);
 
-        html += '</div><div class="report-section"><h3>Blood Pressure (mmHg)</h3>';
+        html += '</div><div class="report-section"><h2>Blood Pressure (mmHg)</h2>';
 
         function bpRow(label, bpAvg) {
           if (!bpAvg) return `<div class="report-row"><span class="report-label">${label}:</span> <span class="report-value">—</span></div>`;
@@ -1360,8 +1373,7 @@
           return `
             <div class="report-row">
               <span class="report-label">${label}:</span>
-              <span class="report-value ${status.colorClass}">${bpString}</span>
-              ${arrow}
+              <span class="report-value ${status.colorClass}">${bpString}</span> ${arrow}
               <span class="status-badge ${badgeClass}">${status.badgeText}</span>
               <div class="report-suggestion">${suggestion}</div>
             </div>
@@ -1403,37 +1415,68 @@
         `).join('');
       }
 
-      // ===== Share report =====
-      window.shareReport = function() {
-        // Gather report data
-        const weeklyG = $('avg7g')?.innerText || '—';
-        const weeklyBP = $('avg7bp')?.innerText || '—';
-        const today = new Date().toLocaleDateString();
+      // ===== Save report as PDF =====
+      window.saveReportAsPDF = function() {
+        const element = document.getElementById('tab-report').querySelector('.card');
+        if (!element) return;
 
-        const reportText = `Health Report - ${today}\n\n7‑Day Avg Glucose: ${weeklyG}\n7‑Day Avg BP: ${weeklyBP}\n\nFull report available in the app.`;
+        // استنساخ العنصر لتجنب تعديل الصفحة الأصلية
+        const clone = element.cloneNode(true);
+        // إزالة الأزرار من النسخة (Share, Print, Save)
+        const buttons = clone.querySelector('.card-head div');
+        if (buttons) buttons.remove();
 
-        if (navigator.share) {
-          navigator.share({
-            title: 'Health Report',
-            text: reportText,
-          }).catch(() => {
-            // fallback to clipboard
-            copyToClipboard(reportText);
-          });
-        } else {
-          copyToClipboard(reportText);
-        }
+        // خيارات html2pdf
+        const opt = {
+          margin:       0.5,
+          filename:     `Health_Report_${new Date().toISOString().slice(0,10)}.pdf`,
+          image:        { type: 'jpeg', quality: 0.98 },
+          html2canvas:  { scale: 2, letterRendering: true },
+          jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+        };
+
+        html2pdf().set(opt).from(clone).save();
       };
 
-      function copyToClipboard(text) {
-        navigator.clipboard.writeText(text).then(() => {
-          toast('Report copied to clipboard', 'ok');
-        }).catch(() => {
-          toast('Could not copy', 'err');
-        });
-      }
+      // ===== Share report as PDF =====
+      window.shareReport = function() {
+        const element = document.getElementById('tab-report').querySelector('.card');
+        if (!element) return;
 
-      // ===== Print report =====
+        const clone = element.cloneNode(true);
+        const buttons = clone.querySelector('.card-head div');
+        if (buttons) buttons.remove();
+
+        const opt = {
+          margin:       0.5,
+          filename:     `Health_Report_${new Date().toISOString().slice(0,10)}.pdf`,
+          image:        { type: 'jpeg', quality: 0.98 },
+          html2canvas:  { scale: 2, letterRendering: true },
+          jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+        };
+
+        // إنشاء PDF كـ blob ثم مشاركته
+        html2pdf().from(clone).set(opt).toPdf().get('pdf').then(function(pdf) {
+          const blob = pdf.output('blob');
+          const file = new File([blob], opt.filename, { type: 'application/pdf' });
+          if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            navigator.share({
+              title: 'Health Report',
+              files: [file]
+            }).catch(err => {
+              toast('Sharing failed: ' + err.message, 'err');
+              // fallback: حفظ الملف
+              pdf.save(opt.filename);
+            });
+          } else {
+            // المشاركة غير مدعومة، حفظ الملف
+            pdf.save(opt.filename);
+            toast('Sharing not supported, file saved instead', 'ok');
+          }
+        });
+      };
+
+      // ===== Print report (uses browser print) =====
       window.printReport = function() {
         window.print();
       };
@@ -1444,7 +1487,7 @@
         await loadReadings();
         updateSummary();
         renderHistory();
-        updateInsights();    // now updates dashboard insights
+        updateInsights();
         renderRecentTables();
         renderReport();
         $('lastSync').textContent = `Updated ${new Date().toLocaleTimeString()}`;

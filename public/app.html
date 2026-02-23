@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -6,7 +6,7 @@
   <title>Health Tracker · Dashboard</title>
   <link rel="stylesheet" href="./style.css" />
   <style>
-    /* تحسينات إضافية للشارات */
+    /* تحسينات إضافية للشارت والشارات */
     .sv-chart { display: block; width: 100%; height: 100%; }
     .sv-chart-wrap { touch-action: pan-y; user-select: none; }
     .chart-tooltip { 
@@ -85,72 +85,17 @@
       margin-right: 2px;
     }
 
-    /* رأس الصفحة: العنوان على اليسار، الأزرار على اليمين */
-    .appbar-inner {
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px 16px;
-      flex-wrap: wrap;
-    }
-
-    .brand {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-    }
-
-    .brand-title {
-      font-size: 24px;
-      font-weight: 600;
-      color: #1c1c1e;
-    }
-
-    .brand-sub {
-      font-size: 16px;
-      color: #3a3a3c;
-      background: #f1f3f5;
-      padding: 4px 12px;
-      border-radius: 30px;
-      margin-top: 4px;
-    }
-
+    /* تقليل المسافات بين عناصر الـ appbar */
     .appbar-actions {
-      display: flex;
-      gap: 8px;
+      gap: 6px;
     }
-
     .chip {
-      padding: 6px 12px;
-      font-size: 14px;
-      background-color: #e8f0fe;
-      color: #0057b3;
-      border: 1px solid #cce0ff;
-      border-radius: 40px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
+      padding: 6px 10px;
+      font-size: 12px;
     }
-
     .icon-btn {
-      padding: 6px 12px;
-      font-size: 14px;
-      background-color: #ffeeee;
-      color: #b3002d;
-      border: 1px solid #ffccd4;
-      border-radius: 40px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
+      padding: 6px 10px;
     }
-
-    .hide-sm {
-      display: inline;
-    }
-
     /* إخفاء شريط Google Translate الافتراضي */
     .goog-te-banner-frame.skiptranslate { display: none !important; }
     body { top: 0 !important; }
@@ -161,49 +106,71 @@
     iframe.goog-te-banner-frame { display: none !important; }
     div.skiptranslate { display: none !important; }
 
-    /* Report tab styles */
-    .report-grid {
+    /* ========== Report Tab Professional Design ========== */
+    .report-header {
+      margin-bottom: 24px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid rgba(255,255,255,0.2);
+    }
+    .report-header h1 {
+      font-size: 28px;
+      font-weight: 600;
+      margin: 0 0 8px 0;
+      color: white;
+    }
+    .report-meta {
       display: flex;
-      flex-direction: column;
-      gap: 24px;
-      margin-top: 16px;
+      justify-content: space-between;
+      font-size: 14px;
+      color: #aaa;
     }
     .report-section {
       background: rgba(255,255,255,0.05);
-      border-radius: 12px;
-      padding: 16px;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 24px;
+      border: 1px solid rgba(255,255,255,0.1);
     }
-    .report-section h3 {
-      margin: 0 0 12px 0;
-      font-size: 16px;
+    .report-section h2 {
+      margin: 0 0 20px 0;
+      font-size: 20px;
       font-weight: 600;
       color: #ddd;
+      border-left: 4px solid #4c7dff;
+      padding-left: 12px;
     }
     .report-row {
-      margin-bottom: 16px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px dashed rgba(255,255,255,0.1);
     }
     .report-row:last-child {
       border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
     }
-    .report-label {
-      font-weight: 500;
-      margin-right: 8px;
-      color: #aaa;
+    .report-period {
+      font-weight: 600;
+      font-size: 16px;
+      color: #ccc;
+      margin-bottom: 6px;
     }
     .report-value {
+      font-size: 24px;
       font-weight: 700;
-      font-size: 18px;
+      margin-right: 8px;
     }
     .report-suggestion {
-      font-size: 12px;
+      font-size: 13px;
       color: #aaa;
-      margin-top: 4px;
-      line-height: 1.4;
+      margin-top: 8px;
+      line-height: 1.5;
+      background: rgba(0,0,0,0.2);
+      padding: 10px 12px;
+      border-radius: 10px;
     }
 
-    /* Print styles – only the report is visible */
+    /* Print styles – only the report is visible and looks crisp */
     @media print {
       body * {
         visibility: hidden;
@@ -218,246 +185,76 @@
         width: 100%;
         background: white;
         color: black;
+        padding: 20px;
       }
       .appbar, .tabs, .toast, .card-head button, .footer, .pager {
         display: none !important;
       }
-      .report-grid {
+      .report-header h1 {
         color: black;
       }
-      .report-section {
-        background: #f5f5f5;
-        color: black;
-      }
-      .report-suggestion {
+      .report-meta {
         color: #333;
       }
-    }
-
-    /* Recent readings tables */
-    .recent-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin-top: 16px;
-    }
-    .recent-card {
-      background: rgba(255,255,255,0.05);
-      border-radius: 12px;
-      padding: 16px;
-    }
-    .recent-card h4 {
-      margin: 0 0 12px 0;
-      font-size: 14px;
-      font-weight: 600;
-      color: #ddd;
-    }
-    .mini-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
-    }
-    .mini-table th {
-      text-align: left;
-      padding: 6px 4px;
-      color: #aaa;
-      font-weight: 500;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-    }
-    .mini-table td {
-      padding: 6px 4px;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
-    }
-    .mini-table tr:last-child td {
-      border-bottom: none;
-    }
-    .recent-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-    }
-    .recent-header h3 {
-      margin: 0;
-      font-size: 16px;
-      font-weight: 600;
-    }
-
-    /* Store tab styles */
-    .product-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-      gap: 16px;
-      margin-top: 16px;
-    }
-    .product-card {
-      background: rgba(255,255,255,0.05);
-      border-radius: 12px;
-      padding: 12px;
-      text-align: center;
-      transition: transform 0.2s;
-    }
-    .product-card:hover {
-      transform: scale(1.02);
-      background: rgba(255,255,255,0.08);
-    }
-    .product-image {
-      width: 100%;
-      height: 120px;
-      background: #2a3a4a;
-      border-radius: 8px;
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #aaa;
-      font-size: 12px;
-    }
-    .product-title {
-      font-weight: 600;
-      font-size: 14px;
-      margin-bottom: 4px;
-    }
-    .product-price {
-      color: #4c7dff;
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
-    .product-btn {
-      background: #4c7dff;
-      border: none;
-      color: white;
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 12px;
-      cursor: pointer;
-      width: 100%;
-    }
-    .product-btn:active {
-      opacity: 0.8;
-    }
-
-    /* Mobile improvements */
-    @media (max-width: 600px) {
-      .tabs {
-        gap: 2px;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        padding: 4px 0;
+      .report-section {
+        background: #f9f9f9;
+        border: 1px solid #ddd;
+        color: black;
       }
-      .tabs .tab {
-        padding: 6px 10px;
-        font-size: 14px;
-        white-space: nowrap;
+      .report-section h2 {
+        color: #111;
+        border-left-color: #2c3e50;
       }
-      .grid {
-        grid-template-columns: 1fr !important;
+      .report-period {
+        color: #222;
       }
-      .recent-grid {
-        grid-template-columns: 1fr !important;
+      .report-suggestion {
+        background: #f0f0f0;
+        color: #222;
+        border: 1px solid #ccc;
       }
-      .kpis {
-        flex-direction: column;
-        gap: 8px;
+      .status-badge {
+        border: 1px solid currentColor !important;
+        background: transparent !important;
+        color: black !important;
       }
-      .kpi {
-        width: 100%;
+      .trend-up, .trend-down {
+        color: black !important;
       }
-      .product-grid {
-        grid-template-columns: 1fr 1fr;
-      }
-      .appbar-inner {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-      }
-      .appbar-actions {
-        align-self: flex-end;
-      }
-    }
-
-    /* Insights section داخل Dashboard */
-    .dashboard-insights {
-      margin-top: 24px;
-      background: rgba(255,255,255,0.03);
-      border-radius: 16px;
-      padding: 16px;
-    }
-    .dashboard-insights h3 {
-      margin: 0 0 16px 0;
-      font-size: 18px;
-      font-weight: 600;
-      color: #ddd;
-    }
-    .insights-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 12px;
-    }
-    .mini-card {
-      background: rgba(0,0,0,0.2);
-      border-radius: 12px;
-      padding: 16px;
-    }
-    .mini-title {
-      font-size: 12px;
-      color: #aaa;
-      margin-bottom: 4px;
-    }
-    .mini-value {
-      font-size: 26px;
-      font-weight: 700;
-      line-height: 1.2;
-    }
-    .mini-sub {
-      font-size: 12px;
-      color: #aaa;
-      margin-top: 4px;
     }
   </style>
-</ head>
-‹body class="app-page"›
-<!-- Top App Bar -->
-<header class="appbar">
-‹div class="appbar-inner">
-‹div class="brand">
-<img src="./images/logo.png"
-alt="DahniTech Solutions" class="brand-logo" />
-<div class="brand-text">
-‹div class="brand-title">Health
-Tracker</div>
-النص الفرعي سيتم تحديثه --!>
-<-- بالتحية الإنجليزية
-<div class="brand-sub"
-id="subtitle"></div>
-</div>
-</ div>
-‹div class="appbar-actions"›
-زر المستخدم يعرض ( r
->
-‹button class="chip" id="whoamiChip"
-type="button" aria-label="User">
-‹span class="dot"></span>
-‹span id="whoamiText">Connected</
-span>
-</ button>
-‹button class="icon-btn"
-type="button" onclick="logout()" aria-
-label="Logout">
-<svg viewBox="0 0 24 24"
-width="18" height="18" aria-hidden="true">
-<path d="M10 1711.41-1.41L8.83
-13H21V-2H8.8312.58-2.59L10 71-7 7 7 7z"></ path>
-<path d="M3
-3h8v2H5v14h6v2H3V3z"></path>
-</ svg>
-‹span class="hide-sm">Logout</
-span>
-</ button>
-</div>
-</ div>
-  </header>
+</head>
 
+<body class="app-page">
+  <!-- Top App Bar -->
+  <header class="appbar">
+    <div class="appbar-inner">
+      <div class="brand">
+        <img src="./images/logo.png" alt="DahniTech Solutions" class="brand-logo" />
+        <div class="brand-text">
+          <div class="brand-title">Health Tracker</div>
+          <!-- النص الفرعي سيتم تحديثه بالتحية الإنجليزية -->
+          <div class="brand-sub" id="subtitle"></div>
+        </div>
+      </div>
+
+      <div class="appbar-actions">
+        <!-- زر المستخدم يعرض "Connected" -->
+        <button class="chip" id="whoamiChip" type="button" aria-label="User">
+          <span class="dot"></span>
+          <span id="whoamiText">Connected</span>
+        </button>
+
+        <button class="icon-btn" type="button" onclick="logout()" aria-label="Logout">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <path d="M10 17l1.41-1.41L8.83 13H21v-2H8.83l2.58-2.59L10 7l-7 7 7 7z"></path>
+            <path d="M3 3h8v2H5v14h6v2H3V3z"></path>
+          </svg>
+          <span class="hide-sm">Logout</span>
+        </button>
+      </div>
+    </div>
+  </header>
   <!-- باقي المحتوى -->
   <main class="shell">
     <!-- Tabs -->

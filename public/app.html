@@ -222,6 +222,95 @@
         color: black !important;
       }
     }
+
+    /* ========== تقليل المسافات بين أزرار التبويب ========== */
+    .tabs {
+      gap: 4px; /* المسافة الأفقية بين الأزرار */
+    }
+    .tab {
+      margin: 0;
+      padding: 10px 16px;
+      font-size: 14px;
+    }
+
+    /* ========== تحسينات متجر احترافية ========== */
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 16px;
+      padding: 16px;
+    }
+    .product-card {
+      background: rgba(255, 255, 255, 0.07);
+      border-radius: 16px;
+      padding: 16px 12px;
+      text-align: center;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(4px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .product-card:hover {
+      transform: translateY(-4px);
+      background: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+      border-color: rgba(76, 125, 255, 0.3);
+    }
+    .product-image {
+      font-size: 48px;
+      margin-bottom: 8px;
+      filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
+    }
+    .product-title {
+      font-weight: 600;
+      font-size: 15px;
+      margin-bottom: 4px;
+      color: #fff;
+    }
+    .product-price {
+      color: #6d8eff;
+      font-weight: 700;
+      font-size: 18px;
+      margin: 8px 0 12px;
+    }
+    .product-btn {
+      background: linear-gradient(145deg, #4c7dff, #3a5fd0);
+      border: none;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 40px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      width: 100%;
+      max-width: 120px;
+      box-shadow: 0 4px 10px rgba(76, 125, 255, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .product-btn:hover {
+      background: linear-gradient(145deg, #5f8aff, #4c7dff);
+      transform: scale(1.02);
+      box-shadow: 0 6px 14px rgba(76, 125, 255, 0.5);
+    }
+    .product-btn:active {
+      transform: scale(0.98);
+    }
+    /* تحسين عنوان المتجر */
+    #tab-store .card-head h2 {
+      font-size: 28px;
+      background: linear-gradient(135deg, #fff, #b0c8ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      display: inline-block;
+    }
+    #tab-store .card-head .muted {
+      font-size: 14px;
+      opacity: 0.8;
+    }
   </style>
 </head>
 

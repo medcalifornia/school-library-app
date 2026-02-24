@@ -1,31 +1,19 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes"
-    >
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>Skyland Ranch · Food Truck</title>
-
-    <!-- Font Awesome for icons -->
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
-    >
-
-    <!-- Square Web Payments SDK (sandbox) -->
-    <script type="text/javascript" src="https://sandbox.web.squarecdn.com/v1/square.js"></script>
-
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Square Web Payments SDK (sandbox) - required for card payments -->
+    <script src="https://sandbox.web.squarecdn.com/v1/square.js"></script>
     <style>
         * {
-            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, sans-serif;
         }
-
         body {
             background: #f8f5f0;
             height: 100vh;
@@ -33,9 +21,7 @@
             flex-direction: column;
             overflow: hidden;
         }
-
-        /* header */
-        .app-header {
+        .header {
             background: #8b3e2b;
             color: white;
             padding: 1rem 2rem;
@@ -44,13 +30,10 @@
             align-items: center;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-
-        .app-header h1 {
+        .header h1 {
             font-size: 1.8rem;
             font-weight: 500;
-            letter-spacing: 1px;
         }
-
         .cart-summary {
             background: #6b2e1f;
             padding: 0.7rem 1.5rem;
@@ -60,42 +43,28 @@
             gap: 1rem;
             font-size: 1.3rem;
             cursor: pointer;
-            transition: 0.2s;
         }
-
-        .cart-summary:hover {
-            background: #5a271b;
-        }
-
-        .cart-summary i {
-            font-size: 1.5rem;
-        }
-
-        /* main layout: 3 columns */
-        .main-layout {
+        .main {
             display: flex;
             flex: 1;
             overflow: hidden;
         }
-
         /* categories sidebar */
-        .categories-panel {
+        .categories {
             width: 220px;
             background: #fff2e5;
             border-right: 2px solid #d4b89c;
             overflow-y: auto;
             padding: 1rem 0;
         }
-
-        .categories-panel h3 {
+        .categories h3 {
             padding: 0 1rem 0.5rem;
             color: #5a3e2b;
             font-size: 1.2rem;
             border-bottom: 1px solid #cfa776;
             margin-bottom: 0.5rem;
         }
-
-        .category-btn {
+        .cat-btn {
             display: block;
             width: 100%;
             text-align: left;
@@ -106,32 +75,23 @@
             font-weight: 500;
             color: #4a3627;
             border-left: 4px solid transparent;
-            transition: 0.2s;
             cursor: pointer;
         }
-
-        .category-btn.active {
+        .cat-btn.active {
             background: #e7d3bf;
             border-left-color: #b45f3a;
             font-weight: 600;
         }
-
-        .category-btn:hover {
-            background: #e0cdb8;
-        }
-
-        /* menu items panel (middle) */
+        /* menu panel */
         .menu-panel {
             flex: 1;
             background: #fffcf8;
             overflow-y: auto;
             padding: 1.5rem 1.2rem;
         }
-
         .category-section {
             margin-bottom: 2rem;
         }
-
         .category-title {
             font-size: 1.8rem;
             color: #5a3e2b;
@@ -140,35 +100,25 @@
             margin-bottom: 1.2rem;
             font-weight: 600;
         }
-
         .items-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
             gap: 1.2rem;
         }
-
-        .menu-item-card {
+        .item-card {
             background: white;
             border-radius: 20px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.05);
             padding: 1.2rem 1rem;
             border: 1px solid #f0d5bc;
-            transition: 0.2s;
             display: flex;
             flex-direction: column;
         }
-
-        .menu-item-card:hover {
-            box-shadow: 0 8px 18px rgba(0,0,0,0.1);
-            transform: translateY(-2px);
-        }
-
         .item-name {
             font-size: 1.3rem;
             font-weight: 600;
             color: #2d1f14;
         }
-
         .item-desc {
             font-size: 0.9rem;
             color: #735f4e;
@@ -176,14 +126,12 @@
             line-height: 1.3;
             flex: 1;
         }
-
         .item-price {
             font-size: 1.4rem;
             font-weight: 700;
             color: #8b3e2b;
             margin-bottom: 0.8rem;
         }
-
         .add-btn {
             background: #b45f3a;
             color: white;
@@ -197,16 +145,8 @@
             justify-content: center;
             gap: 0.5rem;
             cursor: pointer;
-            transition: 0.2s;
-            margin-top: auto;
-            -webkit-tap-highlight-color: transparent;
         }
-
-        .add-btn:hover {
-            background: #9a4e2e;
-        }
-
-        /* cart panel (right) */
+        /* cart panel */
         .cart-panel {
             width: 320px;
             background: #f7ede1;
@@ -215,24 +155,20 @@
             flex-direction: column;
             overflow: hidden;
         }
-
         .cart-header {
             background: #d4b89c;
             padding: 1.2rem;
             font-size: 1.5rem;
             font-weight: 600;
-            color: #2d1f14;
             display: flex;
             align-items: center;
             gap: 0.8rem;
         }
-
         .cart-items {
             flex: 1;
             overflow-y: auto;
             padding: 1rem;
         }
-
         .cart-item {
             background: white;
             border-radius: 12px;
@@ -241,41 +177,31 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
-
         .cart-item-info {
             flex: 1;
         }
-
         .cart-item-name {
             font-weight: 600;
-            font-size: 1rem;
         }
-
         .cart-item-price {
             color: #8b3e2b;
-            font-weight: 500;
         }
-
         .cart-item-qty {
             display: flex;
             align-items: center;
             gap: 0.6rem;
         }
-
         .qty-btn {
             background: #e7d3bf;
             border: none;
-            width: 32px;
-            height: 32px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             font-weight: bold;
             font-size: 1.2rem;
             cursor: pointer;
-            -webkit-tap-highlight-color: transparent;
         }
-
         .cart-total {
             padding: 1.2rem;
             border-top: 2px dashed #b45f3a;
@@ -285,7 +211,6 @@
             justify-content: space-between;
             background: #f7ede1;
         }
-
         .checkout-btn {
             background: #2d7a4b;
             color: white;
@@ -298,27 +223,18 @@
             justify-content: center;
             gap: 1rem;
             cursor: pointer;
-            transition: 0.2s;
             width: 100%;
-            -webkit-tap-highlight-color: transparent;
         }
-
-        .checkout-btn:hover {
-            background: #1f5f38;
-        }
-
         .clear-cart {
             background: #a05a3a;
             color: white;
             border: none;
             padding: 0.6rem;
-            border-radius: 8px;
             margin: 0 1rem 1rem;
             cursor: pointer;
-            -webkit-tap-highlight-color: transparent;
+            border-radius: 8px;
         }
-
-        /* modal overlay */
+        /* modal */
         .modal {
             display: none;
             position: fixed;
@@ -328,7 +244,6 @@
             justify-content: center;
             z-index: 1000;
         }
-
         .modal-content {
             background: white;
             border-radius: 32px;
@@ -338,35 +253,24 @@
             max-height: 80vh;
             overflow-y: auto;
         }
-
         .modal-header {
             font-size: 2rem;
             margin-bottom: 1.5rem;
             color: #2d1f14;
         }
-
-        #square-payment-form {
+        #card-container {
             margin: 1rem 0;
+            min-height: 100px;
         }
-
         .payment-status {
             margin: 1rem 0;
             font-size: 1.2rem;
-            min-height: 1.4em;
         }
-
-        .modal-total {
-            font-size: 1.3rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-
         .btn-group {
             display: flex;
             gap: 1rem;
             margin-top: 1.5rem;
         }
-
         .btn {
             padding: 1rem 2rem;
             border: none;
@@ -374,69 +278,48 @@
             font-size: 1.2rem;
             font-weight: 600;
             cursor: pointer;
-            -webkit-tap-highlight-color: transparent;
         }
-
         .btn-primary {
             background: #b45f3a;
             color: white;
             flex: 2;
         }
-
         .btn-secondary {
             background: #ccc;
             color: #333;
             flex: 1;
         }
-
         .print-receipt {
             background: #2d7a4b;
             color: white;
             width: 100%;
             margin-top: 1rem;
         }
-
-        /* responsive touch */
-        button {
-            -webkit-tap-highlight-color: transparent;
-        }
     </style>
 </head>
 <body>
-    <div class="app-header">
+    <div class="header">
         <h1>🤠 SKYLAND RANCH</h1>
-        <div class="cart-summary" id="cart-summary">
+        <div class="cart-summary" id="cartSummary">
             <i class="fas fa-shopping-cart"></i>
-            <span id="cart-count">0</span> items · <span id="cart-total-header">$0.00</span>
+            <span id="cartCount">0</span> items · <span id="cartTotalHeader">$0.00</span>
         </div>
     </div>
-
-    <div class="main-layout">
-        <!-- categories -->
-        <div class="categories-panel" id="categoriesPanel">
-            <h3>🍽️ MENU</h3>
-            <!-- filled by JS -->
-        </div>
-
-        <!-- menu items -->
-        <div class="menu-panel" id="menuPanel">
-            <!-- filled by JS -->
-        </div>
-
-        <!-- cart -->
-        <div class="cart-panel" id="cartPanel">
+    <div class="main">
+        <!-- categories sidebar -->
+        <div class="categories" id="categories"></div>
+        <!-- menu items panel -->
+        <div class="menu-panel" id="menuPanel"></div>
+        <!-- cart panel -->
+        <div class="cart-panel">
             <div class="cart-header"><i class="fas fa-basket-shopping"></i> Your Cart</div>
             <div class="cart-items" id="cartItems"></div>
             <div class="cart-total">
                 <span>Total</span>
                 <span id="cartTotal">$0.00</span>
             </div>
-            <button class="checkout-btn" id="checkoutBtn">
-                <i class="fas fa-credit-card"></i> Checkout
-            </button>
-            <button class="clear-cart" id="clearCartBtn">
-                <i class="fas fa-trash"></i> Clear cart
-            </button>
+            <button class="checkout-btn" id="checkoutBtn"><i class="fas fa-credit-card"></i> Checkout</button>
+            <button class="clear-cart" id="clearCartBtn"><i class="fas fa-trash"></i> Clear cart</button>
         </div>
     </div>
 
@@ -444,171 +327,131 @@
     <div class="modal" id="paymentModal">
         <div class="modal-content">
             <div class="modal-header">💳 Payment</div>
-
-            <div class="modal-total" id="modalOrderTotal">Order total: $0.00</div>
-
-            <div id="square-payment-form">
-                <!-- Square card input will appear here -->
-                <div id="card-container"></div>
-            </div>
-
-            <div id="payment-status" class="payment-status"></div>
-
+            <div id="card-container"></div>
+            <div id="paymentStatus" class="payment-status"></div>
             <div class="btn-group">
                 <button class="btn btn-primary" id="payBtn">Pay Now</button>
                 <button class="btn btn-secondary" id="cancelPayBtn">Cancel</button>
             </div>
-
-            <button class="btn print-receipt" id="printReceiptBtn" style="display: none;">
-                <i class="fas fa-print"></i> Print Receipt
-            </button>
+            <button class="btn print-receipt" id="printReceiptBtn" style="display: none;"><i class="fas fa-print"></i> Print Receipt</button>
         </div>
     </div>
 
     <script>
-        (function () {
-            // ---------- MENU DATA ----------
+        (function() {
+            // ----- MENU DATA (from PDF) -----
             const menuData = [
                 // BBQ Platters
-                { category: "BBQ Platters", name: "The Dutton", desc: "2 meats with choice of 2 sides + jalapeño cornbread", price: 18.99 },
-                { category: "BBQ Platters", name: "Protect the Family", desc: "Sampler: brisket, pulled pork, smoked sausage, coleslaw, fries, mac, beans, cornbread", price: 25.99 },
-
+                { cat: "BBQ Platters", name: "The Dutton", desc: "2 meats with choice of 2 sides + jalapeño cornbread", price: 18.99 },
+                { cat: "BBQ Platters", name: "Protect the Family", desc: "Sampler: brisket, pulled pork, sausage, coleslaw, fries, mac, beans, cornbread", price: 25.99 },
                 // Smoked Meats
-                { category: "Smoked Meats", name: "Kayce (Brisket)", desc: "Brisket with 2 sides & jalapeño cornbread", price: 15.99 },
-                { category: "Smoked Meats", name: "Monica (Pulled Pork)", desc: "Smoked BBQ pork with 2 sides & jalapeño cornbread", price: 15.49 },
-                { category: "Smoked Meats", name: "John Dutton (Sausage)", desc: "Smoked sausage with peppers & onions, 2 sides & cornbread", price: 15.99 },
-
+                { cat: "Smoked Meats", name: "Kayce (Brisket)", desc: "Brisket with 2 sides & jalapeño cornbread", price: 15.99 },
+                { cat: "Smoked Meats", name: "Monica (Pulled Pork)", desc: "Smoked BBQ pork with 2 sides & cornbread", price: 15.49 },
+                { cat: "Smoked Meats", name: "John Dutton (Sausage)", desc: "Smoked sausage with peppers & onions, 2 sides & cornbread", price: 15.99 },
                 // Sandwiches
-                { category: "Buckin Good Sandwiches", name: "Rip Wheeler", desc: "Chopped brisket, Skyland BBQ sauce, fries/chips & pickle", price: 12.99 },
-                { category: "Buckin Good Sandwiches", name: "Beth Dutton", desc: "BBQ pork sandwich, slaw, spicy Skyland sauce, fries/chips", price: 12.49 },
-                { category: "Buckin Good Sandwiches", name: "Jamie Dutton", desc: "Smoked sausage, peppers, onions, hot queso, fries/chips", price: 12.99 },
-
+                { cat: "Buckin Good Sandwiches", name: "Rip Wheeler", desc: "Chopped brisket, Skyland BBQ sauce, fries/chips & pickle", price: 12.99 },
+                { cat: "Buckin Good Sandwiches", name: "Beth Dutton", desc: "BBQ pork sandwich, slaw, spicy Skyland sauce, fries/chips", price: 12.49 },
+                { cat: "Buckin Good Sandwiches", name: "Jamie Dutton", desc: "Smoked sausage, peppers, onions, hot queso, fries/chips", price: 12.99 },
                 // Western Mac
-                { category: "Western Mac", name: "Kayce Mac", desc: "White cheddar mac topped with brisket", price: 10.99 },
-                { category: "Western Mac", name: "Monica Mac", desc: "White cheddar mac topped with BBQ pork", price: 10.49 },
-                { category: "Western Mac", name: "John Mac", desc: "White cheddar mac topped with smoked sausage", price: 10.99 },
-
+                { cat: "Western Mac", name: "Kayce Mac", desc: "White cheddar mac topped with brisket", price: 10.99 },
+                { cat: "Western Mac", name: "Monica Mac", desc: "White cheddar mac topped with BBQ pork", price: 10.49 },
+                { cat: "Western Mac", name: "John Mac", desc: "White cheddar mac topped with smoked sausage", price: 10.99 },
                 // Sides
-                { category: "Sides", name: "Fries", desc: "Crispy seasoned fries", price: 3.99 },
-                { category: "Sides", name: "Texas Toast", desc: "Grilled buttery toast", price: 2.99 },
-                { category: "Sides", name: "Pickle", desc: "Whole dill pickle", price: 1.99 },
-                { category: "Sides", name: "White Cheddar Mac", desc: "Creamy mac & cheese", price: 4.99 },
-                { category: "Sides", name: "Cowboy Coleslaw", desc: "Tangy slaw", price: 3.49 },
-                { category: "Sides", name: "Dude Ranch BBQ Beans", desc: "Smoky beans", price: 3.99 },
-                { category: "Sides", name: "Jalapeño Cornbread", desc: "Sweet with kick", price: 3.49 },
-                { category: "Sides", name: "Baked Potato", desc: "Loaded on request", price: 4.49 },
-
+                { cat: "Sides", name: "Fries", desc: "Crispy seasoned fries", price: 3.99 },
+                { cat: "Sides", name: "Texas Toast", desc: "Grilled buttery toast", price: 2.99 },
+                { cat: "Sides", name: "Pickle", desc: "Whole dill pickle", price: 1.99 },
+                { cat: "Sides", name: "White Cheddar Mac", desc: "Creamy mac & cheese", price: 4.99 },
+                { cat: "Sides", name: "Cowboy Coleslaw", desc: "Tangy slaw", price: 3.49 },
+                { cat: "Sides", name: "Dude Ranch BBQ Beans", desc: "Smoky beans", price: 3.99 },
+                { cat: "Sides", name: "Jalapeño Cornbread", desc: "Sweet with kick", price: 3.49 },
+                { cat: "Sides", name: "Baked Potato", desc: "Loaded on request", price: 4.49 },
                 // Drinks
-                { category: "Drinks", name: "Domestic Beer (16oz)", desc: "Bud, Coors, etc.", price: 4.99 },
-                { category: "Drinks", name: "Import/Craft Beer (16oz)", desc: "Seasonal", price: 6.49 },
-                { category: "Drinks", name: "Pucker Up Cowboy", desc: "Fresh lemonade", price: 3.99 },
-                { category: "Drinks", name: "Southern Belle", desc: "Sweet tea", price: 2.99 },
-                { category: "Drinks", name: "Half Trst", desc: "Unsweet tea", price: 2.99 }, // rename if this is a typo
-                { category: "Drinks", name: "Campfire Cocoa", desc: "Whipped cream & marshmallows", price: 3.99 },
-                { category: "Drinks", name: "Cappuccino", desc: "Rich & frothy", price: 3.99 },
-
+                { cat: "Drinks", name: "Domestic Beer (16oz)", desc: "Bud, Coors, etc.", price: 4.99 },
+                { cat: "Drinks", name: "Import/Craft Beer (16oz)", desc: "Seasonal", price: 6.49 },
+                { cat: "Drinks", name: "Pucker Up Cowboy", desc: "Fresh lemonade", price: 3.99 },
+                { cat: "Drinks", name: "Southern Belle", desc: "Sweet tea", price: 2.99 },
+                { cat: "Drinks", name: "Half Trst", desc: "Unsweet tea", price: 2.99 },
+                { cat: "Drinks", name: "Campfire Cocoa", desc: "Whipped cream & marshmallows", price: 3.99 },
+                { cat: "Drinks", name: "Cappuccino", desc: "Rich & frothy", price: 3.99 },
                 // Pretzels
-                { category: "Pretzels", name: "One Trick Pony", desc: "Plain pretzel", price: 5.49 },
-                { category: "Pretzels", name: "Stampede", desc: "Pretzel with cheese dipping sauce", price: 6.49 },
-                { category: "Pretzels", name: "The Rodeo", desc: "Cinnamon sugar pretzel with icing", price: 6.49 },
-
+                { cat: "Pretzels", name: "One Trick Pony", desc: "Plain pretzel", price: 5.49 },
+                { cat: "Pretzels", name: "Stampede", desc: "Pretzel with cheese dipping sauce", price: 6.49 },
+                { cat: "Pretzels", name: "The Rodeo", desc: "Cinnamon sugar pretzel with icing", price: 6.49 },
                 // Nachos
-                { category: "Nachos", name: "The Show Pony", desc: "Nachos with cheese", price: 7.99 },
-                { category: "Nachos", name: "Maverick", desc: "Nachos with cheese & jalapeños", price: 8.99 },
-                { category: "Nachos", name: "Skyland Hoe-Down", desc: "Chili cheese nachos & onions", price: 9.99 },
-
+                { cat: "Nachos", name: "The Show Pony", desc: "Nachos with cheese", price: 7.99 },
+                { cat: "Nachos", name: "Maverick", desc: "Nachos with cheese & jalapeños", price: 8.99 },
+                { cat: "Nachos", name: "Skyland Hoe-Down", desc: "Chili cheese nachos & onions", price: 9.99 },
                 // Hot Dogs
-                { category: "Hot Dogs", name: "Ranger", desc: "Plain hot dog, fries/chips", price: 6.49 },
-                { category: "Hot Dogs", name: "Bandit", desc: "Hot dog with homemade chili, fries/chips", price: 7.49 },
-
+                { cat: "Hot Dogs", name: "Ranger", desc: "Plain hot dog, fries/chips", price: 6.49 },
+                { cat: "Hot Dogs", name: "Bandit", desc: "Hot dog with homemade chili, fries/chips", price: 7.49 },
                 // Hamburgers
-                { category: "Hamburgers", name: "The Wild Stallion", desc: "Pepper jack, mayo, lettuce, tomato, onion, jalapeños, fries & pickle", price: 13.99 },
-                { category: "Hamburgers", name: "The Wrangler", desc: "Cheese, mayo, bacon, lettuce, tomato, onion, fries & pickle", price: 14.99 },
-                { category: "Hamburgers", name: "The Buckaroo", desc: "Cheese, fries & pickle", price: 11.99 },
-
+                { cat: "Hamburgers", name: "The Wild Stallion", desc: "Pepper jack, mayo, lettuce, tomato, onion, jalapeños, fries & pickle", price: 13.99 },
+                { cat: "Hamburgers", name: "The Wrangler", desc: "Cheese, mayo, bacon, lettuce, tomato, onion, fries & pickle", price: 14.99 },
+                { cat: "Hamburgers", name: "The Buckaroo", desc: "Cheese, fries & pickle", price: 11.99 },
                 // Chicken Tenders
-                { category: "Chicken Tenders", name: "Sky-Fried Tenders", desc: "Breaded & deep fried, fries & Texas toast", price: 9.99 },
-                { category: "Chicken Tenders", name: "Campfire Tenders", desc: "Grilled tenders, fries & Texas toast", price: 9.99 },
-
+                { cat: "Chicken Tenders", name: "Sky-Fried Tenders", desc: "Breaded & deep fried, fries & Texas toast", price: 9.99 },
+                { cat: "Chicken Tenders", name: "Campfire Tenders", desc: "Grilled tenders, fries & Texas toast", price: 9.99 },
                 // Skyland Specialties
-                { category: "Skyland Specialties", name: "The Mother Clucker", desc: "Breaded tenders, roots sauce, slaw, ranch, fries & pickle", price: 12.99 },
-                { category: "Skyland Specialties", name: "Home on the Range", desc: "Tenders, honey mustard, lettuce, tomato, pickle, fries", price: 12.49 },
-                { category: "Skyland Specialties", name: "Longhorn", desc: "Footlong corn dog, fries & pickle", price: 11.49 },
-                { category: "Skyland Specialties", name: "Quickdraw", desc: "Extra cheesy grilled cheese, fries & pickle", price: 8.99 },
-
+                { cat: "Skyland Specialties", name: "The Mother Clucker", desc: "Breaded tenders, roots sauce, slaw, ranch, fries & pickle", price: 12.99 },
+                { cat: "Skyland Specialties", name: "Home on the Range", desc: "Tenders, honey mustard, lettuce, tomato, pickle, fries", price: 12.49 },
+                { cat: "Skyland Specialties", name: "Longhorn", desc: "Footlong corn dog, fries & pickle", price: 11.49 },
+                { cat: "Skyland Specialties", name: "Quickdraw", desc: "Extra cheesy grilled cheese, fries & pickle", price: 8.99 },
                 // Bottled Drinks
-                { category: "Bottled Drinks", name: "Pepsi Products", desc: "Soda / water", price: 2.49 },
-                { category: "Bottled Drinks", name: "Gatorade", desc: "Lemon-lime, fruit punch", price: 2.99 },
-
+                { cat: "Bottled Drinks", name: "Pepsi Products", desc: "Soda / water", price: 2.49 },
+                { cat: "Bottled Drinks", name: "Gatorade", desc: "Lemon-lime, fruit punch", price: 2.99 },
                 // Ice Cream
-                { category: "Ice Cream", name: "Novelty Ice Cream", desc: "Assorted treats", price: 3.99 }
+                { cat: "Ice Cream", name: "Novelty Ice Cream", desc: "Assorted treats", price: 3.99 }
             ];
 
-            // ---------- GLOBAL CART ----------
+            // ----- CART & STATE -----
             let cart = []; // { id, name, price, quantity }
 
-            const formatMoney = n => `$${n.toFixed(2)}`;
+            // Helper
+            const formatMoney = (n) => `$${n.toFixed(2)}`;
 
-            const categoriesPanel = document.getElementById('categoriesPanel');
-            const menuPanel = document.getElementById('menuPanel');
-            const cartItemsDiv = document.getElementById('cartItems');
-            const cartTotalSpan = document.getElementById('cartTotal');
-            const cartCountSpan = document.getElementById('cart-count');
-            const cartTotalHeader = document.getElementById('cart-total-header');
-            const modalOrderTotal = document.getElementById('modalOrderTotal');
+            // Get unique categories
+            const categories = [...new Set(menuData.map(item => item.cat))];
 
-            const categories = [...new Set(menuData.map(item => item.category))];
-
-            function slugifyCategory(cat) {
-                return cat.replace(/\s+/g, '').replace(/[^a-zA-Z0-9]/g, '');
-            }
-
+            // ----- RENDER CATEGORIES SIDEBAR -----
+            const categoriesDiv = document.getElementById('categories');
             function renderCategories() {
-                categoriesPanel.innerHTML = '<h3>🍽️ MENU</h3>';
+                let html = '<h3>🍽️ MENU</h3>';
                 categories.forEach(cat => {
-                    const btn = document.createElement('button');
-                    btn.className = 'category-btn';
-                    btn.textContent = cat;
-                    btn.dataset.category = cat;
-                    btn.addEventListener('click', () => {
-                        document
-                          .querySelectorAll('.category-btn')
-                          .forEach(b => b.classList.remove('active'));
-                        btn.classList.add('active');
-                        scrollToCategory(cat);
-                    });
-                    categoriesPanel.appendChild(btn);
+                    html += `<button class="cat-btn" data-cat="${cat}">${cat}</button>`;
                 });
+                categoriesDiv.innerHTML = html;
 
-                if (categories.length) {
-                    categoriesPanel.querySelector('.category-btn').classList.add('active');
-                }
+                // Add click listeners
+                document.querySelectorAll('.cat-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        const catName = btn.dataset.cat;
+                        document.getElementById(`cat-${catName.replace(/\s/g,'')}`)?.scrollIntoView({ behavior: 'smooth' });
+                    });
+                });
+                // Activate first
+                const firstBtn = document.querySelector('.cat-btn');
+                if (firstBtn) firstBtn.classList.add('active');
             }
 
-            function scrollToCategory(category) {
-                const elem = document.getElementById(`cat-${slugifyCategory(category)}`);
-                if (elem) {
-                    elem.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-            }
-
+            // ----- RENDER MENU ITEMS (grouped by category) -----
+            const menuPanel = document.getElementById('menuPanel');
             function renderMenu() {
                 let html = '';
                 categories.forEach(cat => {
-                    const items = menuData.filter(item => item.category === cat);
-                    html += `<div class="category-section" id="cat-${slugifyCategory(cat)}">`;
+                    const items = menuData.filter(item => item.cat === cat);
+                    html += `<div class="category-section" id="cat-${cat.replace(/\s/g,'')}">`;
                     html += `<div class="category-title">${cat}</div>`;
                     html += `<div class="items-grid">`;
                     items.forEach((item, idx) => {
-                        const itemId = `${slugifyCategory(cat)}-${idx}-${item.name.replace(/\s/g, '')}`;
+                        const itemId = `${cat}-${idx}-${item.name.replace(/\s/g,'')}`;
                         html += `
-                            <div class="menu-item-card" data-item-id="${itemId}">
+                            <div class="item-card">
                                 <div class="item-name">${item.name}</div>
                                 <div class="item-desc">${item.desc}</div>
                                 <div class="item-price">${formatMoney(item.price)}</div>
-                                <button class="add-btn" data-id="${itemId}" data-name="${item.name}" data-price="${item.price}">
-                                    <i class="fas fa-plus-circle"></i> Add
-                                </button>
+                                <button class="add-btn" data-id="${itemId}" data-name="${item.name}" data-price="${item.price}"><i class="fas fa-plus-circle"></i> Add</button>
                             </div>
                         `;
                     });
@@ -617,15 +460,20 @@
                 menuPanel.innerHTML = html;
             }
 
+            // ----- CART UI UPDATE -----
+            const cartItemsDiv = document.getElementById('cartItems');
+            const cartTotalSpan = document.getElementById('cartTotal');
+            const cartCountSpan = document.getElementById('cartCount');
+            const cartTotalHeader = document.getElementById('cartTotalHeader');
+
             function updateCartUI() {
                 if (cart.length === 0) {
-                    cartItemsDiv.innerHTML =
-                        '<div style="padding:1rem; text-align:center; color:#735f4e;">Your cart is empty 🤠</div>';
+                    cartItemsDiv.innerHTML = '<div style="padding:1rem; text-align:center; color:#735f4e;">Your cart is empty 🤠</div>';
                 } else {
-                    let cartHtml = '';
+                    let html = '';
                     cart.forEach((item, index) => {
-                        cartHtml += `
-                            <div class="cart-item" data-cart-index="${index}">
+                        html += `
+                            <div class="cart-item" data-index="${index}">
                                 <div class="cart-item-info">
                                     <div class="cart-item-name">${item.name}</div>
                                     <div class="cart-item-price">${formatMoney(item.price)}</div>
@@ -638,21 +486,21 @@
                             </div>
                         `;
                     });
-                    cartItemsDiv.innerHTML = cartHtml;
+                    cartItemsDiv.innerHTML = html;
                 }
 
-                const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-                const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-
+                const total = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
+                const itemCount = cart.reduce((sum, i) => sum + i.quantity, 0);
                 cartTotalSpan.textContent = formatMoney(total);
                 cartCountSpan.textContent = itemCount;
                 cartTotalHeader.textContent = formatMoney(total);
             }
 
+            // ----- CART ACTIONS -----
             function addToCart(id, name, price) {
                 const existing = cart.find(item => item.id === id);
                 if (existing) {
-                    existing.quantity += 1;
+                    existing.quantity++;
                 } else {
                     cart.push({ id, name, price, quantity: 1 });
                 }
@@ -674,80 +522,72 @@
                 updateCartUI();
             }
 
-            // Add to cart from menu
-            menuPanel.addEventListener('click', e => {
-                const addBtn = e.target.closest('.add-btn');
-                if (addBtn) {
-                    const id = addBtn.dataset.id;
-                    const name = addBtn.dataset.name;
-                    const price = parseFloat(addBtn.dataset.price);
-                    addToCart(id, name, price);
+            // ----- EVENT DELEGATION (add to cart, qty changes) -----
+            menuPanel.addEventListener('click', (e) => {
+                const btn = e.target.closest('.add-btn');
+                if (btn) {
+                    addToCart(btn.dataset.id, btn.dataset.name, parseFloat(btn.dataset.price));
                 }
             });
 
-            // Quantity +/- in cart
-            cartItemsDiv.addEventListener('click', e => {
+            cartItemsDiv.addEventListener('click', (e) => {
                 if (e.target.classList.contains('minus')) {
-                    const index = parseInt(e.target.dataset.index, 10);
-                    changeQuantity(index, -1);
+                    changeQuantity(parseInt(e.target.dataset.index), -1);
                 } else if (e.target.classList.contains('plus')) {
-                    const index = parseInt(e.target.dataset.index, 10);
-                    changeQuantity(index, 1);
+                    changeQuantity(parseInt(e.target.dataset.index), 1);
                 }
             });
 
             document.getElementById('clearCartBtn').addEventListener('click', clearCart);
 
-            // ---------- SQUARE PAYMENT ----------
-            let payments, card;
-            // TODO: replace with your own sandbox IDs from Square Developer Dashboard
-            const appId = 'REPLACE_WITH_YOUR_SANDBOX_APP_ID';
-            const locationId = 'REPLACE_WITH_YOUR_LOCATION_ID';
-
-            async function initializeSquare() {
-                const paymentStatusEl = document.getElementById('payment-status');
-
-                if (!window.Square) {
-                    paymentStatusEl.innerText = 'Square SDK not loaded. Check your internet connection.';
-                    return;
+            // ----- SCROLL SYNC FOR CATEGORY HIGHLIGHT -----
+            menuPanel.addEventListener('scroll', () => {
+                const sections = document.querySelectorAll('.category-section');
+                for (let sec of sections) {
+                    const rect = sec.getBoundingClientRect();
+                    if (rect.top <= 150 && rect.bottom >= 150) {
+                        const catName = sec.querySelector('.category-title').innerText;
+                        document.querySelectorAll('.cat-btn').forEach(btn => {
+                            btn.classList.toggle('active', btn.dataset.cat === catName);
+                        });
+                        break;
+                    }
                 }
+            });
 
+            // ----- SQUARE PAYMENT -----
+            let payments, card;
+            const squareAppId = 'sandbox-sq0idb-EXAMPLE'; // REPLACE with your sandbox app ID
+            const locationId = 'EXAMPLE'; // optional for sandbox
+
+            async function initSquare() {
+                if (!window.Square) return;
                 try {
-                    payments = window.Square.payments(appId, locationId);
+                    payments = window.Square.payments(squareAppId, locationId);
                     card = await payments.card();
                     await card.attach('#card-container');
                 } catch (e) {
-                    paymentStatusEl.innerText = 'Square init failed: ' + (e.message || e);
+                    document.getElementById('paymentStatus').innerText = 'Square init error: ' + e.message;
                 }
             }
 
+            // Modal controls
             const modal = document.getElementById('paymentModal');
             const payBtn = document.getElementById('payBtn');
             const cancelBtn = document.getElementById('cancelPayBtn');
             const printBtn = document.getElementById('printReceiptBtn');
-            const paymentStatus = document.getElementById('payment-status');
-
-            // When header cart summary is clicked, scroll menu to top (nice UX)
-            document.getElementById('cart-summary').addEventListener('click', () => {
-                cartItemsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            });
+            const paymentStatus = document.getElementById('paymentStatus');
 
             document.getElementById('checkoutBtn').addEventListener('click', async () => {
                 if (cart.length === 0) {
                     alert('Add some items first!');
                     return;
                 }
-
-                const total = cart.reduce((s, i) => s + i.price * i.quantity, 0);
-                modalOrderTotal.textContent = `Order total: ${formatMoney(total)}`;
-
                 modal.style.display = 'flex';
                 paymentStatus.innerText = '';
                 printBtn.style.display = 'none';
-                payBtn.disabled = false;
-
                 if (!card) {
-                    await initializeSquare();
+                    await initSquare();
                 }
             });
 
@@ -757,118 +597,64 @@
 
             payBtn.addEventListener('click', async () => {
                 if (!card) {
-                    paymentStatus.innerText = 'Payment not initialized.';
+                    paymentStatus.innerText = 'Payment not ready.';
                     return;
                 }
-
-                paymentStatus.innerText = 'Processing...';
-
                 try {
                     const result = await card.tokenize();
                     if (result.status === 'OK') {
-                        // In a REAL app:
-                        // - Send result.token + order amount to your backend
-                        // - Backend calls Square Payments API to actually charge
-                        // For sandbox demo, we treat tokenization as "success".
-                        paymentStatus.innerHTML = '✅ Payment successful! (sandbox token created)';
+                        paymentStatus.innerHTML = '✅ Payment successful! (sandbox)';
                         payBtn.disabled = true;
                         printBtn.style.display = 'block';
-
                         window.lastOrder = {
-                            cart: [...cart],
-                            total: cart.reduce((s, i) => s + i.price * i.quantity, 0),
-                            date: new Date(),
-                            token: result.token
+                            cart: cart.map(i => ({ ...i })),
+                            total: cart.reduce((s,i) => s + i.price * i.quantity, 0),
+                            date: new Date()
                         };
                     } else {
-                        const errs = (result.errors || []).map(e => e.message).join(', ');
-                        paymentStatus.innerHTML = '❌ Payment failed: ' + errs;
+                        paymentStatus.innerHTML = '❌ Failed: ' + (result.errors || 'unknown');
                     }
                 } catch (e) {
-                    paymentStatus.innerHTML = '❌ Error: ' + (e.message || e);
+                    paymentStatus.innerHTML = '❌ Error: ' + e.message;
                 }
             });
 
             printBtn.addEventListener('click', () => {
                 const order = window.lastOrder || {
                     cart,
-                    total: cart.reduce((s, i) => s + i.price * i.quantity, 0),
+                    total: cart.reduce((s,i) => s + i.price * i.quantity, 0),
                     date: new Date()
                 };
-
-                const receiptWindow = window.open('', '_blank');
-                receiptWindow.document.write(`
-                    <html>
-                        <head>
-                            <title>Skyland Ranch Receipt</title>
-                            <style>
-                                body {
-                                    font-family: monospace;
-                                    padding: 2rem;
-                                    max-width: 300px;
-                                    margin: auto;
-                                }
-                                h2, h3 {
-                                    text-align: center;
-                                }
-                                hr {
-                                    margin: 0.8rem 0;
-                                }
-                            </style>
-                        </head>
-                        <body>
-                            <h2>Skyland Ranch</h2>
-                            <p>${new Date(order.date).toLocaleString()}</p>
-                            <hr>
-                            ${order.cart.map(item =>
-                                `<p>${item.quantity} x ${item.name} = $${(item.price * item.quantity).toFixed(2)}</p>`
-                            ).join('')}
-                            <hr>
-                            <h3>TOTAL: $${order.total.toFixed(2)}</h3>
-                            <p style="text-align:center;">Thank you! Come again 🤠</p>
-                            <script>
-                                window.print();
-                                setTimeout(() => window.close(), 1000);
-                            </script>
-                        </body>
-                    </html>
+                const receipt = window.open('', '_blank');
+                receipt.document.write(`
+                    <html><head><title>Skyland Ranch Receipt</title>
+                    <style>body{font-family:monospace; padding:2rem; max-width:300px; margin:auto;}</style>
+                    </head><body>
+                    <h2>Skyland Ranch</h2>
+                    <p>${new Date().toLocaleString()}</p>
+                    <hr>
+                    ${order.cart.map(item => `<p>${item.quantity} x ${item.name} = $${(item.price * item.quantity).toFixed(2)}</p>`).join('')}
+                    <hr>
+                    <h3>TOTAL: $${order.total.toFixed(2)}</h3>
+                    <p>Thank you! Come again 🤠</p>
+                    <script>window.print();setTimeout(()=>window.close(),1000);</script>
+                    </body></html>
                 `);
-                receiptWindow.document.close();
-
+                receipt.document.close();
                 modal.style.display = 'none';
-                // If you want to clear the cart after successful payment, uncomment:
+                // optionally clear cart after payment? uncomment next line if desired
                 // clearCart();
             });
 
-            // Close modal if clicked outside
-            window.addEventListener('click', e => {
-                if (e.target === modal) {
-                    modal.style.display = 'none';
-                }
+            window.addEventListener('click', (e) => {
+                if (e.target === modal) modal.style.display = 'none';
             });
 
-            // ---------- INIT ----------
+            // ----- INITIAL RENDER -----
             renderCategories();
             renderMenu();
             updateCartUI();
-
-            // highlight category on scroll
-            menuPanel.addEventListener('scroll', () => {
-                const sections = document.querySelectorAll('.category-section');
-                for (let sec of sections) {
-                    const rect = sec.getBoundingClientRect();
-                    if (rect.top <= 150 && rect.bottom >= 150) {
-                        const catName = sec.querySelector('.category-title').innerText;
-                        document.querySelectorAll('.category-btn').forEach(btn => {
-                            btn.classList.toggle('active', btn.textContent === catName);
-                        });
-                        break;
-                    }
-                }
-            });
         })();
     </script>
-
-    <!-- Note: Replace appId/locationId above with your own from Square developer portal -->
 </body>
 </html>

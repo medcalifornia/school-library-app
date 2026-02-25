@@ -1,6 +1,3 @@
-V2
-app.html 
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -175,7 +172,7 @@ app.html
       border-radius: 10px;
     }
 
-    /* Print styles – only the report is visible and looks crisp */
+    /* Print styles – only the report is visible and fits one page */
     @media print {
       body * {
         visibility: hidden;
@@ -190,13 +187,15 @@ app.html
         width: 100%;
         background: white;
         color: black;
-        padding: 20px;
+        padding: 15px;
+        font-size: 12px; /* تصغير الخط قليلاً لتوفير المساحة */
       }
       .appbar, .tabs, .toast, .card-head button, .footer, .pager {
         display: none !important;
       }
       .report-header h1 {
         color: black;
+        font-size: 24px;
       }
       .report-meta {
         color: #333;
@@ -205,18 +204,26 @@ app.html
         background: #f9f9f9;
         border: 1px solid #ddd;
         color: black;
+        page-break-inside: avoid; /* منع تقسيم القسم على صفحتين */
+        margin-bottom: 15px;
+        padding: 15px;
       }
       .report-section h2 {
         color: #111;
         border-left-color: #2c3e50;
+        font-size: 18px;
       }
-      .report-period {
-        color: #222;
+      .report-row {
+        page-break-inside: avoid; /* كل صف يبقى معاً */
+        margin-bottom: 12px;
+        padding-bottom: 10px;
       }
       .report-suggestion {
         background: #f0f0f0;
         color: #222;
         border: 1px solid #ccc;
+        font-size: 11px;
+        padding: 8px 10px;
       }
       .status-badge {
         border: 1px solid currentColor !important;
@@ -225,6 +232,9 @@ app.html
       }
       .trend-up, .trend-down {
         color: black !important;
+      }
+      .report-value {
+        font-size: 18px;
       }
     }
 
@@ -709,20 +719,18 @@ app.html
       </section>
     </section>
 
-    <!-- TAB: Report -->
+    <!-- TAB: Report (محسّن: إزالة العنوان المكرر والنص الزائد) -->
     <section id="tab-report" class="tab-panel">
       <section class="card">
-        <div class="card-head" style="display: flex; justify-content: space-between; align-items: center;">
-          <h2>Health Report</h2>
-          <div style="display: flex; gap: 8px;">
-            <button class="btn secondary" onclick="shareReport()">📤 Share</button>
-            <button class="btn primary" onclick="printReport()">🖨️ Print</button>
-            <button class="btn secondary" onclick="saveReportAsPDF()">💾 Save</button>
-          </div>
+        <!-- رأس البطاقة يحتوي فقط على الأزرار بعد إزالة العنوان المكرر -->
+        <div class="card-head" style="display: flex; justify-content: flex-end; align-items: center; gap: 8px;">
+          <button class="btn secondary" onclick="shareReport()">📤 Share</button>
+          <button class="btn primary" onclick="printReport()">🖨️ Print</button>
+          <button class="btn secondary" onclick="saveReportAsPDF()">💾 Save</button>
         </div>
-        <p class="muted">Average readings with suggestions</p>
+        <!-- تمت إزالة السطر الوصفي "Average readings with suggestions" لأنه موجود ضمن التقرير نفسه -->
         <div id="reportContent" class="report-grid">
-          <!-- populated by JS -->
+          <!-- يتم تعبئته بواسطة JavaScript -->
         </div>
       </section>
     </section>

@@ -172,23 +172,29 @@
       border-radius: 10px;
     }
 
-    /* Print styles – only the report is visible and fits one page */
+    /* تحسين أنماط الطباعة: صفحة واحدة دون فراغات إضافية */
     @media print {
+      @page {
+        size: A4;
+        margin: 1cm;
+      }
       body * {
         visibility: hidden;
       }
-      #tab-report, #tab-report * {
+      #tab-report,
+      #tab-report * {
         visibility: visible;
       }
       #tab-report {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
+        position: static; /* تجنب absolute الذي قد يسبب فراغات */
         background: white;
         color: black;
-        padding: 15px;
-        font-size: 12px; /* تصغير الخط قليلاً لتوفير المساحة */
+        padding: 0; /* إزالة الحشو الداخلي، نعتمد على هوامش الصفحة */
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+        page-break-after: avoid;
+        page-break-inside: avoid;
       }
       .appbar, .tabs, .toast, .card-head button, .footer, .pager {
         display: none !important;
@@ -1800,6 +1806,10 @@
         const oldHead = clone.querySelector('.card-head');
         if (oldHead) oldHead.remove();
 
+        // إزالة الرأس الموجود داخل التقرير (إذا وجد) لتجنب التكرار
+        const existingReportHeader = clone.querySelector('#reportContent .report-header');
+        if (existingReportHeader) existingReportHeader.remove();
+
         const { name } = getAuth();
         const userName = name ? name.split(' ')[0] : 'Guest';
         const now = new Date();
@@ -1836,6 +1846,10 @@
         const clone = card.cloneNode(true);
         const oldHead = clone.querySelector('.card-head');
         if (oldHead) oldHead.remove();
+
+        // إزالة الرأس الموجود داخل التقرير (إذا وجد) لتجنب التكرار
+        const existingReportHeader = clone.querySelector('#reportContent .report-header');
+        if (existingReportHeader) existingReportHeader.remove();
 
         const { name } = getAuth();
         const userName = name ? name.split(' ')[0] : 'Guest';

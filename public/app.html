@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Health Tracker · Dashboard</title>
   <link rel="stylesheet" href="./style.css" />
-  <!-- html2pdf library -->
+  <!-- مكتبة html2pdf لإنشاء ملفات PDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <style>
-    /* ========== original styles (kept intact) ========== */
+    /* تحسينات إضافية للشارت والشارات */
     .sv-chart { display: block; width: 100%; height: 100%; }
     .sv-chart-wrap { touch-action: pan-y; user-select: none; }
     .chart-tooltip { 
@@ -27,6 +27,7 @@
     }
     .chart-tooltip.show { opacity: 1; }
     
+    /* شارات الحالات */
     .status-badge {
       display: inline-flex;
       align-items: center;
@@ -86,15 +87,24 @@
       margin-right: 2px;
     }
 
-    .appbar-actions { gap: 6px; }
-    .chip { padding: 6px 10px; font-size: 12px; }
-    .icon-btn { padding: 6px 10px; }
-
-    /* Hide Google Translate junk */
+    /* تقليل المسافات بين عناصر الـ appbar */
+    .appbar-actions {
+      gap: 6px;
+    }
+    .chip {
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+    .icon-btn {
+      padding: 6px 10px;
+    }
+    /* إخفاء شريط Google Translate الافتراضي */
     .goog-te-banner-frame.skiptranslate { display: none !important; }
     body { top: 0 !important; }
     .goog-tooltip { display: none !important; }
+    .goog-tooltip:hover { display: none !important; }
     .goog-text-highlight { background-color: transparent !important; border: none !important; box-shadow: none !important; }
+    .goog-te-spinner-pos { display: none !important; }
     iframe.goog-te-banner-frame { display: none !important; }
     div.skiptranslate { display: none !important; }
 
@@ -141,7 +151,7 @@
       margin-bottom: 0;
       padding-bottom: 0;
     }
-    .report-label {
+    .report-period {
       font-weight: 600;
       font-size: 16px;
       color: #ccc;
@@ -162,190 +172,329 @@
       border-radius: 10px;
     }
 
-    /* ========== COMPACT STYLES FOR PRINT & PDF (single page) ========== */
+    /* تحسين أنماط الطباعة: صفحة واحدة دون فراغات إضافية */
     @media print {
       @page {
         size: A4;
-        margin: 0.8cm;
+        margin: 1cm;
       }
-      body * { visibility: hidden; }
-      #tab-report, #tab-report * { visibility: visible; }
+      body * {
+        visibility: hidden;
+      }
+      #tab-report,
+      #tab-report * {
+        visibility: visible;
+      }
       #tab-report {
         position: static;
         background: white;
         color: black;
         padding: 0;
         width: 100%;
-        font-size: 10pt;
-        line-height: 1.2;
+        max-width: 100%;
+        margin: 0;
+        page-break-after: avoid;
+        page-break-inside: avoid;
+        font-size: 11pt;
       }
-      .appbar, .tabs, .toast, .card-head, .footer, .pager { display: none !important; }
-      .report-header {
-        margin-bottom: 8px;
-        padding-bottom: 4px;
-        border-bottom: 1px solid #ccc;
+      .appbar, .tabs, .toast, .card-head button, .footer, .pager {
+        display: none !important;
       }
       .report-header h1 {
-        font-size: 18pt;
         color: black;
-        margin: 0 0 2px;
+        font-size: 20pt;
       }
-      .report-header div {
-        font-size: 9pt;
+      .report-meta {
         color: #333;
+        font-size: 10pt;
       }
       .report-section {
         background: #f9f9f9;
         border: 1px solid #ddd;
-        padding: 6px 8px;
-        margin-bottom: 8px;
+        color: black;
         page-break-inside: avoid;
+        margin-bottom: 10pt;
+        padding: 10pt;
       }
       .report-section h2 {
-        font-size: 12pt;
-        margin: 0 0 6px;
-        border-left: 3px solid #2c3e50;
-        padding-left: 5px;
         color: #111;
+        border-left-color: #2c3e50;
+        font-size: 14pt;
+        margin: 0 0 10pt 0;
       }
       .report-row {
-        margin-bottom: 6px;
-        padding-bottom: 4px;
-        border-bottom: 1px dashed #ddd;
         page-break-inside: avoid;
-      }
-      .report-row:last-child { border-bottom: none; }
-      .report-label {
-        font-size: 9pt;
-        font-weight: 600;
-        color: #222;
-        margin-bottom: 2px;
-      }
-      .report-value {
-        font-size: 11pt;
-        font-weight: 700;
-        color: #000;
-      }
-      .status-badge {
-        font-size: 7pt;
-        padding: 1px 4px;
-        border: 1px solid currentColor !important;
-        background: transparent !important;
-        color: black !important;
+        margin-bottom: 8pt;
+        padding-bottom: 6pt;
       }
       .report-suggestion {
-        font-size: 8pt;
-        padding: 3px 5px;
-        margin-top: 3px;
         background: #f0f0f0;
         color: #222;
         border: 1px solid #ccc;
+        font-size: 9pt;
+        padding: 6pt 8pt;
+      }
+      .status-badge {
+        border: 1px solid currentColor !important;
+        background: transparent !important;
+        color: black !important;
+        font-size: 8pt;
+        padding: 1pt 4pt;
       }
       .trend-up, .trend-down {
-        font-size: 9pt;
-        color: black;
+        color: black !important;
+      }
+      .report-value {
+        font-size: 14pt;
+      }
+      .report-label {
+        font-size: 11pt;
       }
     }
 
-    /* ========== PDF-ONLY COMPACT STYLES ========== */
-    .pdf-report {
-      background: white;
-      color: black;
-      font-size: 10pt;
-      line-height: 1.2;
+    /* ========== تقليل المسافات بين أزرار التبويب ========== */
+    .tabs {
+      gap: 4px; /* المسافة الأفقية بين الأزرار */
     }
-    .pdf-report .report-header {
-      margin-bottom: 8px;
-      padding-bottom: 4px;
-      border-bottom: 1px solid #ccc;
-    }
-    .pdf-report .report-header h1 {
-      font-size: 18pt;
-      margin: 0 0 2px;
-      color: black;
-    }
-    .pdf-report .report-header div {
-      font-size: 9pt;
-      color: #333;
-    }
-    .pdf-report .report-section {
-      background: #f9f9f9;
-      border: 1px solid #ddd;
-      padding: 6px 8px;
-      margin-bottom: 8px;
-      page-break-inside: avoid;
-    }
-    .pdf-report .report-section h2 {
-      font-size: 12pt;
-      margin: 0 0 6px;
-      border-left: 3px solid #2c3e50;
-      padding-left: 5px;
-      color: #111;
-    }
-    .pdf-report .report-row {
-      margin-bottom: 6px;
-      padding-bottom: 4px;
-      border-bottom: 1px dashed #ddd;
-    }
-    .pdf-report .report-row:last-child { border-bottom: none; }
-    .pdf-report .report-label {
-      font-size: 9pt;
-      font-weight: 600;
-      color: #222;
-    }
-    .pdf-report .report-value {
-      font-size: 11pt;
-      font-weight: 700;
-      color: #000;
-    }
-    .pdf-report .status-badge {
-      font-size: 7pt;
-      padding: 1px 4px;
-      border: 1px solid currentColor !important;
-      background: transparent !important;
-      color: black !important;
-    }
-    .pdf-report .report-suggestion {
-      font-size: 8pt;
-      padding: 3px 5px;
-      margin-top: 3px;
-      background: #f0f0f0;
-      color: #222;
-      border: 1px solid #ccc;
-    }
-    .pdf-report .trend-up, .pdf-report .trend-down {
-      font-size: 9pt;
-      color: black;
+    .tab {
+      margin: 0;
+      padding: 10px 16px;
+      font-size: 14px;
     }
 
-    /* ========== original dashboard/history/store styles (keep as before) ========== */
-    .tabs { gap: 4px; }
-    .tab { padding: 10px 16px; font-size: 14px; }
-    .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px,1fr)); gap: 16px; padding: 16px; }
-    .category-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px,1fr)); gap: 20px; padding: 16px; }
-    .category-card { background: rgba(255,255,255,0.07); border-radius: 16px; padding: 20px 12px; text-align: center; transition: transform 0.2s; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(4px); cursor: pointer; }
-    .category-card:hover { transform: translateY(-4px); background: rgba(255,255,255,0.12); border-color: rgba(76,125,255,0.3); }
-    .category-image { width: 100%; height: 120px; display: flex; align-items: center; justify-content: center; font-size: 48px; overflow: hidden; }
-    .product-card { background: rgba(255,255,255,0.07); border-radius: 16px; padding: 16px 12px; text-align: center; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(4px); }
-    .product-btn { background: linear-gradient(145deg,#4c7dff,#3a5fd0); border: none; color: white; padding: 8px 16px; border-radius: 40px; font-weight: 600; cursor: pointer; }
-    .daily-points { margin-top: 24px; padding: 16px; background: rgba(255,255,255,0.03); border-radius: 16px; }
-    .points-container { display: flex; justify-content: space-between; gap: 8px; min-height: 100px; }
-    .point-column { flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; }
-    .point-day { font-size:11px; color:#888; text-transform:uppercase; }
-    .point-value { display:flex; flex-direction:column; align-items:center; gap:4px; }
-    .point-circle { width:24px; height:24px; border-radius:50%; transition:transform 0.2s; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.3); }
-    .point-circle:hover { transform:scale(1.3); }
-    .point-label { font-size:9px; color:#aaa; white-space:nowrap; }
-    .glucose-point.normal { background-color:#2ecc71; }
-    .glucose-point.prediabetes { background-color:#f39c12; }
-    .glucose-point.diabetes { background-color:#e74c3c; }
-    .bp-point.normal { background-color:#2ecc71; }
-    .bp-point.elevated { background-color:#f1c40f; }
-    .bp-point.stage1 { background-color:#f39c12; }
-    .bp-point.stage2 { background-color:#e74c3c; }
-    .bp-point.crisis { background-color:#9b59b6; }
+    /* ========== تحسينات متجر احترافية ========== */
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 16px;
+      padding: 16px;
+    }
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 20px;
+      padding: 16px;
+    }
+    .category-card {
+      background: rgba(255, 255, 255, 0.07);
+      border-radius: 16px;
+      padding: 20px 12px;
+      text-align: center;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(4px);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .category-card:hover {
+      transform: translateY(-4px);
+      background: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+      border-color: rgba(76, 125, 255, 0.3);
+    }
+    .category-image {
+      width: 100%;
+      height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+    .category-image img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+    .category-title {
+      font-weight: 600;
+      font-size: 18px;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+    .category-count {
+      font-size: 13px;
+      color: #aaa;
+    }
+    .back-btn {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 40px;
+      font-size: 14px;
+      cursor: pointer;
+      margin: 0 16px 16px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.2s;
+    }
+    .back-btn:hover {
+      background: rgba(255,255,255,0.2);
+    }
+    .product-card {
+      background: rgba(255, 255, 255, 0.07);
+      border-radius: 16px;
+      padding: 16px 12px;
+      text-align: center;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(4px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .product-card:hover {
+      transform: translateY(-4px);
+      background: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+      border-color: rgba(76, 125, 255, 0.3);
+    }
+    .product-image {
+      width: 100%;
+      height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      overflow: hidden;
+    }
+    .product-image img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+    .product-title {
+      font-weight: 600;
+      font-size: 15px;
+      margin-bottom: 4px;
+      color: #fff;
+    }
+    .product-price {
+      color: #6d8eff;
+      font-weight: 700;
+      font-size: 18px;
+      margin: 8px 0 12px;
+    }
+    .product-btn {
+      background: linear-gradient(145deg, #4c7dff, #3a5fd0);
+      border: none;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 40px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      width: 100%;
+      max-width: 120px;
+      box-shadow: 0 4px 10px rgba(76, 125, 255, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .product-btn:hover {
+      background: linear-gradient(145deg, #5f8aff, #4c7dff);
+      transform: scale(1.02);
+      box-shadow: 0 6px 14px rgba(76, 125, 255, 0.5);
+    }
+    .product-btn:active {
+      transform: scale(0.98);
+    }
+    /* تحسين عنوان المتجر */
+    #tab-store .card-head h2 {
+      font-size: 28px;
+      background: linear-gradient(135deg, #fff, #b0c8ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      display: inline-block;
+    }
+    #tab-store .card-head .muted {
+      font-size: 14px;
+      opacity: 0.8;
+    }
+    #category-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+    }
+
+    /* ========== Point Styling للقراءات اليومية ========== */
+    .daily-points {
+      margin-top: 24px;
+      padding: 16px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 16px;
+    }
+    .points-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: #ccc;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .points-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 8px;
+      min-height: 100px;
+    }
+    .point-column {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .point-day {
+      font-size: 11px;
+      color: #888;
+      text-transform: uppercase;
+    }
+    .point-value {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .point-circle {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      transition: transform 0.2s;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+    .point-circle:hover {
+      transform: scale(1.3);
+    }
+    .point-label {
+      font-size: 9px;
+      color: #aaa;
+      white-space: nowrap;
+    }
+    /* ألوان النقاط */
+    .glucose-point.normal { background-color: #2ecc71; }
+    .glucose-point.prediabetes { background-color: #f39c12; }
+    .glucose-point.diabetes { background-color: #e74c3c; }
+    .bp-point.normal { background-color: #2ecc71; }
+    .bp-point.elevated { background-color: #f1c40f; }
+    .bp-point.stage1 { background-color: #f39c12; }
+    .bp-point.stage2 { background-color: #e74c3c; }
+    .bp-point.crisis { background-color: #9b59b6; }
   </style>
 </head>
+
 <body class="app-page">
   <!-- Top App Bar -->
   <header class="appbar">
@@ -357,10 +506,17 @@
           <div class="brand-sub" id="subtitle"></div>
         </div>
       </div>
+
       <div class="appbar-actions">
-        <button class="chip" id="whoamiChip" type="button"><span class="dot"></span><span id="whoamiText">Connected</span></button>
-        <button class="icon-btn" type="button" onclick="logout()">
-          <svg viewBox="0 0 24 24" width="18" height="18"><path d="M10 17l1.41-1.41L8.83 13H21v-2H8.83l2.58-2.59L10 7l-7 7 7 7z"/><path d="M3 3h8v2H5v14h6v2H3V3z"/></svg>
+        <button class="chip" id="whoamiChip" type="button" aria-label="User">
+          <span class="dot"></span>
+          <span id="whoamiText">Connected</span>
+        </button>
+        <button class="icon-btn" type="button" onclick="logout()" aria-label="Logout">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <path d="M10 17l1.41-1.41L8.83 13H21v-2H8.83l2.58-2.59L10 7l-7 7 7 7z"></path>
+            <path d="M3 3h8v2H5v14h6v2H3V3z"></path>
+          </svg>
           <span class="hide-sm">Logout</span>
         </button>
       </div>
@@ -369,14 +525,14 @@
 
   <main class="shell">
     <!-- Tabs -->
-    <nav class="tabs">
-      <button class="tab active" data-tab="dashboard" onclick="showTab('dashboard')">Dashboard</button>
-      <button class="tab" data-tab="history" onclick="showTab('history')">History</button>
-      <button class="tab" data-tab="report" onclick="showTab('report')">Report</button>
-      <button class="tab" data-tab="store" onclick="showTab('store')">Store</button>
+    <nav class="tabs" aria-label="Sections">
+      <button class="tab active" type="button" data-tab="dashboard" onclick="showTab('dashboard')">Dashboard</button>
+      <button class="tab" type="button" data-tab="history" onclick="showTab('history')">History</button>
+      <button class="tab" type="button" data-tab="report" onclick="showTab('report')">Report</button>
+      <button class="tab" type="button" data-tab="store" onclick="showTab('store')">Store</button>
     </nav>
 
-    <!-- TAB: Dashboard (fully restored) -->
+    <!-- TAB: Dashboard -->
     <section id="tab-dashboard" class="tab-panel active">
       <div class="grid">
         <!-- Left: Add readings -->
@@ -385,10 +541,12 @@
             <h2>Add Reading</h2>
             <p class="muted">Log your glucose and blood pressure.</p>
           </div>
+
           <div class="segmented" role="tablist" aria-label="Reading type">
             <button class="seg active" type="button" id="seg-glucose" onclick="toggleForm('glucose')">Glucose</button>
             <button class="seg" type="button" id="seg-bp" onclick="toggleForm('bp')">Blood Pressure</button>
           </div>
+
           <!-- Glucose form -->
           <div id="form-glucose" class="form-block">
             <label class="field">
@@ -413,9 +571,10 @@
             </label>
             <button class="btn primary" type="button" onclick="saveGlucose()">
               <span class="btn-text">Save Glucose</span>
-              <span class="spinner"></span>
+              <span class="spinner" aria-hidden="true"></span>
             </button>
           </div>
+
           <!-- Blood pressure form -->
           <div id="form-bp" class="form-block hidden">
             <div class="row">
@@ -443,7 +602,7 @@
             </label>
             <button class="btn primary" type="button" onclick="saveBP()">
               <span class="btn-text">Save Blood Pressure</span>
-              <span class="spinner"></span>
+              <span class="spinner" aria-hidden="true"></span>
             </button>
           </div>
         </section>
@@ -454,6 +613,7 @@
             <h2>Today</h2>
             <p class="muted" id="todayLine">Loading summary…</p>
           </div>
+
           <div class="kpis">
             <div class="kpi">
               <div class="kpi-label">Latest Glucose</div>
@@ -517,14 +677,18 @@
             </div>
           </div>
 
-          <!-- Daily Points -->
+          <!-- Daily Points Styling -->
           <div class="daily-points" id="dailyPointsContainer">
             <div class="points-title">
               <span>📅 Last 7 Days</span>
               <span style="font-size:12px; color:#666;">(hover for details)</span>
             </div>
-            <div class="points-container" id="glucosePoints"></div>
-            <div class="points-container" id="bpPoints" style="margin-top:12px;"></div>
+            <div class="points-container" id="glucosePoints">
+              <!-- تملأ بواسطة JS -->
+            </div>
+            <div class="points-container" id="bpPoints" style="margin-top:12px;">
+              <!-- تملأ بواسطة JS -->
+            </div>
           </div>
 
           <div class="card-foot">
@@ -535,13 +699,14 @@
       </div>
     </section>
 
-    <!-- TAB: History (fully restored) -->
+    <!-- TAB: History -->
     <section id="tab-history" class="tab-panel">
       <section class="card">
         <div class="card-head">
           <h2>My Readings</h2>
           <p class="muted">Browse and manage your saved readings.</p>
         </div>
+
         <div class="table-wrap">
           <table class="table" aria-label="Readings table">
             <thead>
@@ -559,49 +724,55 @@
             </tbody>
           </table>
         </div>
+
         <div class="pager">
-          <button class="btn small ghost" onclick="prevPage()">‹</button>
+          <button class="btn small ghost" type="button" onclick="prevPage()">‹</button>
           <span class="muted small" id="pageLabel">1</span>
-          <button class="btn small ghost" onclick="nextPage()">›</button>
+          <button class="btn small ghost" type="button" onclick="nextPage()">›</button>
         </div>
       </section>
     </section>
 
-    <!-- TAB: Report (improved – only action buttons, no duplicate title) -->
+    <!-- TAB: Report (محسّن: تمت إزالة العنوان الثابت والنص الوصفي) -->
     <section id="tab-report" class="tab-panel">
       <section class="card">
-        <div class="card-head" style="display: flex; justify-content: flex-end; gap: 8px;">
+        <!-- رأس البطاقة يحتوي فقط على الأزرار بعد إزالة العنوان المكرر -->
+        <div class="card-head" style="display: flex; justify-content: flex-end; align-items: center; gap: 8px;">
           <button class="btn secondary" onclick="shareReport()">📤 Share</button>
           <button class="btn primary" onclick="printReport()">🖨️ Print</button>
           <button class="btn secondary" onclick="saveReportAsPDF()">💾 Save</button>
         </div>
-        <div id="reportContent" class="report-grid"></div>
+        <!-- تمت إزالة السطر الوصفي "Average readings with suggestions" لأنه موجود ضمن التقرير نفسه -->
+        <div id="reportContent" class="report-grid">
+          <!-- يتم تعبئته بواسطة JavaScript -->
+        </div>
       </section>
     </section>
 
-    <!-- TAB: Store (fully restored) -->
+    <!-- TAB: Store -->
     <section id="tab-store" class="tab-panel">
       <section class="card">
         <div class="card-head">
           <h2>Store</h2>
           <p class="muted">Diabetes & Blood Pressure essentials</p>
         </div>
+        <!-- حاوية الفئات / المنتجات -->
         <div id="store-container"></div>
       </section>
     </section>
   </main>
 
   <!-- Toast -->
-  <div id="toast" class="toast"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script>
     (function() {
       "use strict";
 
-      // ---------- DOM shortcuts ----------
+      // --- DOM shortcuts ---
       const $ = id => document.getElementById(id);
 
-      // ---------- Toast ----------
+      // --- Toast ---
       function toast(msg, type = 'ok') {
         const t = $('toast');
         t.textContent = msg;
@@ -610,7 +781,7 @@
         window.toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
       }
 
-      // ---------- Loading state ----------
+      // --- Loading state ---
       function setLoading(btn, state) {
         if (btn) {
           btn.classList.toggle('loading', state);
@@ -618,7 +789,7 @@
         }
       }
 
-      // ---------- Escape HTML ----------
+      // --- Escape HTML ---
       function escapeHtml(unsafe) {
         if (unsafe == null) return '';
         return String(unsafe)
@@ -629,7 +800,7 @@
           .replace(/'/g, '&#039;');
       }
 
-      // ---------- Auth ----------
+      // --- Auth ---
       function getAuth() {
         return {
           userId: localStorage.getItem('userId') || '',
@@ -651,13 +822,16 @@
         window.location.href = './index.html';
       };
 
-      // ---------- Tab navigation ----------
+      // --- Tab navigation ---
       window.showTab = name => {
         document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
         document.querySelector(`.tab[data-tab="${name}"]`).classList.add('active');
         $(`tab-${name}`).classList.add('active');
-        if (name === 'store') renderStoreCategories();
+        // إذا تم اختيار المتجر، نعرض الفئات
+        if (name === 'store') {
+          renderStoreCategories();
+        }
       };
 
       window.toggleForm = which => {
@@ -665,6 +839,7 @@
         const bpForm = $('form-bp');
         const gSeg = $('seg-glucose');
         const bpSeg = $('seg-bp');
+
         if (which === 'glucose') {
           gForm.classList.remove('hidden');
           bpForm.classList.add('hidden');
@@ -678,21 +853,22 @@
         }
       };
 
-      // ---------- Global state ----------
+      // --- Global state ---
       let allReadings = [];
       let currentPage = 1;
       const PAGE_SIZE = 10;
 
-      // ---------- Date helpers ----------
+      // --- Date helpers ---
       function parseDate(ts) {
         const d = new Date(ts);
         return isNaN(d.getTime()) ? null : d;
       }
+
       function isSameDay(d1, d2) {
         return d1.toDateString() === d2.toDateString();
       }
 
-      // ---------- Greeting ----------
+      // ===== English greeting =====
       function getGreeting() {
         const hour = new Date().getHours();
         if (hour >= 5 && hour < 12) return "Good morning";
@@ -700,92 +876,234 @@
         return "Good evening";
       }
 
-      // ---------- Descriptions (no emojis) ----------
+      // ===== وصف الحالات بالإنجليزية =====
       function getGlucoseDescription(value, note) {
         const num = Number(value);
         if (isNaN(num)) return '';
         const noteLower = String(note).toLowerCase();
         const isFasting = noteLower.includes('fasting');
         const isPostprandial = noteLower.includes('after meal') || noteLower.includes('aftermeal');
+        
         if (isFasting) {
-          if (num < 70) return 'Dangerous low (Hypoglycemia) - May cause dizziness, sweating, shaking, loss of consciousness.';
-          if (num <= 99) return 'Normal - Healthy level for non-diabetic.';
-          if (num <= 125) return 'Prediabetes - Warning sign, needs lifestyle changes.';
-          return 'Diabetes - Official diagnosis if repeated.';
+          if (num < 70) return '🔴 Dangerous low (Hypoglycemia) - May cause dizziness, sweating, shaking, loss of consciousness.';
+          if (num >= 70 && num <= 99) return '🟢 Normal - Healthy level for non-diabetic.';
+          if (num >= 100 && num <= 125) return '🟡 Prediabetes - Warning sign, needs lifestyle changes.';
+          if (num >= 126) return '🔴 Diabetes - Official diagnosis if repeated.';
         } else if (isPostprandial) {
-          if (num < 140) return 'Normal - 2 hours after meal.';
-          if (num <= 199) return 'Prediabetes - After meal.';
-          return 'Likely Diabetes - After meal.';
+          if (num < 140) return '🟢 Normal - 2 hours after meal.';
+          if (num >= 140 && num <= 199) return '🟡 Prediabetes - After meal.';
+          if (num >= 200) return '🔴 Likely Diabetes - After meal.';
         } else {
-          if (num < 70) return 'Dangerous low (Hypoglycemia)';
-          if (num <= 99) return 'Normal';
-          if (num <= 125) return 'Prediabetes';
-          return 'Diabetes';
+          if (num < 70) return '🔴 Dangerous low (Hypoglycemia)';
+          if (num >= 70 && num <= 99) return '🟢 Normal';
+          if (num >= 100 && num <= 125) return '🟡 Prediabetes';
+          if (num >= 126) return '🔴 Diabetes';
         }
+        return '';
       }
 
       function getBPDescription(bpString) {
         const parts = bpString.split('/').map(Number);
         if (parts.length !== 2 || isNaN(parts[0]) || isNaN(parts[1])) return '';
-        const sys = parts[0], dia = parts[1];
-        if (sys >= 180 || dia >= 120) return 'Hypertensive Crisis - Danger to brain, heart, kidneys. If severe headache, chest pain, shortness of breath → ER immediately.';
-        if (sys >= 140 || dia >= 90) return 'Stage 2 Hypertension - Clearly high, usually needs medication + lifestyle changes.';
-        if (sys >= 130 || dia >= 80) return 'Stage 1 Hypertension - Early high BP, may need monitoring or treatment.';
-        if (sys >= 120 && dia < 80) return 'Elevated - Not yet hypertension, early warning. Needs lifestyle changes.';
-        if (sys < 120 && dia < 80) return 'Normal - Healthy BP, no current risk.';
-        if (sys < 90 || dia < 60) return 'Low Blood Pressure - If dizziness or fainting occurs, seek evaluation.';
+        const sys = parts[0];
+        const dia = parts[1];
+        
+        if (sys >= 180 || dia >= 120) return '🚨 Hypertensive Crisis - Danger to brain, heart, kidneys. If severe headache, chest pain, shortness of breath → ER immediately.';
+        if (sys >= 140 || dia >= 90) return '🔴 Stage 2 Hypertension - Clearly high, usually needs medication + lifestyle changes.';
+        if (sys >= 130 || dia >= 80) return '🟠 Stage 1 Hypertension - Early high BP, may need monitoring or treatment depending on risk factors.';
+        if (sys >= 120 && sys <= 129 && dia < 80) return '🟡 Elevated - Not yet hypertension, but early warning. Needs lifestyle changes (less salt, exercise, healthy weight).';
+        if (sys < 120 && dia < 80) return '🟢 Normal - Healthy BP, no current risk if no other factors.';
+        if (sys < 90 || dia < 60) return '⚠️ Low Blood Pressure - Not always dangerous. If accompanied by dizziness or fainting → needs evaluation.';
         return '';
       }
 
-      // ---------- Glucose status (badge, color) ----------
+      // ===== Glucose Color Coding with Indicators =====
       function getGlucoseStatus(value, note = '') {
         const num = Number(value);
-        if (isNaN(num)) return { badgeText: '', colorClass: '', warning: false, trend: null };
+        if (isNaN(num)) return { category: 'unknown', colorClass: '', text: value, warning: false, trend: null, badgeText: '' };
+
         const noteLower = String(note).toLowerCase();
         const isFasting = noteLower.includes('fasting');
         const isPostprandial = noteLower.includes('after meal') || noteLower.includes('aftermeal');
-        let badge = '', color = '', warn = false, trend = null;
+
+        let category = '';
+        let colorClass = '';
+        let warning = false;
+        let trend = null;
+        let badgeText = '';
+
         if (isFasting) {
-          if (num < 100) { badge = 'Normal'; color = 'glucose-normal'; trend = 'down'; }
-          else if (num <= 125) { badge = 'Prediabetes'; color = 'glucose-prediabetes'; }
-          else { badge = 'High'; color = 'glucose-diabetes'; warn = true; trend = 'up'; }
+          if (num < 100) { 
+            category = 'normal'; 
+            colorClass = 'glucose-normal'; 
+            trend = 'down';
+            badgeText = 'Normal';
+          }
+          else if (num >= 100 && num <= 125) { 
+            category = 'prediabetes'; 
+            colorClass = 'glucose-prediabetes'; 
+            badgeText = 'Prediabetes';
+          }
+          else if (num >= 126) { 
+            category = 'diabetes'; 
+            colorClass = 'glucose-diabetes'; 
+            warning = true; 
+            trend = 'up';
+            badgeText = 'High';
+          }
         } else if (isPostprandial) {
-          if (num < 140) { badge = 'Normal'; color = 'glucose-normal'; trend = 'down'; }
-          else if (num <= 199) { badge = 'Prediabetes'; color = 'glucose-prediabetes'; }
-          else { badge = 'High'; color = 'glucose-diabetes'; warn = true; trend = 'up'; }
+          if (num < 140) { 
+            category = 'normal'; 
+            colorClass = 'glucose-normal'; 
+            trend = 'down';
+            badgeText = 'Normal';
+          }
+          else if (num >= 140 && num <= 199) { 
+            category = 'prediabetes'; 
+            colorClass = 'glucose-prediabetes'; 
+            badgeText = 'Prediabetes';
+          }
+          else if (num >= 200) { 
+            category = 'diabetes'; 
+            colorClass = 'glucose-diabetes'; 
+            warning = true; 
+            trend = 'up';
+            badgeText = 'High';
+          }
         } else {
-          if (num < 100) { badge = 'Normal'; color = 'glucose-normal'; trend = 'down'; }
-          else if (num <= 125) { badge = 'Prediabetes'; color = 'glucose-prediabetes'; }
-          else { badge = 'High'; color = 'glucose-diabetes'; warn = true; trend = 'up'; }
+          if (num < 100) { 
+            category = 'normal'; 
+            colorClass = 'glucose-normal'; 
+            trend = 'down';
+            badgeText = 'Normal';
+          }
+          else if (num >= 100 && num <= 125) { 
+            category = 'prediabetes'; 
+            colorClass = 'glucose-prediabetes'; 
+            badgeText = 'Prediabetes';
+          }
+          else if (num >= 126) { 
+            category = 'diabetes'; 
+            colorClass = 'glucose-diabetes'; 
+            warning = true; 
+            trend = 'up';
+            badgeText = 'High';
+          }
         }
-        return { badgeText: badge, colorClass: color, warning: warn, trend };
+
+        return { category, colorClass, value: num, warning, trend, badgeText };
       }
 
+      // ===== BP Color Coding with named badges =====
       function getBPStatus(bpString) {
+        if (!bpString || typeof bpString !== 'string') {
+          return { category: 'unknown', colorClass: '', explanation: '', sys: null, dia: null, warning: false, trend: null, badgeText: '' };
+        }
         const parts = bpString.split('/').map(Number);
         if (parts.length !== 2 || isNaN(parts[0]) || isNaN(parts[1])) {
-          return { badgeText: '', colorClass: '', warning: false, trend: null, display: bpString, sys: null, dia: null };
+          return { category: 'unknown', colorClass: '', explanation: '', sys: null, dia: null, warning: false, trend: null, badgeText: '' };
         }
-        const sys = parts[0], dia = parts[1];
-        let badge = '', color = '', warn = false, trend = null;
-        if (sys >= 180 || dia >= 120) { badge = 'Crisis'; color = 'bp-crisis'; warn = true; trend = 'up'; }
-        else if (sys >= 140 || dia >= 90) { badge = 'Stage 2'; color = 'bp-stage2'; warn = true; trend = 'up'; }
-        else if (sys >= 130 || dia >= 80) { badge = 'Stage 1'; color = 'bp-stage1'; }
-        else if (sys >= 120 && dia < 80) { badge = 'Elevated'; color = 'bp-elevated'; }
-        else if (sys < 120 && dia < 80) { badge = 'Normal'; color = 'bp-normal'; trend = 'down'; }
-        else { badge = 'Normal'; color = 'bp-normal'; }
-        return { badgeText: badge, colorClass: color, warning: warn, trend, display: bpString, sys, dia };
+        const sys = parts[0];
+        const dia = parts[1];
+
+        let category = '';
+        let colorClass = '';
+        let explanation = '';
+        let warning = false;
+        let trend = null;
+        let badgeText = '';
+
+        if (sys >= 180 || dia >= 120) {
+          category = 'Crisis';
+          colorClass = 'bp-crisis';
+          explanation = 'Hypertensive crisis - seek emergency immediately';
+          warning = true;
+          trend = 'up';
+          badgeText = 'Crisis';
+        } else if (sys >= 140 || dia >= 90) {
+          category = 'Stage 2';
+          colorClass = 'bp-stage2';
+          explanation = 'Stage 2 hypertension - may need medication';
+          warning = true;
+          trend = 'up';
+          badgeText = 'Stage 2';
+        } else if (sys >= 130 || dia >= 80) {
+          category = 'Stage 1';
+          colorClass = 'bp-stage1';
+          explanation = 'Stage 1 hypertension - monitor & lifestyle changes';
+          warning = false;
+          trend = null;
+          badgeText = 'Stage 1';
+        } else if (sys >= 120 && sys <= 129 && dia < 80) {
+          category = 'Elevated';
+          colorClass = 'bp-elevated';
+          explanation = 'Elevated (early warning)';
+          warning = false;
+          trend = null;
+          badgeText = 'Elevated';
+        } else if (sys < 120 && dia < 80) {
+          category = 'Normal';
+          colorClass = 'bp-normal';
+          explanation = 'Excellent normal pressure';
+          warning = false;
+          trend = 'down';
+          badgeText = 'Normal';
+        } else {
+          if (sys >= 140 || dia >= 90) {
+            category = 'Stage 2';
+            colorClass = 'bp-stage2';
+            explanation = 'Stage 2 hypertension - may need medication';
+            warning = true;
+            trend = 'up';
+            badgeText = 'Stage 2';
+          } else if (sys >= 130 || dia >= 80) {
+            category = 'Stage 1';
+            colorClass = 'bp-stage1';
+            explanation = 'Stage 1 hypertension - monitor & lifestyle changes';
+            warning = false;
+            trend = null;
+            badgeText = 'Stage 1';
+          } else if (sys >= 120 && dia < 80) {
+            category = 'Elevated';
+            colorClass = 'bp-elevated';
+            explanation = 'Elevated (early warning)';
+            warning = false;
+            trend = null;
+            badgeText = 'Elevated';
+          } else {
+            category = 'Normal';
+            colorClass = 'bp-normal';
+            explanation = 'Excellent normal pressure';
+            warning = false;
+            trend = 'down';
+            badgeText = 'Normal';
+          }
+        }
+
+        return { 
+          category, 
+          colorClass, 
+          explanation, 
+          sys, 
+          dia, 
+          display: bpString, 
+          warning, 
+          trend, 
+          badgeText 
+        };
       }
 
-      // ---------- API calls ----------
+      // ===== API calls =====
       window.saveGlucose = async () => {
         if (!requireAuth()) return;
         const { userId } = getAuth();
         const btn = document.querySelector('#form-glucose .btn.primary');
         const value = $('glucoseValue').value.trim();
         const note = $('glucoseNote').value;
+
         const num = Number(value);
         if (!value || isNaN(num) || num <= 0) return toast('Enter a valid glucose number', 'err');
+
         try {
           setLoading(btn, true);
           const res = await fetch('/api/readings', {
@@ -812,10 +1130,12 @@
         const sys = $('bpSys').value.trim();
         const dia = $('bpDia').value.trim();
         const note = $('bpNote').value;
+
         const s = Number(sys), d = Number(dia);
         if (!sys || !dia || isNaN(s) || isNaN(d) || s <= 0 || d <= 0) {
           return toast('Enter valid BP numbers', 'err');
         }
+
         try {
           setLoading(btn, true);
           const res = await fetch('/api/readings', {
@@ -844,6 +1164,7 @@
           if (!res.ok) throw new Error();
           const data = await res.json();
           allReadings = Array.isArray(data) ? data.sort((a, b) => new Date(b.ts) - new Date(a.ts)) : [];
+          console.log('Readings loaded:', allReadings);
         } catch {
           toast('Failed to load readings', 'err');
           allReadings = [];
@@ -851,11 +1172,14 @@
         return allReadings;
       }
 
-      // ---------- Render functions ----------
+      // ===== Render functions =====
+
+      // تحديث رأس الصفحة: زر المستخدم ورسالة الترحيب (بالإنجليزية)
       function updateHeader() {
         const { name } = getAuth();
         let firstName = name ? name.split(' ')[0] : 'Guest';
         if (!firstName) firstName = 'Guest';
+        
         $('whoamiText').textContent = 'Connected';
         $('subtitle').textContent = `${getGreeting()}, ${firstName}`;
       }
@@ -866,28 +1190,54 @@
           const d = parseDate(r.ts);
           return d && isSameDay(d, now);
         }).length;
+
         const latestGlucose = allReadings.find(r => r.type === 'glucose');
         const latestBP = allReadings.find(r => r.type === 'bp');
 
         if (latestGlucose) {
-          const { colorClass, badgeText, warning, trend } = getGlucoseStatus(latestGlucose.value, latestGlucose.note);
-          let html = `<span class="${colorClass}">${latestGlucose.value}</span>`;
-          if (warning && trend === 'up') html += `<span class="trend-up" title="High glucose">▲</span>`;
-          else if (trend === 'down') html += `<span class="trend-down" title="Normal glucose">▼</span>`;
-          let badgeClass = badgeText.toLowerCase().replace(' ', '');
-          if (badgeClass) html += `<span class="status-badge ${badgeClass}">${badgeText}</span>`;
+          const { colorClass, value, warning, trend, badgeText } = getGlucoseStatus(latestGlucose.value, latestGlucose.note);
+          let html = `<span class="${colorClass}">${value}</span>`;
+          if (warning && trend === 'up') {
+            html += `<span class="trend-up" title="High glucose">▲</span>`;
+          } else if (trend === 'down') {
+            html += `<span class="trend-down" title="Normal glucose">▼</span>`;
+          }
+          let badgeClass = '';
+          if (badgeText === 'Normal') badgeClass = 'normal';
+          else if (badgeText === 'Prediabetes') badgeClass = 'prediabetes';
+          else if (badgeText === 'High') badgeClass = 'high';
+          if (badgeClass) {
+            html += `<span class="status-badge ${badgeClass}">${badgeText}</span>`;
+          }
           $('kpiGlucose').innerHTML = html;
-        } else $('kpiGlucose').textContent = '—';
+        } else {
+          $('kpiGlucose').textContent = '—';
+        }
 
         if (latestBP) {
           const bpStatus = getBPStatus(latestBP.value);
           let html = `<span class="${bpStatus.colorClass}">${bpStatus.display}</span>`;
-          if (bpStatus.trend === 'up') html += `<span class="trend-up" title="High BP">▲</span>`;
-          else if (bpStatus.trend === 'down') html += `<span class="trend-down" title="Normal BP">▼</span>`;
-          let badgeClass = bpStatus.badgeText.toLowerCase().replace(' ', '');
-          if (badgeClass) html += `<span class="status-badge ${badgeClass}">${bpStatus.badgeText}</span>`;
+          
+          if (bpStatus.trend === 'up') {
+            html += `<span class="trend-up" title="High BP">▲</span>`;
+          } else if (bpStatus.trend === 'down') {
+            html += `<span class="trend-down" title="Normal BP">▼</span>`;
+          }
+
+          let badgeClass = '';
+          if (bpStatus.badgeText === 'Normal') badgeClass = 'normal';
+          else if (bpStatus.badgeText === 'Elevated') badgeClass = 'elevated';
+          else if (bpStatus.badgeText === 'Stage 1') badgeClass = 'stage1';
+          else if (bpStatus.badgeText === 'Stage 2') badgeClass = 'stage2';
+          else if (bpStatus.badgeText === 'Crisis') badgeClass = 'crisis';
+          if (badgeClass) {
+            html += `<span class="status-badge ${badgeClass}">${bpStatus.badgeText}</span>`;
+          }
+
           $('kpiBP').innerHTML = html;
-        } else $('kpiBP').textContent = '—';
+        } else {
+          $('kpiBP').textContent = '—';
+        }
 
         $('todayLine').textContent = todayCount ? `${todayCount} reading(s) logged today` : 'No readings yet today';
       }
@@ -896,51 +1246,84 @@
         const tbody = $('readingsBody');
         const totalPages = Math.max(1, Math.ceil(allReadings.length / PAGE_SIZE));
         if (currentPage > totalPages) currentPage = totalPages;
+
         const start = (currentPage - 1) * PAGE_SIZE;
         const pageItems = allReadings.slice(start, start + PAGE_SIZE);
         $('pageLabel').textContent = `${currentPage} / ${totalPages}`;
+
         if (!pageItems.length) {
           tbody.innerHTML = '<tr><td colspan="6" class="muted">No readings yet.</td></tr>';
           return;
         }
+
         tbody.innerHTML = pageItems.map(r => {
           const date = parseDate(r.ts)?.toLocaleString() || '—';
-          let valueHtml = '', description = '';
+          let valueHtml = '';
+          let description = '';
+
           if (r.type === 'glucose') {
-            const s = getGlucoseStatus(r.value, r.note);
-            valueHtml = `<span class="${s.colorClass}">${r.value}</span>`;
-            if (s.warning && s.trend === 'up') valueHtml += ` <span class="trend-up" title="High glucose">▲</span>`;
-            else if (s.trend === 'down') valueHtml += ` <span class="trend-down" title="Normal glucose">▼</span>`;
-            let badgeClass = s.badgeText.toLowerCase().replace(' ', '');
-            if (badgeClass) valueHtml += ` <span class="status-badge ${badgeClass}">${s.badgeText}</span>`;
+            const { colorClass, value, warning, trend, badgeText } = getGlucoseStatus(r.value, r.note);
+            valueHtml = `<span class="${colorClass}">${value}</span>`;
+            if (warning && trend === 'up') {
+              valueHtml += ` <span class="trend-up" title="High glucose">▲</span>`;
+            } else if (trend === 'down') {
+              valueHtml += ` <span class="trend-down" title="Normal glucose">▼</span>`;
+            }
+            let badgeClass = '';
+            if (badgeText === 'Normal') badgeClass = 'normal';
+            else if (badgeText === 'Prediabetes') badgeClass = 'prediabetes';
+            else if (badgeText === 'High') badgeClass = 'high';
+            if (badgeClass) {
+              valueHtml += ` <span class="status-badge ${badgeClass}">${badgeText}</span>`;
+            }
             description = getGlucoseDescription(r.value, r.note);
           } else if (r.type === 'bp') {
-            const s = getBPStatus(r.value);
-            valueHtml = `<span class="${s.colorClass}">${s.display}</span>`;
-            if (s.trend === 'up') valueHtml += ` <span class="trend-up" title="High BP">▲</span>`;
-            else if (s.trend === 'down') valueHtml += ` <span class="trend-down" title="Normal BP">▼</span>`;
-            let badgeClass = s.badgeText.toLowerCase().replace(' ', '');
-            if (badgeClass) valueHtml += ` <span class="status-badge ${badgeClass}">${s.badgeText}</span>`;
+            const bpStatus = getBPStatus(r.value);
+            valueHtml = `<span class="${bpStatus.colorClass}">${bpStatus.display}</span>`;
+            if (bpStatus.trend === 'up') {
+              valueHtml += ` <span class="trend-up" title="High BP">▲</span>`;
+            } else if (bpStatus.trend === 'down') {
+              valueHtml += ` <span class="trend-down" title="Normal BP">▼</span>`;
+            }
+            let badgeClass = '';
+            if (bpStatus.badgeText === 'Normal') badgeClass = 'normal';
+            else if (bpStatus.badgeText === 'Elevated') badgeClass = 'elevated';
+            else if (bpStatus.badgeText === 'Stage 1') badgeClass = 'stage1';
+            else if (bpStatus.badgeText === 'Stage 2') badgeClass = 'stage2';
+            else if (bpStatus.badgeText === 'Crisis') badgeClass = 'crisis';
+            if (badgeClass) {
+              valueHtml += ` <span class="status-badge ${badgeClass}">${bpStatus.badgeText}</span>`;
+            }
             description = getBPDescription(r.value);
           } else {
             valueHtml = escapeHtml(r.value);
           }
-          return `<tr>
-            <td data-label="Date">${escapeHtml(date)}</td>
-            <td data-label="Type"><span class="pill">${escapeHtml(r.type === 'bp' ? 'Blood Pressure' : r.type)}</span></td>
-            <td data-label="Value">${valueHtml}</td>
-            <td data-label="Description" class="description-cell">${escapeHtml(description)}</td>
-            <td data-label="Note" class="note-cell">${escapeHtml(r.note || '')}</td>
-            <td data-label="Actions" class="td-actions">
-              <button class="mini-btn" onclick="editReading('${r.id}', '${escapeHtml(r.value)}', '${escapeHtml(r.note || '')}')">Edit</button>
-              <button class="mini-btn danger" onclick="deleteReading('${r.id}')">Delete</button>
-            </td>
-          </tr>`;
+
+          return `
+            <tr>
+              <td data-label="Date">${escapeHtml(date)}</td>
+              <td data-label="Type"><span class="pill">${escapeHtml(r.type === 'bp' ? 'Blood Pressure' : r.type)}</span></td>
+              <td data-label="Value">${valueHtml}</td>
+              <td data-label="Description" class="description-cell">${escapeHtml(description)}</td>
+              <td data-label="Note" class="note-cell">${escapeHtml(r.note || '')}</td>
+              <td data-label="Actions" class="td-actions">
+                <button class="mini-btn" onclick="editReading('${r.id}', '${escapeHtml(r.value)}', '${escapeHtml(r.note || '')}')" aria-label="Edit">
+                  <span class="btn-text">Edit</span>
+                </button>
+                <button class="mini-btn danger" onclick="deleteReading('${r.id}')" aria-label="Delete">
+                  <span class="btn-text">Delete</span>
+                </button>
+              </td>
+            </tr>
+          `;
         }).join('');
       }
 
       window.prevPage = () => { if (currentPage > 1) { currentPage--; renderHistory(); } };
-      window.nextPage = () => { if (currentPage < Math.ceil(allReadings.length / PAGE_SIZE)) { currentPage++; renderHistory(); } };
+      window.nextPage = () => {
+        const total = Math.ceil(allReadings.length / PAGE_SIZE);
+        if (currentPage < total) { currentPage++; renderHistory(); }
+      };
 
       window.editReading = async (id, currentVal, currentNote) => {
         if (!requireAuth()) return;
@@ -949,6 +1332,7 @@
         if (newVal === null) return;
         const newNote = prompt('Edit note (optional):', currentNote);
         if (newNote === null) return;
+
         try {
           const res = await fetch(`/api/readings/${encodeURIComponent(id)}`, {
             method: 'PUT',
@@ -968,6 +1352,7 @@
         if (!requireAuth()) return;
         const { userId } = getAuth();
         if (!confirm('Delete this reading?')) return;
+
         try {
           const res = await fetch(`/api/readings/${encodeURIComponent(id)}`, {
             method: 'DELETE',
@@ -988,18 +1373,29 @@
           const d = parseDate(r.ts);
           return d && d >= sevenDaysAgo;
         });
+
         const glucoseVals = weekReadings.filter(r => r.type === 'glucose').map(r => Number(r.value)).filter(n => !isNaN(n));
         const avg = arr => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
         const gAvg = avg(glucoseVals);
         if (gAvg !== null) {
-          const s = getGlucoseStatus(gAvg, '');
-          let html = `<span class="${s.colorClass}">${gAvg}</span>`;
-          if (s.warning && s.trend === 'up') html += ` <span class="trend-up" title="High average glucose">▲</span>`;
-          else if (s.trend === 'down') html += ` <span class="trend-down" title="Normal average glucose">▼</span>`;
-          let badgeClass = s.badgeText.toLowerCase().replace(' ', '');
-          if (badgeClass) html += ` <span class="status-badge ${badgeClass}">${s.badgeText}</span>`;
+          const { colorClass, warning, trend, badgeText } = getGlucoseStatus(gAvg, '');
+          let html = `<span class="${colorClass}">${gAvg}</span>`;
+          if (warning && trend === 'up') {
+            html += ` <span class="trend-up" title="High average glucose">▲</span>`;
+          } else if (trend === 'down') {
+            html += ` <span class="trend-down" title="Normal average glucose">▼</span>`;
+          }
+          let badgeClass = '';
+          if (badgeText === 'Normal') badgeClass = 'normal';
+          else if (badgeText === 'Prediabetes') badgeClass = 'prediabetes';
+          else if (badgeText === 'High') badgeClass = 'high';
+          if (badgeClass) {
+            html += ` <span class="status-badge ${badgeClass}">${badgeText}</span>`;
+          }
           $('avg7g').innerHTML = html;
-        } else $('avg7g').textContent = '—';
+        } else {
+          $('avg7g').textContent = '—';
+        }
 
         const bpReadings = weekReadings.filter(r => r.type === 'bp');
         if (bpReadings.length > 0) {
@@ -1016,47 +1412,78 @@
             const avgSys = Math.round(totalSys / count);
             const avgDia = Math.round(totalDia / count);
             const avgString = `${avgSys}/${avgDia}`;
-            const s = getBPStatus(avgString);
-            let html = `<span class="${s.colorClass}">${avgString}</span>`;
-            if (s.trend === 'up') html += ` <span class="trend-up" title="High average BP">▲</span>`;
-            else if (s.trend === 'down') html += ` <span class="trend-down" title="Normal average BP">▼</span>`;
-            let badgeClass = s.badgeText.toLowerCase().replace(' ', '');
-            if (badgeClass) html += ` <span class="status-badge ${badgeClass}">${s.badgeText}</span>`;
+            const bpStatus = getBPStatus(avgString);
+            let html = `<span class="${bpStatus.colorClass}">${avgString}</span>`;
+            if (bpStatus.trend === 'up') {
+              html += ` <span class="trend-up" title="High average BP">▲</span>`;
+            } else if (bpStatus.trend === 'down') {
+              html += ` <span class="trend-down" title="Normal average BP">▼</span>`;
+            }
+            let badgeClass = '';
+            if (bpStatus.badgeText === 'Normal') badgeClass = 'normal';
+            else if (bpStatus.badgeText === 'Elevated') badgeClass = 'elevated';
+            else if (bpStatus.badgeText === 'Stage 1') badgeClass = 'stage1';
+            else if (bpStatus.badgeText === 'Stage 2') badgeClass = 'stage2';
+            else if (bpStatus.badgeText === 'Crisis') badgeClass = 'crisis';
+            if (badgeClass) {
+              html += ` <span class="status-badge ${badgeClass}">${bpStatus.badgeText}</span>`;
+            }
             $('avg7bp').innerHTML = html;
-          } else $('avg7bp').textContent = '—';
-        } else $('avg7bp').textContent = '—';
+          } else {
+            $('avg7bp').textContent = '—';
+          }
+        } else {
+          $('avg7bp').textContent = '—';
+        }
 
         const notes = allReadings.map(r => r.note).filter(Boolean);
         if (notes.length) {
           const freq = notes.reduce((acc, n) => (acc[n] = (acc[n] || 0) + 1, acc), {});
           $('commonNote').textContent = Object.entries(freq).sort((a, b) => b[1] - a[1])[0]?.[0] || '—';
-        } else $('commonNote').textContent = '—';
+        } else {
+          $('commonNote').textContent = '—';
+        }
       }
 
+      // ===== Render recent tables =====
       function renderRecentTables() {
         const glucoseTbody = $('recentGlucose');
         const bpTbody = $('recentBP');
         if (!glucoseTbody || !bpTbody) return;
+
         const glucoseReadings = allReadings.filter(r => r.type === 'glucose').slice(0, 7);
         const bpReadings = allReadings.filter(r => r.type === 'bp').slice(0, 7);
+
         glucoseTbody.innerHTML = glucoseReadings.map(r => {
           const date = parseDate(r.ts)?.toLocaleString() || '—';
-          const s = getGlucoseStatus(r.value, r.note);
-          const badgeClass = s.badgeText.toLowerCase().replace(' ', '');
-          return `<tr><td>${escapeHtml(date)}</td><td class="${s.colorClass}">${escapeHtml(r.value)}</td><td><span class="status-badge ${badgeClass}">${s.badgeText}</span></td></tr>`;
+          const status = getGlucoseStatus(r.value, r.note);
+          const badgeClass = status.badgeText.toLowerCase().replace(' ', '');
+          return `<tr>
+            <td>${escapeHtml(date)}</td>
+            <td class="${status.colorClass}">${escapeHtml(r.value)}</td>
+            <td><span class="status-badge ${badgeClass}">${status.badgeText}</span></td>
+          </tr>`;
         }).join('') || '<tr><td colspan="3" class="muted">No glucose readings</td></tr>';
+
         bpTbody.innerHTML = bpReadings.map(r => {
           const date = parseDate(r.ts)?.toLocaleString() || '—';
-          const s = getBPStatus(r.value);
-          const badgeClass = s.badgeText.toLowerCase().replace(' ', '');
-          return `<tr><td>${escapeHtml(date)}</td><td class="${s.colorClass}">${escapeHtml(r.value)}</td><td><span class="status-badge ${badgeClass}">${s.badgeText}</span></td></tr>`;
+          const status = getBPStatus(r.value);
+          const badgeClass = status.badgeText.toLowerCase().replace(' ', '');
+          return `<tr>
+            <td>${escapeHtml(date)}</td>
+            <td class="${status.colorClass}">${escapeHtml(r.value)}</td>
+            <td><span class="status-badge ${badgeClass}">${status.badgeText}</span></td>
+          </tr>`;
         }).join('') || '<tr><td colspan="3" class="muted">No BP readings</td></tr>';
       }
 
+      // ===== Render Daily Points (Styling) =====
       function renderDailyPoints() {
         const glucoseContainer = $('glucosePoints');
         const bpContainer = $('bpPoints');
         if (!glucoseContainer || !bpContainer) return;
+
+        // تجميع القراءات لكل يوم خلال آخر 7 أيام
         const days = [];
         const today = new Date();
         for (let i = 6; i >= 0; i--) {
@@ -1065,6 +1492,8 @@
           day.setHours(0,0,0,0);
           days.push(day);
         }
+
+        // دالة مساعدة للحصول على قراءة اليوم (آخر قراءة في ذلك اليوم)
         function getReadingForDay(day, type) {
           const dayStart = new Date(day);
           const dayEnd = new Date(day);
@@ -1074,8 +1503,11 @@
             return d && r.type === type && d >= dayStart && d <= dayEnd;
           });
           if (readingsDay.length === 0) return null;
+          // نرجع آخر قراءة في ذلك اليوم
           return readingsDay.sort((a,b) => new Date(b.ts) - new Date(a.ts))[0];
         }
+
+        // إنشاء نقاط الجلوكوز
         let glucoseHtml = '';
         days.forEach(day => {
           const reading = getReadingForDay(day, 'glucose');
@@ -1084,16 +1516,28 @@
           let valueText = '—';
           let title = 'No reading';
           if (reading) {
-            const s = getGlucoseStatus(reading.value, reading.note);
-            if (s.badgeText === 'Normal') pointClass += ' normal';
-            else if (s.badgeText === 'Prediabetes') pointClass += ' prediabetes';
-            else if (s.badgeText === 'High') pointClass += ' diabetes';
+            const status = getGlucoseStatus(reading.value, reading.note);
+            if (status.badgeText === 'Normal') pointClass += ' normal';
+            else if (status.badgeText === 'Prediabetes') pointClass += ' prediabetes';
+            else if (status.badgeText === 'High') pointClass += ' diabetes';
             valueText = reading.value;
-            title = `${day.toLocaleDateString()}: ${reading.value} mg/dL (${s.badgeText})`;
-          } else pointClass += ' no-data';
-          glucoseHtml += `<div class="point-column"><div class="point-day">${dayLabel}</div><div class="point-value"><div class="point-circle ${pointClass}" title="${title}"></div><span class="point-label">${valueText}</span></div></div>`;
+            title = `${day.toLocaleDateString()}: ${reading.value} mg/dL (${status.badgeText})`;
+          } else {
+            pointClass += ' no-data';
+          }
+          glucoseHtml += `
+            <div class="point-column">
+              <div class="point-day">${dayLabel}</div>
+              <div class="point-value">
+                <div class="point-circle ${pointClass}" title="${title}"></div>
+                <span class="point-label">${valueText}</span>
+              </div>
+            </div>
+          `;
         });
         glucoseContainer.innerHTML = glucoseHtml;
+
+        // إنشاء نقاط ضغط الدم
         let bpHtml = '';
         days.forEach(day => {
           const reading = getReadingForDay(day, 'bp');
@@ -1102,27 +1546,45 @@
           let valueText = '—';
           let title = 'No reading';
           if (reading) {
-            const s = getBPStatus(reading.value);
-            if (s.badgeText === 'Normal') pointClass += ' normal';
-            else if (s.badgeText === 'Elevated') pointClass += ' elevated';
-            else if (s.badgeText === 'Stage 1') pointClass += ' stage1';
-            else if (s.badgeText === 'Stage 2') pointClass += ' stage2';
-            else if (s.badgeText === 'Crisis') pointClass += ' crisis';
+            const status = getBPStatus(reading.value);
+            if (status.badgeText === 'Normal') pointClass += ' normal';
+            else if (status.badgeText === 'Elevated') pointClass += ' elevated';
+            else if (status.badgeText === 'Stage 1') pointClass += ' stage1';
+            else if (status.badgeText === 'Stage 2') pointClass += ' stage2';
+            else if (status.badgeText === 'Crisis') pointClass += ' crisis';
             valueText = reading.value;
-            title = `${day.toLocaleDateString()}: ${reading.value} mmHg (${s.badgeText})`;
-          } else pointClass += ' no-data';
-          bpHtml += `<div class="point-column"><div class="point-day">${dayLabel}</div><div class="point-value"><div class="point-circle ${pointClass}" title="${title}"></div><span class="point-label">${valueText}</span></div></div>`;
+            title = `${day.toLocaleDateString()}: ${reading.value} mmHg (${status.badgeText})`;
+          } else {
+            pointClass += ' no-data';
+          }
+          bpHtml += `
+            <div class="point-column">
+              <div class="point-day">${dayLabel}</div>
+              <div class="point-value">
+                <div class="point-circle ${pointClass}" title="${title}"></div>
+                <span class="point-label">${valueText}</span>
+              </div>
+            </div>
+          `;
         });
         bpContainer.innerHTML = bpHtml;
+
+        // إضافة بعض الأنماط للنقاط الفارغة
         const style = document.createElement('style');
-        style.innerHTML = '.point-circle.no-data { background-color: #444; opacity: 0.3; }';
+        style.innerHTML = `
+          .point-circle.no-data {
+            background-color: #444;
+            opacity: 0.3;
+          }
+        `;
         document.head.appendChild(style);
       }
 
-      // ---------- Report rendering ----------
+      // ===== Report rendering with user name and print date =====
       function renderReport() {
         const container = $('reportContent');
         if (!container) return;
+
         const { name } = getAuth();
         const userName = name ? name.split(' ')[0] : 'Guest';
         const now = new Date();
@@ -1132,15 +1594,16 @@
         const oneMonthAgo = new Date(now.getTime() - 30 * 86400000);
         const oneYearAgo = new Date(now.getTime() - 365 * 86400000);
 
-        const week = allReadings.filter(r => parseDate(r.ts) >= oneWeekAgo);
-        const month = allReadings.filter(r => parseDate(r.ts) >= oneMonthAgo);
-        const year = allReadings.filter(r => parseDate(r.ts) >= oneYearAgo);
+        const weekReadings = allReadings.filter(r => parseDate(r.ts) >= oneWeekAgo);
+        const monthReadings = allReadings.filter(r => parseDate(r.ts) >= oneMonthAgo);
+        const yearReadings = allReadings.filter(r => parseDate(r.ts) >= oneYearAgo);
 
-        const avgGlucose = arr => {
+        function avgGlucose(arr) {
           const vals = arr.filter(r => r.type === 'glucose').map(r => Number(r.value)).filter(n => !isNaN(n));
-          return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
-        };
-        const avgBP = arr => {
+          return vals.length ? Math.round(vals.reduce((a,b) => a+b, 0) / vals.length) : null;
+        }
+
+        function avgBP(arr) {
           const bpReadings = arr.filter(r => r.type === 'bp');
           let totalSys = 0, totalDia = 0, count = 0;
           bpReadings.forEach(r => {
@@ -1153,10 +1616,15 @@
           });
           if (count === 0) return null;
           return { sys: Math.round(totalSys / count), dia: Math.round(totalDia / count) };
-        };
+        }
 
-        const wGluc = avgGlucose(week), mGluc = avgGlucose(month), yGluc = avgGlucose(year);
-        const wBP = avgBP(week), mBP = avgBP(month), yBP = avgBP(year);
+        const weeklyGlucose = avgGlucose(weekReadings);
+        const monthlyGlucose = avgGlucose(monthReadings);
+        const yearlyGlucose = avgGlucose(yearReadings);
+
+        const weeklyBP = avgBP(weekReadings);
+        const monthlyBP = avgBP(monthReadings);
+        const yearlyBP = avgBP(yearReadings);
 
         let html = `
           <div class="report-header" style="margin-bottom:20px; border-bottom:1px solid #ccc; padding-bottom:10px;">
@@ -1169,92 +1637,165 @@
         `;
 
         html += '<div class="report-section"><h2>Glucose (mg/dL)</h2>';
-        function glucoseRow(label, val) {
-          if (val === null) return `<div class="report-row"><span class="report-label">${label}:</span> <span class="report-value">—</span></div>`;
-          const s = getGlucoseStatus(val, '');
-          const arrow = s.warning ? '<span class="trend-up">▲</span>' : (s.trend === 'down' ? '<span class="trend-down">▼</span>' : '');
-          const badgeClass = s.badgeText.toLowerCase().replace(' ', '');
-          return `<div class="report-row"><span class="report-label">${label}:</span> <span class="report-value ${s.colorClass}">${val}</span> ${arrow} <span class="status-badge ${badgeClass}">${s.badgeText}</span><div class="report-suggestion">${getGlucoseDescription(val, '')}</div></div>`;
+
+        function glucoseRow(label, value) {
+          if (value === null) return `<div class="report-row"><span class="report-label">${label}:</span> <span class="report-value">—</span></div>`;
+          const status = getGlucoseStatus(value, '');
+          const badgeClass = status.badgeText.toLowerCase().replace(' ', '');
+          const arrow = status.warning ? '<span class="trend-up">▲</span>' : (status.trend === 'down' ? '<span class="trend-down">▼</span>' : '');
+          const suggestion = getGlucoseDescription(value, '');
+          return `
+            <div class="report-row">
+              <span class="report-label">${label}:</span>
+              <span class="report-value ${status.colorClass}">${value}</span> ${arrow}
+              <span class="status-badge ${badgeClass}">${status.badgeText}</span>
+              <div class="report-suggestion">${suggestion}</div>
+            </div>
+          `;
         }
-        html += glucoseRow('Weekly', wGluc) + glucoseRow('Monthly', mGluc) + glucoseRow('Yearly', yGluc);
+
+        html += glucoseRow('Weekly', weeklyGlucose);
+        html += glucoseRow('Monthly', monthlyGlucose);
+        html += glucoseRow('Yearly', yearlyGlucose);
+
         html += '</div><div class="report-section"><h2>Blood Pressure (mmHg)</h2>';
-        function bpRow(label, bp) {
-          if (!bp) return `<div class="report-row"><span class="report-label">${label}:</span> <span class="report-value">—</span></div>`;
-          const str = `${bp.sys}/${bp.dia}`;
-          const s = getBPStatus(str);
-          const arrow = s.warning ? '<span class="trend-up">▲</span>' : (s.trend === 'down' ? '<span class="trend-down">▼</span>' : '');
-          const badgeClass = s.badgeText.toLowerCase().replace(' ', '');
-          return `<div class="report-row"><span class="report-label">${label}:</span> <span class="report-value ${s.colorClass}">${str}</span> ${arrow} <span class="status-badge ${badgeClass}">${s.badgeText}</span><div class="report-suggestion">${getBPDescription(str)}</div></div>`;
+
+        function bpRow(label, bpAvg) {
+          if (!bpAvg) return `<div class="report-row"><span class="report-label">${label}:</span> <span class="report-value">—</span></div>`;
+          const bpString = `${bpAvg.sys}/${bpAvg.dia}`;
+          const status = getBPStatus(bpString);
+          const badgeClass = status.badgeText.toLowerCase().replace(' ', '');
+          const arrow = status.warning ? '<span class="trend-up">▲</span>' : (status.trend === 'down' ? '<span class="trend-down">▼</span>' : '');
+          const suggestion = getBPDescription(bpString);
+          return `
+            <div class="report-row">
+              <span class="report-label">${label}:</span>
+              <span class="report-value ${status.colorClass}">${bpString}</span> ${arrow}
+              <span class="status-badge ${badgeClass}">${status.badgeText}</span>
+              <div class="report-suggestion">${suggestion}</div>
+            </div>
+          `;
         }
-        html += bpRow('Weekly', wBP) + bpRow('Monthly', mBP) + bpRow('Yearly', yBP);
+
+        html += bpRow('Weekly', weeklyBP);
+        html += bpRow('Monthly', monthlyBP);
+        html += bpRow('Yearly', yearlyBP);
+
         html += '</div>';
+
         container.innerHTML = html;
       }
 
-      // ---------- Store ----------
+      // ===== Store: الفئات والمنتجات =====
+      // بيانات الفئات
       const categories = [
         { id: 'glucose-meters', name: 'Glucose Meters', icon: '🩸', count: 3, image: './images/glucose-meter.jpg' },
         { id: 'test-strips', name: 'Test Strips', icon: '📏', count: 4, image: '' },
         { id: 'bp-monitors', name: 'BP Monitors', icon: '❤️', count: 3, image: '' },
         { id: 'lancets', name: 'Lancets', icon: '💉', count: 2, image: '' }
       ];
+
+      // بيانات المنتجات (مرتبطة بمعرّف الفئة)
       const products = [
+        // Glucose Meters
         { categoryId: 'glucose-meters', name: 'TRUE METRIX® Meter', price: '$29.99', image: './images/glucose-meter.jpg', price_id: 'price_1GlucoseMeter' },
         { categoryId: 'glucose-meters', name: 'Accu‑Chek Guide', price: '$34.99', image: '🩸', price_id: 'price_2GlucoseMeter' },
         { categoryId: 'glucose-meters', name: 'Contour Next', price: '$27.50', image: '🩸', price_id: 'price_3GlucoseMeter' },
+        // Test Strips
         { categoryId: 'test-strips', name: 'TRUE METRIX® Strips (50)', price: '$18.50', image: '📏', price_id: 'price_TestStrips1' },
         { categoryId: 'test-strips', name: 'Accu‑Chek Guide Strips (50)', price: '$21.99', image: '📏', price_id: 'price_TestStrips2' },
         { categoryId: 'test-strips', name: 'Contour Next Strips (50)', price: '$19.99', image: '📏', price_id: 'price_TestStrips3' },
         { categoryId: 'test-strips', name: 'OneTouch Ultra Strips (50)', price: '$22.99', image: '📏', price_id: 'price_TestStrips4' },
+        // BP Monitors
         { categoryId: 'bp-monitors', name: 'Omron Upper Arm', price: '$49.99', image: '❤️', price_id: 'price_BPMonitor1' },
         { categoryId: 'bp-monitors', name: 'Beurer Wrist', price: '$39.99', image: '❤️', price_id: 'price_BPMonitor2' },
         { categoryId: 'bp-monitors', name: 'Withings Wireless', price: '$79.99', image: '❤️', price_id: 'price_BPMonitor3' },
+        // Lancets
         { categoryId: 'lancets', name: 'TRUEplus Lancets (100)', price: '$9.99', image: '💉', price_id: 'price_Lancets1' },
         { categoryId: 'lancets', name: 'Accu‑Chek Softclix (100)', price: '$12.99', image: '💉', price_id: 'price_Lancets2' }
       ];
+
+      // حالة المتجر الحالية: null = عرض الفئات، أو categoryId
       let currentStoreCategory = null;
 
+      // عرض الفئات
       function renderStoreCategories() {
         currentStoreCategory = null;
         const container = $('store-container');
         if (!container) return;
+
         let html = '<div class="category-grid">';
         categories.forEach(cat => {
           const imageHtml = cat.image ? `<img src="${cat.image}" alt="${cat.name}">` : `<div>${cat.icon}</div>`;
-          html += `<div class="category-card" onclick="selectCategory('${cat.id}')"><div class="category-image">${imageHtml}</div><div class="category-title">${cat.name}</div><div class="category-count">${cat.count} products</div></div>`;
+          html += `
+            <div class="category-card" onclick="selectCategory('${cat.id}')">
+              <div class="category-image">${imageHtml}</div>
+              <div class="category-title">${cat.name}</div>
+              <div class="category-count">${cat.count} products</div>
+            </div>
+          `;
         });
         html += '</div>';
         container.innerHTML = html;
       }
 
+      // عرض منتجات فئة معينة
       window.selectCategory = (categoryId) => {
         currentStoreCategory = categoryId;
         const container = $('store-container');
         const category = categories.find(c => c.id === categoryId);
         if (!category) return;
+
         const categoryProducts = products.filter(p => p.categoryId === categoryId);
-        let html = `<div id="category-header"><button class="back-btn" onclick="renderStoreCategories()">← Back to Categories</button><h3 style="color:white; margin:0;">${category.name}</h3></div><div class="product-grid">`;
+        let html = `
+          <div id="category-header">
+            <button class="back-btn" onclick="renderStoreCategories()">← Back to Categories</button>
+            <h3 style="color:white; margin:0;">${category.name}</h3>
+          </div>
+          <div class="product-grid">
+        `;
+
         categoryProducts.forEach(p => {
           const imageHtml = p.image && p.image.startsWith('./') ? `<img src="${p.image}" alt="${p.name}">` : `<div>${p.image}</div>`;
-          html += `<div class="product-card"><div class="product-image">${imageHtml}</div><div class="product-title">${p.name}</div><div class="product-price">${p.price}</div><button class="product-btn" onclick="buyProduct('${p.price_id}', this)">Buy</button></div>`;
+          html += `
+            <div class="product-card">
+              <div class="product-image">${imageHtml}</div>
+              <div class="product-title">${p.name}</div>
+              <div class="product-price">${p.price}</div>
+              <button class="product-btn" onclick="buyProduct('${p.price_id}', this)">Buy</button>
+            </div>
+          `;
         });
+
         html += '</div>';
         container.innerHTML = html;
       };
 
+      // ===== Handle Buy button: call server to create Stripe Checkout Session =====
       window.buyProduct = async function(priceId, btnElement) {
         if (!requireAuth()) return;
+
         const originalText = btnElement.innerText;
         btnElement.innerText = 'Processing...';
         btnElement.disabled = true;
+
         try {
           const { userId } = getAuth();
           const response = await fetch('/api/create-checkout-session', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ priceId, userId, successUrl: window.location.origin + '/success.html', cancelUrl: window.location.origin + '/cancel.html' })
+            body: JSON.stringify({ 
+              priceId: priceId,
+              userId: userId,
+              successUrl: window.location.origin + '/success.html',
+              cancelUrl: window.location.origin + '/cancel.html'
+            })
           });
-          if (!response.ok) throw new Error();
+
+          if (!response.ok) {
+            throw new Error('Failed to create checkout session');
+          }
+
           const { sessionUrl } = await response.json();
           window.location.href = sessionUrl;
         } catch (error) {
@@ -1264,93 +1805,132 @@
         }
       };
 
-      // ---------- PDF Save (single page, clean) ----------
+      // ===== Save report as PDF (single page, clean header) =====
       window.saveReportAsPDF = function() {
         const card = document.querySelector('#tab-report .card');
         if (!card) return;
+
         const clone = card.cloneNode(true);
         const oldHead = clone.querySelector('.card-head');
         if (oldHead) oldHead.remove();
-        const existingHeader = clone.querySelector('#reportContent .report-header');
-        if (existingHeader) existingHeader.remove();
-        clone.classList.add('pdf-report');
+
+        // إزالة الرأس الموجود داخل التقرير (إذا وجد) لتجنب التكرار
+        const existingReportHeader = clone.querySelector('#reportContent .report-header');
+        if (existingReportHeader) existingReportHeader.remove();
+
         const { name } = getAuth();
         const userName = name ? name.split(' ')[0] : 'Guest';
         const now = new Date();
         const printDate = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
+
         const newHeader = document.createElement('div');
         newHeader.className = 'report-header';
-        newHeader.innerHTML = `<h1 style="margin:0 0 5px 0; font-size:20pt;">Health Report</h1><div style="display:flex; justify-content:space-between; font-size:10pt; color:#333; border-bottom:1px solid #ccc; padding-bottom:5px;"><span>Patient: ${escapeHtml(userName)}</span><span>Printed: ${escapeHtml(printDate)}</span></div>`;
+        newHeader.innerHTML = `
+          <h1 style="margin:0 0 10px 0; font-size:28px; color:#000;">Health Report</h1>
+          <div style="display:flex; justify-content:space-between; font-size:14px; color:#333; border-bottom:1px solid #ccc; padding-bottom:8px;">
+            <span>Patient: ${escapeHtml(userName)}</span>
+            <span>Printed: ${escapeHtml(printDate)}</span>
+          </div>
+        `;
         clone.prepend(newHeader);
+
         const opt = {
-          margin: [0.3, 0.3, 0.3, 0.3],
-          filename: `Health_Report_${new Date().toISOString().slice(0,10)}.pdf`,
-          image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { scale: 2, letterRendering: true, useCORS: true, logging: false },
-          jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
-          pagebreak: { mode: ['css', 'legacy'] }
+          margin:        [0.3, 0.3, 0.3, 0.3],
+          filename:      `Health_Report_${new Date().toISOString().slice(0,10)}.pdf`,
+          image:         { type: 'jpeg', quality: 0.98 },
+          html2canvas:   { scale: 2, letterRendering: true, useCORS: true, logging: false },
+          jsPDF:         { unit: 'in', format: 'a4', orientation: 'portrait' },
+          pagebreak:     { mode: ['css', 'legacy'] }
         };
+
         html2pdf().set(opt).from(clone).save();
       };
 
-      // ---------- PDF Share ----------
+      // ===== Share report as PDF =====
       window.shareReport = function() {
         const card = document.querySelector('#tab-report .card');
         if (!card) return;
+
         const clone = card.cloneNode(true);
         const oldHead = clone.querySelector('.card-head');
         if (oldHead) oldHead.remove();
-        const existingHeader = clone.querySelector('#reportContent .report-header');
-        if (existingHeader) existingHeader.remove();
-        clone.classList.add('pdf-report');
+
+        // إزالة الرأس الموجود داخل التقرير (إذا وجد) لتجنب التكرار
+        const existingReportHeader = clone.querySelector('#reportContent .report-header');
+        if (existingReportHeader) existingReportHeader.remove();
+
         const { name } = getAuth();
         const userName = name ? name.split(' ')[0] : 'Guest';
         const now = new Date();
         const printDate = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
+
         const newHeader = document.createElement('div');
         newHeader.className = 'report-header';
-        newHeader.innerHTML = `<h1 style="margin:0 0 5px 0; font-size:20pt;">Health Report</h1><div style="display:flex; justify-content:space-between; font-size:10pt; color:#333; border-bottom:1px solid #ccc; padding-bottom:5px;"><span>Patient: ${escapeHtml(userName)}</span><span>Printed: ${escapeHtml(printDate)}</span></div>`;
+        newHeader.innerHTML = `
+          <h1 style="margin:0 0 10px 0; font-size:28px; color:#000;">Health Report</h1>
+          <div style="display:flex; justify-content:space-between; font-size:14px; color:#333; border-bottom:1px solid #ccc; padding-bottom:8px;">
+            <span>Patient: ${escapeHtml(userName)}</span>
+            <span>Printed: ${escapeHtml(printDate)}</span>
+          </div>
+        `;
         clone.prepend(newHeader);
+
         const opt = {
-          margin: [0.3, 0.3, 0.3, 0.3],
-          filename: `Health_Report_${new Date().toISOString().slice(0,10)}.pdf`,
-          image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { scale: 2, letterRendering: true, useCORS: true, logging: false },
-          jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
-          pagebreak: { mode: ['css', 'legacy'] }
+          margin:        [0.3, 0.3, 0.3, 0.3],
+          filename:      `Health_Report_${new Date().toISOString().slice(0,10)}.pdf`,
+          image:         { type: 'jpeg', quality: 0.98 },
+          html2canvas:   { scale: 2, letterRendering: true, useCORS: true, logging: false },
+          jsPDF:         { unit: 'in', format: 'a4', orientation: 'portrait' },
+          pagebreak:     { mode: ['css', 'legacy'] }
         };
+
         html2pdf().from(clone).set(opt).toPdf().get('pdf').then(function(pdf) {
           const blob = pdf.output('blob');
           const file = new File([blob], opt.filename, { type: 'application/pdf' });
           if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-            navigator.share({ title: 'Health Report', files: [file] }).catch(() => pdf.save(opt.filename));
-          } else pdf.save(opt.filename);
+            navigator.share({
+              title: 'Health Report',
+              files: [file]
+            }).catch(err => {
+              toast('Sharing failed: ' + err.message, 'err');
+              pdf.save(opt.filename);
+            });
+          } else {
+            pdf.save(opt.filename);
+            toast('Sharing not supported, file saved instead', 'ok');
+          }
         });
       };
 
-      window.printReport = function() { window.print(); };
+      // ===== Print report =====
+      window.printReport = function() {
+        window.print();
+      };
 
-      // ---------- Refresh All ----------
+      // ===== Refresh All =====
       window.refreshAll = async () => {
+        console.log('🔄 Refreshing...');
         await loadReadings();
         updateSummary();
         renderHistory();
         updateInsights();
         renderRecentTables();
         renderReport();
-        renderDailyPoints();
+        renderDailyPoints(); // إضافة النقاط اليومية
         $('lastSync').textContent = `Updated ${new Date().toLocaleTimeString()}`;
       };
 
-      // ---------- Initialize ----------
+      // ===== Initialize =====
       async function init() {
         if (!requireAuth()) return;
         updateHeader();
+        // يتم عرض المتجر عند النقر على التبويب فقط
         await refreshAll();
       }
+
       init();
 
-      // Expose store render globally
+      // جعل الدوال متاحة عالمياً للنقر من HTML
       window.renderStoreCategories = renderStoreCategories;
     })();
   </script>

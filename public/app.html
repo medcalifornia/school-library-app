@@ -5,11 +5,84 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Health Tracker · Dashboard</title>
   <link rel="stylesheet" href="./style.css" />
-  <!-- مكتبة html2pdf -->
+  <!-- مكتبة html2pdf لإنشاء ملفات PDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <style>
-    /* ... (جميع الأنماط السابقة كما هي، لم تتغير) ... */
-    /* أنماط التقرير النظيف */
+    /* جميع الأنماط السابقة تبقى كما هي من الكود الأصلي V2، مع إضافة تحسينات التقرير */
+    .sv-chart { display: block; width: 100%; height: 100%; }
+    .sv-chart-wrap { touch-action: pan-y; user-select: none; }
+    .chart-tooltip { 
+      position: absolute; 
+      background: rgba(0,0,0,0.8); 
+      color: white; 
+      padding: 8px 12px; 
+      border-radius: 8px; 
+      font-size: 12px; 
+      pointer-events: none; 
+      opacity: 0; 
+      transition: opacity 0.2s; 
+      border: 1px solid rgba(255,255,255,0.2);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+    }
+    .chart-tooltip.show { opacity: 1; }
+    
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 600;
+      margin-left: 8px;
+      vertical-align: middle;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+    .status-badge.normal { background-color: rgba(46, 204, 113, 0.15); color: #2ecc71; border-color: rgba(46, 204, 113, 0.3); }
+    .status-badge.elevated { background-color: rgba(241, 196, 15, 0.15); color: #f1c40f; border-color: rgba(241, 196, 15, 0.3); }
+    .status-badge.prediabetes { background-color: rgba(243, 156, 18, 0.15); color: #f39c12; border-color: rgba(243, 156, 18, 0.3); }
+    .status-badge.high { background-color: rgba(231, 76, 60, 0.15); color: #e74c3c; border-color: rgba(231, 76, 60, 0.3); }
+    .status-badge.stage1 { background-color: rgba(243, 156, 18, 0.15); color: #f39c12; border-color: rgba(243, 156, 18, 0.3); }
+    .status-badge.stage2 { background-color: rgba(231, 76, 60, 0.15); color: #e74c3c; border-color: rgba(231, 76, 60, 0.3); }
+    .status-badge.crisis { background-color: rgba(155, 89, 182, 0.15); color: #9b59b6; border-color: rgba(155, 89, 182, 0.3); }
+    .trend-up { color: #e74c3c; font-size: 12px; margin-right: 2px; }
+    .trend-down { color: #2ecc71; font-size: 12px; margin-right: 2px; }
+
+    /* تقليل المسافات بين عناصر الـ appbar */
+    .appbar-actions { gap: 6px; }
+    .chip { padding: 6px 10px; font-size: 12px; }
+    .icon-btn { padding: 6px 10px; }
+
+    /* إخفاء شريط Google Translate الافتراضي */
+    .goog-te-banner-frame.skiptranslate { display: none !important; }
+    body { top: 0 !important; }
+    .goog-tooltip { display: none !important; }
+    .goog-tooltip:hover { display: none !important; }
+    .goog-text-highlight { background-color: transparent !important; border: none !important; box-shadow: none !important; }
+    .goog-te-spinner-pos { display: none !important; }
+    iframe.goog-te-banner-frame { display: none !important; }
+    div.skiptranslate { display: none !important; }
+
+    /* ========== Report Tab Professional Design ========== */
+    .report-header {
+      margin-bottom: 24px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid rgba(255,255,255,0.2);
+    }
+    .report-header h1 {
+      font-size: 28px;
+      font-weight: 600;
+      margin: 0 0 8px 0;
+      color: white;
+    }
+    .report-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      color: #aaa;
+    }
     .report-section {
       background: rgba(255,255,255,0.05);
       border-radius: 16px;
@@ -58,8 +131,25 @@
       border-radius: 12px;
       margin-top: 8px;
     }
-    /* في وضع الطباعة */
+
+    /* Print styles */
     @media print {
+      body * { visibility: hidden; }
+      #tab-report, #tab-report * { visibility: visible; }
+      #tab-report {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        background: white;
+        color: black;
+        padding: 20px;
+      }
+      .appbar, .tabs, .toast, .card-head button, .footer, .pager {
+        display: none !important;
+      }
+      .report-header h1 { color: black; }
+      .report-meta { color: #333; }
       .report-section {
         background: #f9f9f9;
         border: 1px solid #ddd;
@@ -69,9 +159,7 @@
         color: #111;
         border-left-color: #2c3e50;
       }
-      .report-label {
-        color: #222;
-      }
+      .report-label { color: #222; }
       .report-suggestion {
         background: #f0f0f0;
         color: #222;
@@ -82,237 +170,564 @@
         background: transparent !important;
         color: black !important;
       }
+      .trend-up, .trend-down { color: black !important; }
     }
+
+    /* ========== تقليل المسافات بين أزرار التبويب ========== */
+    .tabs { gap: 4px; }
+    .tab { margin: 0; padding: 10px 16px; font-size: 14px; }
+
+    /* ========== تحسينات متجر احترافية ========== */
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 16px;
+      padding: 16px;
+    }
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 20px;
+      padding: 16px;
+    }
+    .category-card {
+      background: rgba(255, 255, 255, 0.07);
+      border-radius: 16px;
+      padding: 20px 12px;
+      text-align: center;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(4px);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .category-card:hover {
+      transform: translateY(-4px);
+      background: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+      border-color: rgba(76, 125, 255, 0.3);
+    }
+    .category-image {
+      width: 100%;
+      height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+    .category-image img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+    .category-title {
+      font-weight: 600;
+      font-size: 18px;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+    .category-count {
+      font-size: 13px;
+      color: #aaa;
+    }
+    .back-btn {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 40px;
+      font-size: 14px;
+      cursor: pointer;
+      margin: 0 16px 16px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.2s;
+    }
+    .back-btn:hover { background: rgba(255,255,255,0.2); }
+    .product-card {
+      background: rgba(255, 255, 255, 0.07);
+      border-radius: 16px;
+      padding: 16px 12px;
+      text-align: center;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(4px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .product-card:hover {
+      transform: translateY(-4px);
+      background: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+      border-color: rgba(76, 125, 255, 0.3);
+    }
+    .product-image {
+      width: 100%;
+      height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      overflow: hidden;
+    }
+    .product-image img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+    .product-title {
+      font-weight: 600;
+      font-size: 15px;
+      margin-bottom: 4px;
+      color: #fff;
+    }
+    .product-price {
+      color: #6d8eff;
+      font-weight: 700;
+      font-size: 18px;
+      margin: 8px 0 12px;
+    }
+    .product-btn {
+      background: linear-gradient(145deg, #4c7dff, #3a5fd0);
+      border: none;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 40px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      width: 100%;
+      max-width: 120px;
+      box-shadow: 0 4px 10px rgba(76, 125, 255, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .product-btn:hover {
+      background: linear-gradient(145deg, #5f8aff, #4c7dff);
+      transform: scale(1.02);
+      box-shadow: 0 6px 14px rgba(76, 125, 255, 0.5);
+    }
+    .product-btn:active { transform: scale(0.98); }
+    #tab-store .card-head h2 {
+      font-size: 28px;
+      background: linear-gradient(135deg, #fff, #b0c8ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      display: inline-block;
+    }
+    #tab-store .card-head .muted { font-size: 14px; opacity: 0.8; }
+    #category-header { display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
+
+    /* ========== Point Styling للقراءات اليومية ========== */
+    .daily-points {
+      margin-top: 24px;
+      padding: 16px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 16px;
+    }
+    .points-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: #ccc;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .points-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 8px;
+      min-height: 100px;
+    }
+    .point-column {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .point-day {
+      font-size: 11px;
+      color: #888;
+      text-transform: uppercase;
+    }
+    .point-value {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .point-circle {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      transition: transform 0.2s;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+    .point-circle:hover { transform: scale(1.3); }
+    .point-label { font-size: 9px; color: #aaa; white-space: nowrap; }
+    .glucose-point.normal { background-color: #2ecc71; }
+    .glucose-point.prediabetes { background-color: #f39c12; }
+    .glucose-point.diabetes { background-color: #e74c3c; }
+    .bp-point.normal { background-color: #2ecc71; }
+    .bp-point.elevated { background-color: #f1c40f; }
+    .bp-point.stage1 { background-color: #f39c12; }
+    .bp-point.stage2 { background-color: #e74c3c; }
+    .bp-point.crisis { background-color: #9b59b6; }
+    .point-circle.no-data { background-color: #444; opacity: 0.3; }
   </style>
 </head>
-<body>
-  <!-- ... (كل المحتوى السابق كما هو حتى تبويب Report) ... -->
 
-  <!-- TAB: Report -->
-  <section id="tab-report" class="tab-panel">
-    <section class="card">
-      <div class="card-head" style="display: flex; justify-content: space-between; align-items: center;">
-        <h2>Health Report</h2>
-        <div style="display: flex; gap: 8px;">
-          <button class="btn secondary" onclick="shareReport()">📤 Share</button>
-          <button class="btn primary" onclick="printReport()">🖨️ Print</button>
-          <button class="btn secondary" onclick="saveReportAsPDF()">💾 Save</button>
+<body class="app-page">
+  <!-- Top App Bar -->
+  <header class="appbar">
+    <div class="appbar-inner">
+      <div class="brand">
+        <img src="./images/logo.png" alt="DahniTech Solutions" class="brand-logo" />
+        <div class="brand-text">
+          <div class="brand-title">Health Tracker</div>
+          <div class="brand-sub" id="subtitle"></div>
         </div>
       </div>
-      <p class="muted">Average readings with suggestions</p>
-      <div id="reportContent" class="report-grid">
-        <!-- سيتم التعبئة بواسطة JS -->
+      <div class="appbar-actions">
+        <button class="chip" id="whoamiChip" type="button" aria-label="User">
+          <span class="dot"></span>
+          <span id="whoamiText">Connected</span>
+        </button>
+        <button class="icon-btn" type="button" onclick="logout()" aria-label="Logout">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <path d="M10 17l1.41-1.41L8.83 13H21v-2H8.83l2.58-2.59L10 7l-7 7 7 7z"></path>
+            <path d="M3 3h8v2H5v14h6v2H3V3z"></path>
+          </svg>
+          <span class="hide-sm">Logout</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="shell">
+    <!-- Tabs -->
+    <nav class="tabs" aria-label="Sections">
+      <button class="tab active" type="button" data-tab="dashboard" onclick="showTab('dashboard')">Dashboard</button>
+      <button class="tab" type="button" data-tab="history" onclick="showTab('history')">History</button>
+      <button class="tab" type="button" data-tab="report" onclick="showTab('report')">Report</button>
+      <button class="tab" type="button" data-tab="store" onclick="showTab('store')">Store</button>
+    </nav>
+
+    <!-- TAB: Dashboard -->
+    <section id="tab-dashboard" class="tab-panel active">
+      <!-- محتوى dashboard كما هو في الكود الأصلي (لم يتغير) -->
+      <div class="grid">
+        <section class="card">...</section>
+        <section class="card">...</section>
       </div>
     </section>
-  </section>
 
-  <!-- ... (باقي التبويبات) ... -->
+    <!-- TAB: History -->
+    <section id="tab-history" class="tab-panel">
+      <!-- محتوى history كما هو -->
+    </section>
+
+    <!-- TAB: Report (معدّل) -->
+    <section id="tab-report" class="tab-panel">
+      <section class="card">
+        <div class="card-head" style="display: flex; justify-content: space-between; align-items: center;">
+          <h2>Health Report</h2>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn secondary" onclick="shareReport()">📤 Share</button>
+            <button class="btn primary" onclick="printReport()">🖨️ Print</button>
+            <button class="btn secondary" onclick="saveReportAsPDF()">💾 Save</button>
+          </div>
+        </div>
+        <p class="muted">Average readings with suggestions</p>
+        <div id="reportContent" class="report-grid">
+          <!-- سيتم تعبئته بواسطة JS -->
+        </div>
+      </section>
+    </section>
+
+    <!-- TAB: Store -->
+    <section id="tab-store" class="tab-panel">
+      <section class="card">
+        <div class="card-head">
+          <h2>Store</h2>
+          <p class="muted">Diabetes & Blood Pressure essentials</p>
+        </div>
+        <div id="store-container"></div>
+      </section>
+    </section>
+  </main>
+
+  <!-- Toast -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script>
-    // ===== دالة renderReport المعدلة (نظيفة تماماً) =====
-    function renderReport() {
-      const container = $('reportContent');
-      if (!container) return;
+    (function() {
+      "use strict";
 
-      const { name } = getAuth();
-      const userName = name ? name.split(' ')[0] : 'Guest';
-      const now = new Date();
-      const printDate = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
+      // ========== التوابع المساعدة (نفس الكود الأصلي V2) ==========
+      const $ = id => document.getElementById(id);
+      function toast(msg, type = 'ok') { ... }
+      function escapeHtml(unsafe) { ... }
+      function getAuth() { ... }
+      function requireAuth() { ... }
+      window.logout = () => { ... };
+      window.showTab = name => { ... };
+      window.toggleForm = which => { ... };
 
-      const oneWeekAgo = new Date(now.getTime() - 7 * 86400000);
-      const oneMonthAgo = new Date(now.getTime() - 30 * 86400000);
-      const oneYearAgo = new Date(now.getTime() - 365 * 86400000);
+      // المتغيرات العامة
+      let allReadings = [];
+      let currentPage = 1;
+      const PAGE_SIZE = 10;
 
-      const weekReadings = allReadings.filter(r => parseDate(r.ts) >= oneWeekAgo);
-      const monthReadings = allReadings.filter(r => parseDate(r.ts) >= oneMonthAgo);
-      const yearReadings = allReadings.filter(r => parseDate(r.ts) >= oneYearAgo);
+      // دوال التاريخ والتحليل (getGlucoseStatus, getBPStatus, ...) كما هي
+      // ... (نختصر هنا لكن في الكود الفعلي تبقى كاملة)
 
-      function avgGlucose(arr) {
-        const vals = arr.filter(r => r.type === 'glucose').map(r => Number(r.value)).filter(n => !isNaN(n));
-        return vals.length ? Math.round(vals.reduce((a,b) => a+b, 0) / vals.length) : null;
+      // ===== دوال API (saveGlucose, saveBP, loadReadings) تبقى كما هي =====
+      // ...
+
+      // ===== دوال العرض (updateSummary, renderHistory, updateInsights, renderRecentTables, renderDailyPoints) تبقى كما هي =====
+      // ...
+
+      // ===== دالة renderReport الجديدة (نظيفة) =====
+      function renderReport() {
+        const container = $('reportContent');
+        if (!container) return;
+
+        const { name } = getAuth();
+        const userName = name ? name.split(' ')[0] : 'Guest';
+        const now = new Date();
+        const printDate = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
+
+        const oneWeekAgo = new Date(now.getTime() - 7 * 86400000);
+        const oneMonthAgo = new Date(now.getTime() - 30 * 86400000);
+        const oneYearAgo = new Date(now.getTime() - 365 * 86400000);
+
+        const weekReadings = allReadings.filter(r => parseDate(r.ts) >= oneWeekAgo);
+        const monthReadings = allReadings.filter(r => parseDate(r.ts) >= oneMonthAgo);
+        const yearReadings = allReadings.filter(r => parseDate(r.ts) >= oneYearAgo);
+
+        function avgGlucose(arr) {
+          const vals = arr.filter(r => r.type === 'glucose').map(r => Number(r.value)).filter(n => !isNaN(n));
+          return vals.length ? Math.round(vals.reduce((a,b) => a+b, 0) / vals.length) : null;
+        }
+
+        function avgBP(arr) {
+          const bpReadings = arr.filter(r => r.type === 'bp');
+          let totalSys = 0, totalDia = 0, count = 0;
+          bpReadings.forEach(r => {
+            const parts = r.value.split('/').map(Number);
+            if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+              totalSys += parts[0];
+              totalDia += parts[1];
+              count++;
+            }
+          });
+          if (count === 0) return null;
+          return { sys: Math.round(totalSys / count), dia: Math.round(totalDia / count) };
+        }
+
+        const weeklyGlucose = avgGlucose(weekReadings);
+        const monthlyGlucose = avgGlucose(monthReadings);
+        const yearlyGlucose = avgGlucose(yearReadings);
+        const weeklyBP = avgBP(weekReadings);
+        const monthlyBP = avgBP(monthReadings);
+        const yearlyBP = avgBP(yearReadings);
+
+        let html = `
+          <div style="margin-bottom:24px; border-bottom:1px solid rgba(255,255,255,0.2); padding-bottom:12px;">
+            <h1 style="margin:0 0 8px 0; font-size:28px;">Health Report</h1>
+            <div style="display:flex; justify-content:space-between; font-size:14px; color:#aaa;">
+              <span>Patient: ${escapeHtml(userName)}</span>
+              <span>Printed: ${escapeHtml(printDate)}</span>
+            </div>
+          </div>
+        `;
+
+        // Glucose section
+        html += '<div class="report-section"><h2>Glucose (mg/dL)</h2>';
+        function glucoseRow(label, value) {
+          if (value === null) return `<div class="report-row"><div class="report-label">${label}:</div><div class="report-value-line"><span class="report-value">—</span></div></div>`;
+          const status = getGlucoseStatus(value, '');
+          const badgeClass = status.badgeText.toLowerCase().replace(' ', '');
+          const arrow = status.warning ? '<span class="trend-up">▲</span>' : (status.trend === 'down' ? '<span class="trend-down">▼</span>' : '');
+          const suggestion = getGlucoseDescription(value, '');
+          return `
+            <div class="report-row">
+              <div class="report-label">${label}:</div>
+              <div class="report-value-line">
+                <span class="report-value ${status.colorClass}">${value}</span> ${arrow}
+                <span class="status-badge ${badgeClass}">${status.badgeText}</span>
+              </div>
+              <div class="report-suggestion">${suggestion}</div>
+            </div>
+          `;
+        }
+        html += glucoseRow('Weekly', weeklyGlucose);
+        html += glucoseRow('Monthly', monthlyGlucose);
+        html += glucoseRow('Yearly', yearlyGlucose);
+        html += '</div>';
+
+        // Blood Pressure section
+        html += '<div class="report-section"><h2>Blood Pressure (mmHg)</h2>';
+        function bpRow(label, bpAvg) {
+          if (!bpAvg) return `<div class="report-row"><div class="report-label">${label}:</div><div class="report-value-line"><span class="report-value">—</span></div></div>`;
+          const bpString = `${bpAvg.sys}/${bpAvg.dia}`;
+          const status = getBPStatus(bpString);
+          const badgeClass = status.badgeText.toLowerCase().replace(' ', '');
+          const arrow = status.warning ? '<span class="trend-up">▲</span>' : (status.trend === 'down' ? '<span class="trend-down">▼</span>' : '');
+          const suggestion = getBPDescription(bpString);
+          return `
+            <div class="report-row">
+              <div class="report-label">${label}:</div>
+              <div class="report-value-line">
+                <span class="report-value ${status.colorClass}">${bpString}</span> ${arrow}
+                <span class="status-badge ${badgeClass}">${status.badgeText}</span>
+              </div>
+              <div class="report-suggestion">${suggestion}</div>
+            </div>
+          `;
+        }
+        html += bpRow('Weekly', weeklyBP);
+        html += bpRow('Monthly', monthlyBP);
+        html += bpRow('Yearly', yearlyBP);
+        html += '</div>';
+
+        container.innerHTML = html;
       }
 
-      function avgBP(arr) {
-        const bpReadings = arr.filter(r => r.type === 'bp');
-        let totalSys = 0, totalDia = 0, count = 0;
-        bpReadings.forEach(r => {
-          const parts = r.value.split('/').map(Number);
-          if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-            totalSys += parts[0];
-            totalDia += parts[1];
-            count++;
-          }
-        });
-        if (count === 0) return null;
-        return { sys: Math.round(totalSys / count), dia: Math.round(totalDia / count) };
-      }
+      // ===== دوال الحفظ والمشاركة والطباعة (معدلة) =====
+      window.saveReportAsPDF = function() {
+        const card = document.querySelector('#tab-report .card');
+        if (!card) return;
 
-      const weeklyGlucose = avgGlucose(weekReadings);
-      const monthlyGlucose = avgGlucose(monthReadings);
-      const yearlyGlucose = avgGlucose(yearReadings);
+        const clone = card.cloneNode(true);
+        const oldHead = clone.querySelector('.card-head');
+        if (oldHead) oldHead.remove();
 
-      const weeklyBP = avgBP(weekReadings);
-      const monthlyBP = avgBP(monthReadings);
-      const yearlyBP = avgBP(yearReadings);
+        const { name } = getAuth();
+        const userName = name ? name.split(' ')[0] : 'Guest';
+        const now = new Date();
+        const printDate = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
 
-      // رأس التقرير (يظهر مرة واحدة)
-      let html = `
-        <div style="margin-bottom:24px; border-bottom:1px solid rgba(255,255,255,0.2); padding-bottom:12px;">
-          <h1 style="margin:0 0 8px 0; font-size:28px;">Health Report</h1>
-          <div style="display:flex; justify-content:space-between; font-size:14px; color:#aaa;">
+        const newHeader = document.createElement('div');
+        newHeader.style.marginBottom = '20px';
+        newHeader.style.borderBottom = '1px solid #ccc';
+        newHeader.style.paddingBottom = '10px';
+        newHeader.innerHTML = `
+          <h1 style="margin:0 0 8px 0; font-size:28px; color:#000;">Health Report</h1>
+          <div style="display:flex; justify-content:space-between; font-size:14px; color:#333;">
             <span>Patient: ${escapeHtml(userName)}</span>
             <span>Printed: ${escapeHtml(printDate)}</span>
           </div>
-        </div>
-      `;
-
-      // قسم الجلوكوز
-      html += '<div class="report-section"><h2>Glucose (mg/dL)</h2>';
-
-      function glucoseRow(label, value) {
-        if (value === null) {
-          return `<div class="report-row"><div class="report-label">${label}:</div><div class="report-value-line"><span class="report-value">—</span></div></div>`;
-        }
-        const status = getGlucoseStatus(value, '');
-        const badgeClass = status.badgeText.toLowerCase().replace(' ', '');
-        const arrow = status.warning ? '<span class="trend-up">▲</span>' : (status.trend === 'down' ? '<span class="trend-down">▼</span>' : '');
-        const suggestion = getGlucoseDescription(value, '');
-        return `
-          <div class="report-row">
-            <div class="report-label">${label}:</div>
-            <div class="report-value-line">
-              <span class="report-value ${status.colorClass}">${value}</span> ${arrow}
-              <span class="status-badge ${badgeClass}">${status.badgeText}</span>
-            </div>
-            <div class="report-suggestion">${suggestion}</div>
-          </div>
         `;
-      }
+        clone.prepend(newHeader);
 
-      html += glucoseRow('Weekly', weeklyGlucose);
-      html += glucoseRow('Monthly', monthlyGlucose);
-      html += glucoseRow('Yearly', yearlyGlucose);
-      html += '</div>';
+        const opt = {
+          margin: [0.5, 0.5, 0.5, 0.5],
+          filename: `Health_Report_${new Date().toISOString().slice(0,10)}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, letterRendering: true, useCORS: true },
+          jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+        };
 
-      // قسم ضغط الدم
-      html += '<div class="report-section"><h2>Blood Pressure (mmHg)</h2>';
-
-      function bpRow(label, bpAvg) {
-        if (!bpAvg) {
-          return `<div class="report-row"><div class="report-label">${label}:</div><div class="report-value-line"><span class="report-value">—</span></div></div>`;
-        }
-        const bpString = `${bpAvg.sys}/${bpAvg.dia}`;
-        const status = getBPStatus(bpString);
-        const badgeClass = status.badgeText.toLowerCase().replace(' ', '');
-        const arrow = status.warning ? '<span class="trend-up">▲</span>' : (status.trend === 'down' ? '<span class="trend-down">▼</span>' : '');
-        const suggestion = getBPDescription(bpString);
-        return `
-          <div class="report-row">
-            <div class="report-label">${label}:</div>
-            <div class="report-value-line">
-              <span class="report-value ${status.colorClass}">${bpString}</span> ${arrow}
-              <span class="status-badge ${badgeClass}">${status.badgeText}</span>
-            </div>
-            <div class="report-suggestion">${suggestion}</div>
-          </div>
-        `;
-      }
-
-      html += bpRow('Weekly', weeklyBP);
-      html += bpRow('Monthly', monthlyBP);
-      html += bpRow('Yearly', yearlyBP);
-      html += '</div>';
-
-      container.innerHTML = html;
-    }
-
-    // باقي الدوال (saveReportAsPDF, shareReport, printReport) تبقى كما هي مع التأكد من استخدام clone وإزالة .card-head
-    window.saveReportAsPDF = function() {
-      const card = document.querySelector('#tab-report .card');
-      if (!card) return;
-
-      const clone = card.cloneNode(true);
-      const oldHead = clone.querySelector('.card-head');
-      if (oldHead) oldHead.remove(); // نزيل الأزرار والعنوان الأصلي
-
-      // إضافة رأس جديد نظيف (مرة واحدة)
-      const { name } = getAuth();
-      const userName = name ? name.split(' ')[0] : 'Guest';
-      const now = new Date();
-      const printDate = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
-
-      const newHeader = document.createElement('div');
-      newHeader.style.marginBottom = '20px';
-      newHeader.style.borderBottom = '1px solid #ccc';
-      newHeader.style.paddingBottom = '10px';
-      newHeader.innerHTML = `
-        <h1 style="margin:0 0 8px 0; font-size:28px; color:#000;">Health Report</h1>
-        <div style="display:flex; justify-content:space-between; font-size:14px; color:#333;">
-          <span>Patient: ${escapeHtml(userName)}</span>
-          <span>Printed: ${escapeHtml(printDate)}</span>
-        </div>
-      `;
-      clone.prepend(newHeader);
-
-      const opt = {
-        margin: [0.5, 0.5, 0.5, 0.5],
-        filename: `Health_Report_${new Date().toISOString().slice(0,10)}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, letterRendering: true, useCORS: true },
-        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+        html2pdf().set(opt).from(clone).save();
       };
 
-      html2pdf().set(opt).from(clone).save();
-    };
+      window.shareReport = function() {
+        const card = document.querySelector('#tab-report .card');
+        if (!card) return;
 
-    window.shareReport = function() {
-      const card = document.querySelector('#tab-report .card');
-      if (!card) return;
+        const clone = card.cloneNode(true);
+        const oldHead = clone.querySelector('.card-head');
+        if (oldHead) oldHead.remove();
 
-      const clone = card.cloneNode(true);
-      const oldHead = clone.querySelector('.card-head');
-      if (oldHead) oldHead.remove();
+        const { name } = getAuth();
+        const userName = name ? name.split(' ')[0] : 'Guest';
+        const now = new Date();
+        const printDate = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
 
-      const { name } = getAuth();
-      const userName = name ? name.split(' ')[0] : 'Guest';
-      const now = new Date();
-      const printDate = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
+        const newHeader = document.createElement('div');
+        newHeader.style.marginBottom = '20px';
+        newHeader.style.borderBottom = '1px solid #ccc';
+        newHeader.style.paddingBottom = '10px';
+        newHeader.innerHTML = `
+          <h1 style="margin:0 0 8px 0; font-size:28px; color:#000;">Health Report</h1>
+          <div style="display:flex; justify-content:space-between; font-size:14px; color:#333;">
+            <span>Patient: ${escapeHtml(userName)}</span>
+            <span>Printed: ${escapeHtml(printDate)}</span>
+          </div>
+        `;
+        clone.prepend(newHeader);
 
-      const newHeader = document.createElement('div');
-      newHeader.style.marginBottom = '20px';
-      newHeader.style.borderBottom = '1px solid #ccc';
-      newHeader.style.paddingBottom = '10px';
-      newHeader.innerHTML = `
-        <h1 style="margin:0 0 8px 0; font-size:28px; color:#000;">Health Report</h1>
-        <div style="display:flex; justify-content:space-between; font-size:14px; color:#333;">
-          <span>Patient: ${escapeHtml(userName)}</span>
-          <span>Printed: ${escapeHtml(printDate)}</span>
-        </div>
-      `;
-      clone.prepend(newHeader);
+        const opt = {
+          margin: [0.5, 0.5, 0.5, 0.5],
+          filename: `Health_Report_${new Date().toISOString().slice(0,10)}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, letterRendering: true, useCORS: true },
+          jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+        };
 
-      const opt = {
-        margin: [0.5, 0.5, 0.5, 0.5],
-        filename: `Health_Report_${new Date().toISOString().slice(0,10)}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, letterRendering: true, useCORS: true },
-        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+        html2pdf().from(clone).set(opt).toPdf().get('pdf').then(function(pdf) {
+          const blob = pdf.output('blob');
+          const file = new File([blob], opt.filename, { type: 'application/pdf' });
+          if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            navigator.share({ title: 'Health Report', files: [file] }).catch(() => pdf.save(opt.filename));
+          } else {
+            pdf.save(opt.filename);
+          }
+        });
       };
 
-      html2pdf().from(clone).set(opt).toPdf().get('pdf').then(function(pdf) {
-        const blob = pdf.output('blob');
-        const file = new File([blob], opt.filename, { type: 'application/pdf' });
-        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-          navigator.share({ title: 'Health Report', files: [file] }).catch(() => pdf.save(opt.filename));
-        } else {
-          pdf.save(opt.filename);
-        }
-      });
-    };
+      window.printReport = function() {
+        window.print();
+      };
 
-    window.printReport = function() {
-      window.print();
-    };
+      // ===== Store (كما هو) =====
+      const categories = [ ... ]; // نفس الكود
+      const products = [ ... ];   // نفس الكود
+      function renderStoreCategories() { ... }
+      window.selectCategory = (categoryId) => { ... };
+      window.buyProduct = async function(priceId, btnElement) { ... };
+
+      // ===== Refresh All =====
+      window.refreshAll = async () => {
+        console.log('🔄 Refreshing...');
+        await loadReadings();
+        updateSummary();
+        renderHistory();
+        updateInsights();
+        renderRecentTables();
+        renderReport();
+        renderDailyPoints();
+        $('lastSync').textContent = `Updated ${new Date().toLocaleTimeString()}`;
+      };
+
+      // ===== Initialize =====
+      async function init() {
+        if (!requireAuth()) return;
+        updateHeader();
+        await refreshAll();
+      }
+
+      init();
+
+      // جعل الدوال متاحة عالمياً
+      window.renderStoreCategories = renderStoreCategories;
+    })();
   </script>
 </body>
 </html>

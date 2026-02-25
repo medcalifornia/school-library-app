@@ -186,67 +186,75 @@
         visibility: visible;
       }
       #tab-report {
-        position: static; /* تجنب absolute الذي قد يسبب فراغات */
+        position: static;
         background: white;
         color: black;
-        padding: 0; /* إزالة الحشو الداخلي، نعتمد على هوامش الصفحة */
+        padding: 0;
         width: 100%;
         max-width: 100%;
         margin: 0;
         page-break-after: avoid;
         page-break-inside: avoid;
+        font-size: 11pt;
       }
       .appbar, .tabs, .toast, .card-head button, .footer, .pager {
         display: none !important;
       }
       .report-header h1 {
         color: black;
-        font-size: 24px;
+        font-size: 20pt;
       }
       .report-meta {
         color: #333;
+        font-size: 10pt;
       }
       .report-section {
         background: #f9f9f9;
         border: 1px solid #ddd;
         color: black;
-        page-break-inside: avoid; /* منع تقسيم القسم على صفحتين */
-        margin-bottom: 15px;
-        padding: 15px;
+        page-break-inside: avoid;
+        margin-bottom: 10pt;
+        padding: 10pt;
       }
       .report-section h2 {
         color: #111;
         border-left-color: #2c3e50;
-        font-size: 18px;
+        font-size: 14pt;
+        margin: 0 0 10pt 0;
       }
       .report-row {
-        page-break-inside: avoid; /* كل صف يبقى معاً */
-        margin-bottom: 12px;
-        padding-bottom: 10px;
+        page-break-inside: avoid;
+        margin-bottom: 8pt;
+        padding-bottom: 6pt;
       }
       .report-suggestion {
         background: #f0f0f0;
         color: #222;
         border: 1px solid #ccc;
-        font-size: 11px;
-        padding: 8px 10px;
+        font-size: 9pt;
+        padding: 6pt 8pt;
       }
       .status-badge {
         border: 1px solid currentColor !important;
         background: transparent !important;
         color: black !important;
+        font-size: 8pt;
+        padding: 1pt 4pt;
       }
       .trend-up, .trend-down {
         color: black !important;
       }
       .report-value {
-        font-size: 18px;
+        font-size: 14pt;
+      }
+      .report-label {
+        font-size: 11pt;
       }
     }
 
     /* ========== تقليل المسافات بين أزرار التبويب ========== */
     .tabs {
-      gap: 4px; /* المسافة الأفقية بين الأزرار */
+      gap: 4px;
     }
     .tab {
       margin: 0;
@@ -725,16 +733,14 @@
       </section>
     </section>
 
-    <!-- TAB: Report (محسّن: إزالة العنوان المكرر والنص الزائد) -->
+    <!-- TAB: Report (محسّن) -->
     <section id="tab-report" class="tab-panel">
       <section class="card">
-        <!-- رأس البطاقة يحتوي فقط على الأزرار بعد إزالة العنوان المكرر -->
         <div class="card-head" style="display: flex; justify-content: flex-end; align-items: center; gap: 8px;">
           <button class="btn secondary" onclick="shareReport()">📤 Share</button>
           <button class="btn primary" onclick="printReport()">🖨️ Print</button>
           <button class="btn secondary" onclick="saveReportAsPDF()">💾 Save</button>
         </div>
-        <!-- تمت إزالة السطر الوصفي "Average readings with suggestions" لأنه موجود ضمن التقرير نفسه -->
         <div id="reportContent" class="report-grid">
           <!-- يتم تعبئته بواسطة JavaScript -->
         </div>
@@ -748,7 +754,6 @@
           <h2>Store</h2>
           <p class="muted">Diabetes & Blood Pressure essentials</p>
         </div>
-        <!-- حاوية الفئات / المنتجات -->
         <div id="store-container"></div>
       </section>
     </section>
@@ -820,7 +825,6 @@
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
         document.querySelector(`.tab[data-tab="${name}"]`).classList.add('active');
         $(`tab-${name}`).classList.add('active');
-        // إذا تم اختيار المتجر، نعرض الفئات
         if (name === 'store') {
           renderStoreCategories();
         }
@@ -868,7 +872,7 @@
         return "Good evening";
       }
 
-      // ===== وصف الحالات بالإنجليزية =====
+      // ===== وصف الحالات بدون رموز تعبيرية (لتجنب مشاكل الطباعة) =====
       function getGlucoseDescription(value, note) {
         const num = Number(value);
         if (isNaN(num)) return '';
@@ -877,19 +881,19 @@
         const isPostprandial = noteLower.includes('after meal') || noteLower.includes('aftermeal');
         
         if (isFasting) {
-          if (num < 70) return '🔴 Dangerous low (Hypoglycemia) - May cause dizziness, sweating, shaking, loss of consciousness.';
-          if (num >= 70 && num <= 99) return '🟢 Normal - Healthy level for non-diabetic.';
-          if (num >= 100 && num <= 125) return '🟡 Prediabetes - Warning sign, needs lifestyle changes.';
-          if (num >= 126) return '🔴 Diabetes - Official diagnosis if repeated.';
+          if (num < 70) return 'Dangerous low (Hypoglycemia) - May cause dizziness, sweating, shaking, loss of consciousness.';
+          if (num >= 70 && num <= 99) return 'Normal - Healthy level for non-diabetic.';
+          if (num >= 100 && num <= 125) return 'Prediabetes - Warning sign, needs lifestyle changes.';
+          if (num >= 126) return 'Diabetes - Official diagnosis if repeated.';
         } else if (isPostprandial) {
-          if (num < 140) return '🟢 Normal - 2 hours after meal.';
-          if (num >= 140 && num <= 199) return '🟡 Prediabetes - After meal.';
-          if (num >= 200) return '🔴 Likely Diabetes - After meal.';
+          if (num < 140) return 'Normal - 2 hours after meal.';
+          if (num >= 140 && num <= 199) return 'Prediabetes - After meal.';
+          if (num >= 200) return 'Likely Diabetes - After meal.';
         } else {
-          if (num < 70) return '🔴 Dangerous low (Hypoglycemia)';
-          if (num >= 70 && num <= 99) return '🟢 Normal';
-          if (num >= 100 && num <= 125) return '🟡 Prediabetes';
-          if (num >= 126) return '🔴 Diabetes';
+          if (num < 70) return 'Dangerous low (Hypoglycemia)';
+          if (num >= 70 && num <= 99) return 'Normal';
+          if (num >= 100 && num <= 125) return 'Prediabetes';
+          if (num >= 126) return 'Diabetes';
         }
         return '';
       }
@@ -900,12 +904,12 @@
         const sys = parts[0];
         const dia = parts[1];
         
-        if (sys >= 180 || dia >= 120) return '🚨 Hypertensive Crisis - Danger to brain, heart, kidneys. If severe headache, chest pain, shortness of breath → ER immediately.';
-        if (sys >= 140 || dia >= 90) return '🔴 Stage 2 Hypertension - Clearly high, usually needs medication + lifestyle changes.';
-        if (sys >= 130 || dia >= 80) return '🟠 Stage 1 Hypertension - Early high BP, may need monitoring or treatment depending on risk factors.';
-        if (sys >= 120 && sys <= 129 && dia < 80) return '🟡 Elevated - Not yet hypertension, but early warning. Needs lifestyle changes (less salt, exercise, healthy weight).';
-        if (sys < 120 && dia < 80) return '🟢 Normal - Healthy BP, no current risk if no other factors.';
-        if (sys < 90 || dia < 60) return '⚠️ Low Blood Pressure - Not always dangerous. If accompanied by dizziness or fainting → needs evaluation.';
+        if (sys >= 180 || dia >= 120) return 'Hypertensive Crisis - Danger to brain, heart, kidneys. If severe headache, chest pain, shortness of breath → ER immediately.';
+        if (sys >= 140 || dia >= 90) return 'Stage 2 Hypertension - Clearly high, usually needs medication + lifestyle changes.';
+        if (sys >= 130 || dia >= 80) return 'Stage 1 Hypertension - Early high BP, may need monitoring or treatment depending on risk factors.';
+        if (sys >= 120 && sys <= 129 && dia < 80) return 'Elevated - Not yet hypertension, but early warning. Needs lifestyle changes (less salt, exercise, healthy weight).';
+        if (sys < 120 && dia < 80) return 'Normal - Healthy BP, no current risk if no other factors.';
+        if (sys < 90 || dia < 60) return 'Low Blood Pressure - Not always dangerous. If accompanied by dizziness or fainting → needs evaluation.';
         return '';
       }
 
@@ -1166,7 +1170,6 @@
 
       // ===== Render functions =====
 
-      // تحديث رأس الصفحة: زر المستخدم ورسالة الترحيب (بالإنجليزية)
       function updateHeader() {
         const { name } = getAuth();
         let firstName = name ? name.split(' ')[0] : 'Guest';
@@ -1437,7 +1440,6 @@
         }
       }
 
-      // ===== Render recent tables =====
       function renderRecentTables() {
         const glucoseTbody = $('recentGlucose');
         const bpTbody = $('recentBP');
@@ -1469,13 +1471,11 @@
         }).join('') || '<tr><td colspan="3" class="muted">No BP readings</td></tr>';
       }
 
-      // ===== Render Daily Points (Styling) =====
       function renderDailyPoints() {
         const glucoseContainer = $('glucosePoints');
         const bpContainer = $('bpPoints');
         if (!glucoseContainer || !bpContainer) return;
 
-        // تجميع القراءات لكل يوم خلال آخر 7 أيام
         const days = [];
         const today = new Date();
         for (let i = 6; i >= 0; i--) {
@@ -1485,7 +1485,6 @@
           days.push(day);
         }
 
-        // دالة مساعدة للحصول على قراءة اليوم (آخر قراءة في ذلك اليوم)
         function getReadingForDay(day, type) {
           const dayStart = new Date(day);
           const dayEnd = new Date(day);
@@ -1495,11 +1494,9 @@
             return d && r.type === type && d >= dayStart && d <= dayEnd;
           });
           if (readingsDay.length === 0) return null;
-          // نرجع آخر قراءة في ذلك اليوم
           return readingsDay.sort((a,b) => new Date(b.ts) - new Date(a.ts))[0];
         }
 
-        // إنشاء نقاط الجلوكوز
         let glucoseHtml = '';
         days.forEach(day => {
           const reading = getReadingForDay(day, 'glucose');
@@ -1529,7 +1526,6 @@
         });
         glucoseContainer.innerHTML = glucoseHtml;
 
-        // إنشاء نقاط ضغط الدم
         let bpHtml = '';
         days.forEach(day => {
           const reading = getReadingForDay(day, 'bp');
@@ -1561,7 +1557,6 @@
         });
         bpContainer.innerHTML = bpHtml;
 
-        // إضافة بعض الأنماط للنقاط الفارغة
         const style = document.createElement('style');
         style.innerHTML = `
           .point-circle.no-data {
@@ -1679,7 +1674,6 @@
       }
 
       // ===== Store: الفئات والمنتجات =====
-      // بيانات الفئات
       const categories = [
         { id: 'glucose-meters', name: 'Glucose Meters', icon: '🩸', count: 3, image: './images/glucose-meter.jpg' },
         { id: 'test-strips', name: 'Test Strips', icon: '📏', count: 4, image: '' },
@@ -1687,30 +1681,23 @@
         { id: 'lancets', name: 'Lancets', icon: '💉', count: 2, image: '' }
       ];
 
-      // بيانات المنتجات (مرتبطة بمعرّف الفئة)
       const products = [
-        // Glucose Meters
         { categoryId: 'glucose-meters', name: 'TRUE METRIX® Meter', price: '$29.99', image: './images/glucose-meter.jpg', price_id: 'price_1GlucoseMeter' },
         { categoryId: 'glucose-meters', name: 'Accu‑Chek Guide', price: '$34.99', image: '🩸', price_id: 'price_2GlucoseMeter' },
         { categoryId: 'glucose-meters', name: 'Contour Next', price: '$27.50', image: '🩸', price_id: 'price_3GlucoseMeter' },
-        // Test Strips
         { categoryId: 'test-strips', name: 'TRUE METRIX® Strips (50)', price: '$18.50', image: '📏', price_id: 'price_TestStrips1' },
         { categoryId: 'test-strips', name: 'Accu‑Chek Guide Strips (50)', price: '$21.99', image: '📏', price_id: 'price_TestStrips2' },
         { categoryId: 'test-strips', name: 'Contour Next Strips (50)', price: '$19.99', image: '📏', price_id: 'price_TestStrips3' },
         { categoryId: 'test-strips', name: 'OneTouch Ultra Strips (50)', price: '$22.99', image: '📏', price_id: 'price_TestStrips4' },
-        // BP Monitors
         { categoryId: 'bp-monitors', name: 'Omron Upper Arm', price: '$49.99', image: '❤️', price_id: 'price_BPMonitor1' },
         { categoryId: 'bp-monitors', name: 'Beurer Wrist', price: '$39.99', image: '❤️', price_id: 'price_BPMonitor2' },
         { categoryId: 'bp-monitors', name: 'Withings Wireless', price: '$79.99', image: '❤️', price_id: 'price_BPMonitor3' },
-        // Lancets
         { categoryId: 'lancets', name: 'TRUEplus Lancets (100)', price: '$9.99', image: '💉', price_id: 'price_Lancets1' },
         { categoryId: 'lancets', name: 'Accu‑Chek Softclix (100)', price: '$12.99', image: '💉', price_id: 'price_Lancets2' }
       ];
 
-      // حالة المتجر الحالية: null = عرض الفئات، أو categoryId
       let currentStoreCategory = null;
 
-      // عرض الفئات
       function renderStoreCategories() {
         currentStoreCategory = null;
         const container = $('store-container');
@@ -1731,7 +1718,6 @@
         container.innerHTML = html;
       }
 
-      // عرض منتجات فئة معينة
       window.selectCategory = (categoryId) => {
         currentStoreCategory = categoryId;
         const container = $('store-container');
@@ -1763,7 +1749,6 @@
         container.innerHTML = html;
       };
 
-      // ===== Handle Buy button: call server to create Stripe Checkout Session =====
       window.buyProduct = async function(priceId, btnElement) {
         if (!requireAuth()) return;
 
@@ -1827,7 +1812,7 @@
         clone.prepend(newHeader);
 
         const opt = {
-          margin:        [0.5, 0.5, 0.5, 0.5],
+          margin:        [0.4, 0.4, 0.4, 0.4],
           filename:      `Health_Report_${new Date().toISOString().slice(0,10)}.pdf`,
           image:         { type: 'jpeg', quality: 0.98 },
           html2canvas:   { scale: 2, letterRendering: true, useCORS: true, logging: false },
@@ -1847,7 +1832,6 @@
         const oldHead = clone.querySelector('.card-head');
         if (oldHead) oldHead.remove();
 
-        // إزالة الرأس الموجود داخل التقرير (إذا وجد) لتجنب التكرار
         const existingReportHeader = clone.querySelector('#reportContent .report-header');
         if (existingReportHeader) existingReportHeader.remove();
 
@@ -1868,7 +1852,7 @@
         clone.prepend(newHeader);
 
         const opt = {
-          margin:        [0.5, 0.5, 0.5, 0.5],
+          margin:        [0.4, 0.4, 0.4, 0.4],
           filename:      `Health_Report_${new Date().toISOString().slice(0,10)}.pdf`,
           image:         { type: 'jpeg', quality: 0.98 },
           html2canvas:   { scale: 2, letterRendering: true, useCORS: true, logging: false },
@@ -1908,7 +1892,7 @@
         updateInsights();
         renderRecentTables();
         renderReport();
-        renderDailyPoints(); // إضافة النقاط اليومية
+        renderDailyPoints();
         $('lastSync').textContent = `Updated ${new Date().toLocaleTimeString()}`;
       };
 
@@ -1916,13 +1900,11 @@
       async function init() {
         if (!requireAuth()) return;
         updateHeader();
-        // يتم عرض المتجر عند النقر على التبويب فقط
         await refreshAll();
       }
 
       init();
 
-      // جعل الدوال متاحة عالمياً للنقر من HTML
       window.renderStoreCategories = renderStoreCategories;
     })();
   </script>

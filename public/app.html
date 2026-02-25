@@ -151,7 +151,7 @@
       margin-bottom: 0;
       padding-bottom: 0;
     }
-    .report-period {
+    .report-label {
       font-weight: 600;
       font-size: 16px;
       color: #ccc;
@@ -207,7 +207,7 @@
         color: #111;
         border-left-color: #2c3e50;
       }
-      .report-period {
+      .report-label {
         color: #222;
       }
       .report-suggestion {
@@ -851,7 +851,7 @@
         return "Good evening";
       }
 
-      // ===== وصف الحالات بالإنجليزية =====
+      // ===== وصف الحالات بالإنجليزية (بدون تكرار التصنيف) =====
       function getGlucoseDescription(value, note) {
         const num = Number(value);
         if (isNaN(num)) return '';
@@ -860,19 +860,19 @@
         const isPostprandial = noteLower.includes('after meal') || noteLower.includes('aftermeal');
         
         if (isFasting) {
-          if (num < 70) return '🔴 Dangerous low (Hypoglycemia) - May cause dizziness, sweating, shaking, loss of consciousness.';
-          if (num >= 70 && num <= 99) return '🟢 Normal - Healthy level for non-diabetic.';
-          if (num >= 100 && num <= 125) return '🟡 Prediabetes - Warning sign, needs lifestyle changes.';
-          if (num >= 126) return '🔴 Diabetes - Official diagnosis if repeated.';
+          if (num < 70) return 'Dangerous low (Hypoglycemia) - May cause dizziness, sweating, shaking, loss of consciousness.';
+          if (num >= 70 && num <= 99) return 'Normal - Healthy level for non-diabetic.';
+          if (num >= 100 && num <= 125) return 'Prediabetes - Warning sign, needs lifestyle changes.';
+          if (num >= 126) return 'Diabetes - Official diagnosis if repeated.';
         } else if (isPostprandial) {
-          if (num < 140) return '🟢 Normal - 2 hours after meal.';
-          if (num >= 140 && num <= 199) return '🟡 Prediabetes - After meal.';
-          if (num >= 200) return '🔴 Likely Diabetes - After meal.';
+          if (num < 140) return 'Normal - 2 hours after meal.';
+          if (num >= 140 && num <= 199) return 'Prediabetes - After meal.';
+          if (num >= 200) return 'Likely Diabetes - After meal.';
         } else {
-          if (num < 70) return '🔴 Dangerous low (Hypoglycemia)';
-          if (num >= 70 && num <= 99) return '🟢 Normal';
-          if (num >= 100 && num <= 125) return '🟡 Prediabetes';
-          if (num >= 126) return '🔴 Diabetes';
+          if (num < 70) return 'Dangerous low (Hypoglycemia)';
+          if (num >= 70 && num <= 99) return 'Normal';
+          if (num >= 100 && num <= 125) return 'Prediabetes';
+          if (num >= 126) return 'Diabetes';
         }
         return '';
       }
@@ -883,12 +883,12 @@
         const sys = parts[0];
         const dia = parts[1];
         
-        if (sys >= 180 || dia >= 120) return '🚨 Hypertensive Crisis - Danger to brain, heart, kidneys. If severe headache, chest pain, shortness of breath → ER immediately.';
-        if (sys >= 140 || dia >= 90) return '🔴 Stage 2 Hypertension - Clearly high, usually needs medication + lifestyle changes.';
-        if (sys >= 130 || dia >= 80) return '🟠 Stage 1 Hypertension - Early high BP, may need monitoring or treatment depending on risk factors.';
-        if (sys >= 120 && sys <= 129 && dia < 80) return '🟡 Elevated - Not yet hypertension, but early warning. Needs lifestyle changes (less salt, exercise, healthy weight).';
-        if (sys < 120 && dia < 80) return '🟢 Normal - Healthy BP, no current risk if no other factors.';
-        if (sys < 90 || dia < 60) return '⚠️ Low Blood Pressure - Not always dangerous. If accompanied by dizziness or fainting → needs evaluation.';
+        if (sys >= 180 || dia >= 120) return 'Hypertensive Crisis - Danger to brain, heart, kidneys. If severe headache, chest pain, shortness of breath → ER immediately.';
+        if (sys >= 140 || dia >= 90) return 'Stage 2 Hypertension - Clearly high, usually needs medication + lifestyle changes.';
+        if (sys >= 130 || dia >= 80) return 'Stage 1 Hypertension - Early high BP, may need monitoring or treatment depending on risk factors.';
+        if (sys >= 120 && sys <= 129 && dia < 80) return 'Elevated - Not yet hypertension, but early warning. Needs lifestyle changes (less salt, exercise, healthy weight).';
+        if (sys < 120 && dia < 80) return 'Normal - Healthy BP, no current risk if no other factors.';
+        if (sys < 90 || dia < 60) return 'Low Blood Pressure - Not always dangerous. If accompanied by dizziness or fainting → needs evaluation.';
         return '';
       }
 
@@ -1555,7 +1555,7 @@
         document.head.appendChild(style);
       }
 
-      // ===== Report rendering with user name and print date =====
+      // ===== Report rendering with clean layout (no duplicates) =====
       function renderReport() {
         const container = $('reportContent');
         if (!container) return;
@@ -1621,9 +1621,11 @@
           const suggestion = getGlucoseDescription(value, '');
           return `
             <div class="report-row">
-              <span class="report-label">${label}:</span>
-              <span class="report-value ${status.colorClass}">${value}</span> ${arrow}
-              <span class="status-badge ${badgeClass}">${status.badgeText}</span>
+              <div class="report-label">${label}:</div>
+              <div>
+                <span class="report-value ${status.colorClass}">${value}</span> ${arrow}
+                <span class="status-badge ${badgeClass}">${status.badgeText}</span>
+              </div>
               <div class="report-suggestion">${suggestion}</div>
             </div>
           `;
@@ -1644,9 +1646,11 @@
           const suggestion = getBPDescription(bpString);
           return `
             <div class="report-row">
-              <span class="report-label">${label}:</span>
-              <span class="report-value ${status.colorClass}">${bpString}</span> ${arrow}
-              <span class="status-badge ${badgeClass}">${status.badgeText}</span>
+              <div class="report-label">${label}:</div>
+              <div>
+                <span class="report-value ${status.colorClass}">${bpString}</span> ${arrow}
+                <span class="status-badge ${badgeClass}">${status.badgeText}</span>
+              </div>
               <div class="report-suggestion">${suggestion}</div>
             </div>
           `;
@@ -1883,7 +1887,7 @@
         updateInsights();
         renderRecentTables();
         renderReport();
-        renderDailyPoints(); // إضافة النقاط اليومية
+        renderDailyPoints();
         $('lastSync').textContent = `Updated ${new Date().toLocaleTimeString()}`;
       };
 
@@ -1891,7 +1895,6 @@
       async function init() {
         if (!requireAuth()) return;
         updateHeader();
-        // يتم عرض المتجر عند النقر على التبويب فقط
         await refreshAll();
       }
 

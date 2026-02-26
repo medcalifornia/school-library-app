@@ -5,12 +5,34 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Health Tracker · Dashboard</title>
   <link rel="stylesheet" href="./style.css" />
-  <!-- مكتبة html2pdf لإنشاء ملفات PDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <style>
-    /* تحسينات إضافية للشارت والشارات */
-    .sv-chart { display: block; width: 100%; height: 100%; }
-    .sv-chart-wrap { touch-action: pan-y; user-select: none; }
+    /* Base color classes for glucose */
+    .glucose-normal { color: #2ecc71; }
+    .glucose-prediabetes { color: #f39c12; }
+    .glucose-diabetes { color: #e74c3c; }
+    
+    /* Base color classes for BP */
+    .bp-normal { color: #2ecc71; }
+    .bp-elevated { color: #f1c40f; }
+    .bp-stage1 { color: #f39c12; }
+    .bp-stage2 { color: #e74c3c; }
+    .bp-crisis { color: #9b59b6; }
+
+    /* Report grid layout */
+    .report-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    @media (min-width: 768px) {
+      .report-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    /* Chart tooltip */
     .chart-tooltip { 
       position: absolute; 
       background: rgba(0,0,0,0.8); 
@@ -27,7 +49,7 @@
     }
     .chart-tooltip.show { opacity: 1; }
     
-    /* شارات الحالات */
+    /* Status badges */
     .status-badge {
       display: inline-flex;
       align-items: center;
@@ -87,7 +109,7 @@
       margin-right: 2px;
     }
 
-    /* تقليل المسافات بين عناصر الـ appbar */
+    /* Appbar spacing */
     .appbar-actions {
       gap: 6px;
     }
@@ -98,7 +120,8 @@
     .icon-btn {
       padding: 6px 10px;
     }
-    /* إخفاء شريط Google Translate الافتراضي */
+    
+    /* Google Translate hide */
     .goog-te-banner-frame.skiptranslate { display: none !important; }
     body { top: 0 !important; }
     .goog-tooltip { display: none !important; }
@@ -108,7 +131,7 @@
     iframe.goog-te-banner-frame { display: none !important; }
     div.skiptranslate { display: none !important; }
 
-    /* ========== Report Tab Professional Design ========== */
+    /* Report styling */
     .report-header {
       margin-bottom: 24px;
       padding-bottom: 12px;
@@ -172,7 +195,7 @@
       border-radius: 10px;
     }
 
-    /* تحسين أنماط الطباعة: صفحة واحدة مع عمودين */
+    /* Print styles */
     @media print {
       @page {
         size: A4;
@@ -187,8 +210,8 @@
       }
       #tab-report {
         position: static;
-        background: white;
-        color: black;
+        background: white !important;
+        color: black !important;
         padding: 0;
         width: 100%;
         max-width: 100%;
@@ -200,19 +223,18 @@
       .appbar, .tabs, .toast, .card-head button, .footer, .pager {
         display: none !important;
       }
-      /* جعل الحاوية تستخدم flex لعرض القسمين جنباً إلى جنب */
       #tab-report .report-grid {
-        display: flex;
-        flex-wrap: nowrap;
+        display: flex !important;
+        flex-wrap: nowrap !important;
         gap: 10px;
         justify-content: space-between;
         page-break-inside: avoid;
       }
       #tab-report .report-section {
-        width: 48%;
-        background: #f9f9f9;
-        border: 1px solid #ddd;
-        color: black;
+        width: 48% !important;
+        background: #f9f9f9 !important;
+        border: 1px solid #ddd !important;
+        color: black !important;
         page-break-inside: avoid;
         margin-bottom: 0;
         padding: 8px;
@@ -225,7 +247,7 @@
       }
       .report-header h1 {
         font-size: 16pt;
-        color: black;
+        color: black !important;
         margin: 0 0 2px;
       }
       .report-header div {
@@ -280,9 +302,9 @@
       }
     }
 
-    /* ========== تقليل المسافات بين أزرار التبويب ========== */
+    /* Tabs spacing */
     .tabs {
-      gap: 4px; /* المسافة الأفقية بين الأزرار */
+      gap: 4px;
     }
     .tab {
       margin: 0;
@@ -290,7 +312,7 @@
       font-size: 14px;
     }
 
-    /* ========== تحسينات متجر احترافية ========== */
+    /* Store styling */
     .product-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -433,7 +455,6 @@
     .product-btn:active {
       transform: scale(0.98);
     }
-    /* تحسين عنوان المتجر */
     #tab-store .card-head h2 {
       font-size: 28px;
       background: linear-gradient(135deg, #fff, #b0c8ff);
@@ -451,9 +472,11 @@
       align-items: center;
       justify-content: space-between;
       padding: 0 16px;
+      flex-wrap: wrap;
+      gap: 10px;
     }
 
-    /* ========== Point Styling للقراءات اليومية ========== */
+    /* Daily points styling */
     .daily-points {
       margin-top: 24px;
       padding: 16px;
@@ -511,7 +534,6 @@
       color: #aaa;
       white-space: nowrap;
     }
-    /* ألوان النقاط */
     .glucose-point.normal { background-color: #2ecc71; }
     .glucose-point.prediabetes { background-color: #f39c12; }
     .glucose-point.diabetes { background-color: #e74c3c; }
@@ -520,6 +542,15 @@
     .bp-point.stage1 { background-color: #f39c12; }
     .bp-point.stage2 { background-color: #e74c3c; }
     .bp-point.crisis { background-color: #9b59b6; }
+    .point-circle.no-data {
+      background-color: #444;
+      opacity: 0.3;
+    }
+
+    /* Utility classes */
+    .hidden { display: none !important; }
+    .muted { color: #888; }
+    .small { font-size: 12px; }
   </style>
 </head>
 
@@ -705,18 +736,14 @@
             </div>
           </div>
 
-          <!-- Daily Points Styling -->
+          <!-- Daily Points -->
           <div class="daily-points" id="dailyPointsContainer">
             <div class="points-title">
               <span>📅 Last 7 Days</span>
               <span style="font-size:12px; color:#666;">(hover for details)</span>
             </div>
-            <div class="points-container" id="glucosePoints">
-              <!-- تملأ بواسطة JS -->
-            </div>
-            <div class="points-container" id="bpPoints" style="margin-top:12px;">
-              <!-- تملأ بواسطة JS -->
-            </div>
+            <div class="points-container" id="glucosePoints"></div>
+            <div class="points-container" id="bpPoints" style="margin-top:12px;"></div>
           </div>
 
           <div class="card-foot">
@@ -761,19 +788,15 @@
       </section>
     </section>
 
-    <!-- TAB: Report (محسّن: تمت إزالة العنوان الثابت والنص الوصفي) -->
+    <!-- TAB: Report -->
     <section id="tab-report" class="tab-panel">
       <section class="card">
-        <!-- رأس البطاقة يحتوي فقط على الأزرار بعد إزالة العنوان المكرر -->
         <div class="card-head" style="display: flex; justify-content: flex-end; align-items: center; gap: 8px;">
           <button class="btn secondary" onclick="shareReport()">📤 Share</button>
           <button class="btn primary" onclick="printReport()">🖨️ Print</button>
           <button class="btn secondary" onclick="saveReportAsPDF()">💾 Save</button>
         </div>
-        <!-- تمت إزالة السطر الوصفي "Average readings with suggestions" لأنه موجود ضمن التقرير نفسه -->
-        <div id="reportContent" class="report-grid">
-          <!-- يتم تعبئته بواسطة JavaScript -->
-        </div>
+        <div id="reportContent" class="report-grid"></div>
       </section>
     </section>
 
@@ -784,7 +807,6 @@
           <h2>Store</h2>
           <p class="muted">Diabetes & Blood Pressure essentials</p>
         </div>
-        <!-- حاوية الفئات / المنتجات -->
         <div id="store-container"></div>
       </section>
     </section>
@@ -797,10 +819,9 @@
     (function() {
       "use strict";
 
-      // --- DOM shortcuts ---
       const $ = id => document.getElementById(id);
 
-      // --- Toast ---
+      // Toast notification
       function toast(msg, type = 'ok') {
         const t = $('toast');
         t.textContent = msg;
@@ -809,7 +830,7 @@
         window.toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
       }
 
-      // --- Loading state ---
+      // Loading state
       function setLoading(btn, state) {
         if (btn) {
           btn.classList.toggle('loading', state);
@@ -817,18 +838,15 @@
         }
       }
 
-      // --- Escape HTML ---
+      // Escape HTML to prevent XSS
       function escapeHtml(unsafe) {
         if (unsafe == null) return '';
-        return String(unsafe)
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;')
-          .replace(/'/g, '&#039;');
+        const div = document.createElement('div');
+        div.textContent = String(unsafe);
+        return div.innerHTML;
       }
 
-      // --- Auth ---
+      // Auth helpers
       function getAuth() {
         return {
           userId: localStorage.getItem('userId') || '',
@@ -850,15 +868,17 @@
         window.location.href = './index.html';
       };
 
-      // --- Tab navigation ---
+      // Tab navigation
       window.showTab = name => {
         document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-        document.querySelector(`.tab[data-tab="${name}"]`).classList.add('active');
-        $(`tab-${name}`).classList.add('active');
-        // إذا تم اختيار المتجر، نعرض الفئات
+        document.querySelector(`.tab[data-tab="${name}"]`)?.classList.add('active');
+        $(`tab-${name}`)?.classList.add('active');
         if (name === 'store') {
           renderStoreCategories();
+        }
+        if (name === 'report') {
+          renderReport();
         }
       };
 
@@ -869,24 +889,24 @@
         const bpSeg = $('seg-bp');
 
         if (which === 'glucose') {
-          gForm.classList.remove('hidden');
-          bpForm.classList.add('hidden');
-          gSeg.classList.add('active');
-          bpSeg.classList.remove('active');
+          gForm?.classList.remove('hidden');
+          bpForm?.classList.add('hidden');
+          gSeg?.classList.add('active');
+          bpSeg?.classList.remove('active');
         } else {
-          bpForm.classList.remove('hidden');
-          gForm.classList.add('hidden');
-          bpSeg.classList.add('active');
-          gSeg.classList.remove('active');
+          bpForm?.classList.remove('hidden');
+          gForm?.classList.add('hidden');
+          bpSeg?.classList.add('active');
+          gSeg?.classList.remove('active');
         }
       };
 
-      // --- Global state ---
+      // Global state
       let allReadings = [];
       let currentPage = 1;
       const PAGE_SIZE = 10;
 
-      // --- Date helpers ---
+      // Date helpers
       function parseDate(ts) {
         const d = new Date(ts);
         return isNaN(d.getTime()) ? null : d;
@@ -896,7 +916,6 @@
         return d1.toDateString() === d2.toDateString();
       }
 
-      // ===== English greeting =====
       function getGreeting() {
         const hour = new Date().getHours();
         if (hour >= 5 && hour < 12) return "Good morning";
@@ -904,7 +923,7 @@
         return "Good evening";
       }
 
-      // ===== وصف الحالات بالإنجليزية =====
+      // Health status helpers
       function getGlucoseDescription(value, note) {
         const num = Number(value);
         if (isNaN(num)) return '';
@@ -945,7 +964,6 @@
         return '';
       }
 
-      // ===== Glucose Color Coding with Indicators =====
       function getGlucoseStatus(value, note = '') {
         const num = Number(value);
         if (isNaN(num)) return { category: 'unknown', colorClass: '', text: value, warning: false, trend: null, badgeText: '' };
@@ -1022,7 +1040,6 @@
         return { category, colorClass, value: num, warning, trend, badgeText };
       }
 
-      // ===== BP Color Coding with named badges =====
       function getBPStatus(bpString) {
         if (!bpString || typeof bpString !== 'string') {
           return { category: 'unknown', colorClass: '', explanation: '', sys: null, dia: null, warning: false, trend: null, badgeText: '' };
@@ -1076,36 +1093,6 @@
           warning = false;
           trend = 'down';
           badgeText = 'Normal';
-        } else {
-          if (sys >= 140 || dia >= 90) {
-            category = 'Stage 2';
-            colorClass = 'bp-stage2';
-            explanation = 'Stage 2 hypertension - may need medication';
-            warning = true;
-            trend = 'up';
-            badgeText = 'Stage 2';
-          } else if (sys >= 130 || dia >= 80) {
-            category = 'Stage 1';
-            colorClass = 'bp-stage1';
-            explanation = 'Stage 1 hypertension - monitor & lifestyle changes';
-            warning = false;
-            trend = null;
-            badgeText = 'Stage 1';
-          } else if (sys >= 120 && dia < 80) {
-            category = 'Elevated';
-            colorClass = 'bp-elevated';
-            explanation = 'Elevated (early warning)';
-            warning = false;
-            trend = null;
-            badgeText = 'Elevated';
-          } else {
-            category = 'Normal';
-            colorClass = 'bp-normal';
-            explanation = 'Excellent normal pressure';
-            warning = false;
-            trend = 'down';
-            badgeText = 'Normal';
-          }
         }
 
         return { 
@@ -1121,16 +1108,19 @@
         };
       }
 
-      // ===== API calls =====
+      // API calls
       window.saveGlucose = async () => {
         if (!requireAuth()) return;
         const { userId } = getAuth();
         const btn = document.querySelector('#form-glucose .btn.primary');
-        const value = $('glucoseValue').value.trim();
-        const note = $('glucoseNote').value;
+        const value = $('glucoseValue')?.value.trim();
+        const note = $('glucoseNote')?.value || '';
 
         const num = Number(value);
-        if (!value || isNaN(num) || num <= 0) return toast('Enter a valid glucose number', 'err');
+        if (!value || isNaN(num) || num <= 0) {
+          toast('Enter a valid glucose number', 'err');
+          return;
+        }
 
         try {
           setLoading(btn, true);
@@ -1139,12 +1129,13 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId, type: 'glucose', value: String(num), note })
           });
-          if (!res.ok) throw new Error();
+          if (!res.ok) throw new Error('Failed to save');
           $('glucoseValue').value = '';
           $('glucoseNote').value = '';
           toast('Glucose saved');
           await refreshAll();
-        } catch {
+        } catch (err) {
+          console.error(err);
           toast('Could not save glucose', 'err');
         } finally {
           setLoading(btn, false);
@@ -1155,13 +1146,14 @@
         if (!requireAuth()) return;
         const { userId } = getAuth();
         const btn = document.querySelector('#form-bp .btn.primary');
-        const sys = $('bpSys').value.trim();
-        const dia = $('bpDia').value.trim();
-        const note = $('bpNote').value;
+        const sys = $('bpSys')?.value.trim();
+        const dia = $('bpDia')?.value.trim();
+        const note = $('bpNote')?.value || '';
 
         const s = Number(sys), d = Number(dia);
         if (!sys || !dia || isNaN(s) || isNaN(d) || s <= 0 || d <= 0) {
-          return toast('Enter valid BP numbers', 'err');
+          toast('Enter valid BP numbers', 'err');
+          return;
         }
 
         try {
@@ -1171,13 +1163,14 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId, type: 'bp', value: `${s}/${d}`, note })
           });
-          if (!res.ok) throw new Error();
+          if (!res.ok) throw new Error('Failed to save');
           $('bpSys').value = '';
           $('bpDia').value = '';
           $('bpNote').value = '';
           toast('Blood pressure saved');
           await refreshAll();
-        } catch {
+        } catch (err) {
+          console.error(err);
           toast('Could not save BP', 'err');
         } finally {
           setLoading(btn, false);
@@ -1189,20 +1182,18 @@
         const { userId } = getAuth();
         try {
           const res = await fetch(`/api/readings/${encodeURIComponent(userId)}`);
-          if (!res.ok) throw new Error();
+          if (!res.ok) throw new Error('Failed to fetch');
           const data = await res.json();
           allReadings = Array.isArray(data) ? data.sort((a, b) => new Date(b.ts) - new Date(a.ts)) : [];
-          console.log('Readings loaded:', allReadings);
-        } catch {
+        } catch (err) {
+          console.error(err);
           toast('Failed to load readings', 'err');
           allReadings = [];
         }
         return allReadings;
       }
 
-      // ===== Render functions =====
-
-      // تحديث رأس الصفحة: زر المستخدم ورسالة الترحيب (بالإنجليزية)
+      // Render functions
       function updateHeader() {
         const { name } = getAuth();
         let firstName = name ? name.split(' ')[0] : 'Guest';
@@ -1335,22 +1326,27 @@
               <td data-label="Description" class="description-cell">${escapeHtml(description)}</td>
               <td data-label="Note" class="note-cell">${escapeHtml(r.note || '')}</td>
               <td data-label="Actions" class="td-actions">
-                <button class="mini-btn" onclick="editReading('${r.id}', '${escapeHtml(r.value)}', '${escapeHtml(r.note || '')}')" aria-label="Edit">
-                  <span class="btn-text">Edit</span>
-                </button>
-                <button class="mini-btn danger" onclick="deleteReading('${r.id}')" aria-label="Delete">
-                  <span class="btn-text">Delete</span>
-                </button>
+                <button class="mini-btn" onclick="editReading('${escapeHtml(r.id)}', '${escapeHtml(r.value)}', '${escapeHtml(r.note || '')}')" aria-label="Edit">✏️</button>
+                <button class="mini-btn danger" onclick="deleteReading('${escapeHtml(r.id)}')" aria-label="Delete">🗑️</button>
               </td>
             </tr>
           `;
         }).join('');
       }
 
-      window.prevPage = () => { if (currentPage > 1) { currentPage--; renderHistory(); } };
+      window.prevPage = () => { 
+        if (currentPage > 1) { 
+          currentPage--; 
+          renderHistory(); 
+        } 
+      };
+      
       window.nextPage = () => {
         const total = Math.ceil(allReadings.length / PAGE_SIZE);
-        if (currentPage < total) { currentPage++; renderHistory(); }
+        if (currentPage < total) { 
+          currentPage++; 
+          renderHistory(); 
+        }
       };
 
       window.editReading = async (id, currentVal, currentNote) => {
@@ -1367,11 +1363,12 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId, value: newVal.trim(), note: (newNote || '').trim() })
           });
-          if (!res.ok) throw new Error();
+          if (!res.ok) throw new Error('Update failed');
           toast('Updated');
           await refreshAll();
           showTab('history');
-        } catch {
+        } catch (err) {
+          console.error(err);
           toast('Update failed', 'err');
         }
       };
@@ -1387,10 +1384,11 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId })
           });
-          if (!res.ok) throw new Error();
+          if (!res.ok) throw new Error('Delete failed');
           toast('Deleted');
           await refreshAll();
-        } catch {
+        } catch (err) {
+          console.error(err);
           toast('Delete failed', 'err');
         }
       };
@@ -1473,7 +1471,6 @@
         }
       }
 
-      // ===== Render recent tables =====
       function renderRecentTables() {
         const glucoseTbody = $('recentGlucose');
         const bpTbody = $('recentBP');
@@ -1505,13 +1502,11 @@
         }).join('') || '<tr><td colspan="3" class="muted">No BP readings</td></tr>';
       }
 
-      // ===== Render Daily Points (Styling) =====
       function renderDailyPoints() {
         const glucoseContainer = $('glucosePoints');
         const bpContainer = $('bpPoints');
         if (!glucoseContainer || !bpContainer) return;
 
-        // تجميع القراءات لكل يوم خلال آخر 7 أيام
         const days = [];
         const today = new Date();
         for (let i = 6; i >= 0; i--) {
@@ -1521,7 +1516,6 @@
           days.push(day);
         }
 
-        // دالة مساعدة للحصول على قراءة اليوم (آخر قراءة في ذلك اليوم)
         function getReadingForDay(day, type) {
           const dayStart = new Date(day);
           const dayEnd = new Date(day);
@@ -1531,11 +1525,9 @@
             return d && r.type === type && d >= dayStart && d <= dayEnd;
           });
           if (readingsDay.length === 0) return null;
-          // نرجع آخر قراءة في ذلك اليوم
           return readingsDay.sort((a,b) => new Date(b.ts) - new Date(a.ts))[0];
         }
 
-        // إنشاء نقاط الجلوكوز
         let glucoseHtml = '';
         days.forEach(day => {
           const reading = getReadingForDay(day, 'glucose');
@@ -1557,7 +1549,7 @@
             <div class="point-column">
               <div class="point-day">${dayLabel}</div>
               <div class="point-value">
-                <div class="point-circle ${pointClass}" title="${title}"></div>
+                <div class="point-circle ${pointClass}" title="${escapeHtml(title)}"></div>
                 <span class="point-label">${valueText}</span>
               </div>
             </div>
@@ -1565,7 +1557,6 @@
         });
         glucoseContainer.innerHTML = glucoseHtml;
 
-        // إنشاء نقاط ضغط الدم
         let bpHtml = '';
         days.forEach(day => {
           const reading = getReadingForDay(day, 'bp');
@@ -1589,26 +1580,15 @@
             <div class="point-column">
               <div class="point-day">${dayLabel}</div>
               <div class="point-value">
-                <div class="point-circle ${pointClass}" title="${title}"></div>
+                <div class="point-circle ${pointClass}" title="${escapeHtml(title)}"></div>
                 <span class="point-label">${valueText}</span>
               </div>
             </div>
           `;
         });
         bpContainer.innerHTML = bpHtml;
-
-        // إضافة بعض الأنماط للنقاط الفارغة
-        const style = document.createElement('style');
-        style.innerHTML = `
-          .point-circle.no-data {
-            background-color: #444;
-            opacity: 0.3;
-          }
-        `;
-        document.head.appendChild(style);
       }
 
-      // ===== Report rendering with user name and print date =====
       function renderReport() {
         const container = $('reportContent');
         if (!container) return;
@@ -1714,8 +1694,7 @@
         container.innerHTML = html;
       }
 
-      // ===== Store: الفئات والمنتجات =====
-      // بيانات الفئات
+      // Store data
       const categories = [
         { id: 'glucose-meters', name: 'Glucose Meters', icon: '🩸', count: 3, image: './images/glucose-meter.jpg' },
         { id: 'test-strips', name: 'Test Strips', icon: '📏', count: 4, image: '' },
@@ -1723,30 +1702,23 @@
         { id: 'lancets', name: 'Lancets', icon: '💉', count: 2, image: '' }
       ];
 
-      // بيانات المنتجات (مرتبطة بمعرّف الفئة)
       const products = [
-        // Glucose Meters
         { categoryId: 'glucose-meters', name: 'TRUE METRIX® Meter', price: '$29.99', image: './images/glucose-meter.jpg', price_id: 'price_1GlucoseMeter' },
         { categoryId: 'glucose-meters', name: 'Accu‑Chek Guide', price: '$34.99', image: '🩸', price_id: 'price_2GlucoseMeter' },
         { categoryId: 'glucose-meters', name: 'Contour Next', price: '$27.50', image: '🩸', price_id: 'price_3GlucoseMeter' },
-        // Test Strips
         { categoryId: 'test-strips', name: 'TRUE METRIX® Strips (50)', price: '$18.50', image: '📏', price_id: 'price_TestStrips1' },
         { categoryId: 'test-strips', name: 'Accu‑Chek Guide Strips (50)', price: '$21.99', image: '📏', price_id: 'price_TestStrips2' },
         { categoryId: 'test-strips', name: 'Contour Next Strips (50)', price: '$19.99', image: '📏', price_id: 'price_TestStrips3' },
         { categoryId: 'test-strips', name: 'OneTouch Ultra Strips (50)', price: '$22.99', image: '📏', price_id: 'price_TestStrips4' },
-        // BP Monitors
         { categoryId: 'bp-monitors', name: 'Omron Upper Arm', price: '$49.99', image: '❤️', price_id: 'price_BPMonitor1' },
         { categoryId: 'bp-monitors', name: 'Beurer Wrist', price: '$39.99', image: '❤️', price_id: 'price_BPMonitor2' },
         { categoryId: 'bp-monitors', name: 'Withings Wireless', price: '$79.99', image: '❤️', price_id: 'price_BPMonitor3' },
-        // Lancets
         { categoryId: 'lancets', name: 'TRUEplus Lancets (100)', price: '$9.99', image: '💉', price_id: 'price_Lancets1' },
         { categoryId: 'lancets', name: 'Accu‑Chek Softclix (100)', price: '$12.99', image: '💉', price_id: 'price_Lancets2' }
       ];
 
-      // حالة المتجر الحالية: null = عرض الفئات، أو categoryId
       let currentStoreCategory = null;
 
-      // عرض الفئات
       function renderStoreCategories() {
         currentStoreCategory = null;
         const container = $('store-container');
@@ -1754,11 +1726,11 @@
 
         let html = '<div class="category-grid">';
         categories.forEach(cat => {
-          const imageHtml = cat.image ? `<img src="${cat.image}" alt="${cat.name}">` : `<div>${cat.icon}</div>`;
+          const imageHtml = cat.image ? `<img src="${escapeHtml(cat.image)}" alt="${escapeHtml(cat.name)}" onerror="this.parentElement.innerHTML='<div>${cat.icon}</div>'">` : `<div>${cat.icon}</div>`;
           html += `
-            <div class="category-card" onclick="selectCategory('${cat.id}')">
+            <div class="category-card" onclick="selectCategory('${escapeHtml(cat.id)}')">
               <div class="category-image">${imageHtml}</div>
-              <div class="category-title">${cat.name}</div>
+              <div class="category-title">${escapeHtml(cat.name)}</div>
               <div class="category-count">${cat.count} products</div>
             </div>
           `;
@@ -1767,7 +1739,6 @@
         container.innerHTML = html;
       }
 
-      // عرض منتجات فئة معينة
       window.selectCategory = (categoryId) => {
         currentStoreCategory = categoryId;
         const container = $('store-container');
@@ -1778,19 +1749,21 @@
         let html = `
           <div id="category-header">
             <button class="back-btn" onclick="renderStoreCategories()">← Back to Categories</button>
-            <h3 style="color:white; margin:0;">${category.name}</h3>
+            <h3 style="color:white; margin:0;">${escapeHtml(category.name)}</h3>
           </div>
           <div class="product-grid">
         `;
 
         categoryProducts.forEach(p => {
-          const imageHtml = p.image && p.image.startsWith('./') ? `<img src="${p.image}" alt="${p.name}">` : `<div>${p.image}</div>`;
+          const imageHtml = p.image && p.image.startsWith('./') ? 
+            `<img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" onerror="this.parentElement.innerHTML='<div>🩸</div>'">` : 
+            `<div>${p.image}</div>`;
           html += `
             <div class="product-card">
               <div class="product-image">${imageHtml}</div>
-              <div class="product-title">${p.name}</div>
-              <div class="product-price">${p.price}</div>
-              <button class="product-btn" onclick="buyProduct('${p.price_id}', this)">Buy</button>
+              <div class="product-title">${escapeHtml(p.name)}</div>
+              <div class="product-price">${escapeHtml(p.price)}</div>
+              <button class="product-btn" onclick="buyProduct('${escapeHtml(p.price_id)}', this)">Buy</button>
             </div>
           `;
         });
@@ -1799,7 +1772,6 @@
         container.innerHTML = html;
       };
 
-      // ===== Handle Buy button: call server to create Stripe Checkout Session =====
       window.buyProduct = async function(priceId, btnElement) {
         if (!requireAuth()) return;
 
@@ -1827,13 +1799,13 @@
           const { sessionUrl } = await response.json();
           window.location.href = sessionUrl;
         } catch (error) {
+          console.error(error);
           toast('Payment initiation failed: ' + error.message, 'err');
           btnElement.innerText = originalText;
           btnElement.disabled = false;
         }
       };
 
-      // ===== Save report as PDF (single page, clean header) =====
       window.saveReportAsPDF = function() {
         const card = document.querySelector('#tab-report .card');
         if (!card) return;
@@ -1842,7 +1814,6 @@
         const oldHead = clone.querySelector('.card-head');
         if (oldHead) oldHead.remove();
 
-        // إزالة الرأس الموجود داخل التقرير (إذا وجد) لتجنب التكرار
         const existingReportHeader = clone.querySelector('#reportContent .report-header');
         if (existingReportHeader) existingReportHeader.remove();
 
@@ -1874,7 +1845,6 @@
         html2pdf().set(opt).from(clone).save();
       };
 
-      // ===== Share report as PDF =====
       window.shareReport = function() {
         const card = document.querySelector('#tab-report .card');
         if (!card) return;
@@ -1883,7 +1853,6 @@
         const oldHead = clone.querySelector('.card-head');
         if (oldHead) oldHead.remove();
 
-        // إزالة الرأس الموجود داخل التقرير (إذا وجد) لتجنب التكرار
         const existingReportHeader = clone.querySelector('#reportContent .report-header');
         if (existingReportHeader) existingReportHeader.remove();
 
@@ -1920,6 +1889,7 @@
               title: 'Health Report',
               files: [file]
             }).catch(err => {
+              console.error(err);
               toast('Sharing failed: ' + err.message, 'err');
               pdf.save(opt.filename);
             });
@@ -1930,12 +1900,10 @@
         });
       };
 
-      // ===== Print report =====
       window.printReport = function() {
         window.print();
       };
 
-      // ===== Refresh All =====
       window.refreshAll = async () => {
         console.log('🔄 Refreshing...');
         await loadReadings();
@@ -1943,22 +1911,18 @@
         renderHistory();
         updateInsights();
         renderRecentTables();
-        renderReport();
-        renderDailyPoints(); // إضافة النقاط اليومية
+        renderDailyPoints();
         $('lastSync').textContent = `Updated ${new Date().toLocaleTimeString()}`;
       };
 
-      // ===== Initialize =====
       async function init() {
         if (!requireAuth()) return;
         updateHeader();
-        // يتم عرض المتجر عند النقر على التبويب فقط
         await refreshAll();
       }
 
       init();
 
-      // جعل الدوال متاحة عالمياً للنقر من HTML
       window.renderStoreCategories = renderStoreCategories;
     })();
   </script>
